@@ -1,0 +1,15 @@
+Critical Errors
+
+None detected
+
+Warnings
+
+1. The fixed parameter 'unused_constant' defined in the XML is not used anywhere in any of the user functions. It is recommended to remove unused parameters from the definitions or add their usage if they are required for clarity or for later model extensions.
+
+2. In _compute_loss_problem, the loss function is defined as `np.sqrt(np.mean(np.square(np.divide(solution - dataset,scale_factor))))`. The division by the maximum value along axis 0 rescales the loss, but depending on your data, this could result in a loss much less than 1 or in rare cases cause unexpected behavior if there are zero entries (although max should guard against zeros unless your data has all zeros along any column). Consider verifying the range of your data and ensuring that the scaling achieves your anticipated normalization.
+
+3. All trainable parameters k1, k2, and k3 are set to use log scale search in the XML. This is appropriate and flagged for your awareness, since k2 and k3, in particular, span many orders of magnitude.
+
+4. The writeout_description function sets up an output with shape [Nts, 6] (Nts = number of timesteps), fills the first three columns with dataset and the next three with solution. Ensure this is the intended writeout structure for your post-processing and plotting: the ordering between columns and data is meaningful.
+
+Number of critical errors: 0

@@ -1,0 +1,97 @@
+<?xml version="1.0" ?>
+<FIT>
+    <!--
+        Theophylline pharmacokinetics — Subject 6 from the R Theoph dataset
+        (Boeckmann, Sheiner & Beal 1994; Upton study)
+
+        Subject 6: weight = 80 kg, oral dose = 4 mg/kg → total dose = 320 mg
+
+        2-compartment oral PK model:
+            dA_gut/dt    = -ka * A_gut
+            dA_plasma/dt =  ka * A_gut - ke * A_plasma
+            C_obs        =  A_plasma / Vd
+
+        Published population PK values:
+            ka  ~ 1.5  h^-1
+            ke  ~ 0.086 h^-1
+            Vd  ~ 37.6 L  (= 0.47 L/kg * 80 kg)
+
+        CSV columns: time (h), C_plasma_obs (mg/L)
+        Solution states: A_gut (mg), A_plasma (mg)
+        Loss maps A_plasma / Vd → C_plasma for comparison with dataset col 0
+    -->
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = theophylline_sub6.csv </E>
+        </FILENAME>
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 3 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <!-- ka: absorption rate constant (h^-1), published ~1.5 -->
+            <PARAM>
+                <P> PARAMETER_NAME = ka </P>
+                <P> MIN_VAL = 0.1 </P>
+                <P> MAX_VAL = 10.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <!-- ke: elimination rate constant (h^-1), published ~0.086 -->
+            <PARAM>
+                <P> PARAMETER_NAME = ke </P>
+                <P> MIN_VAL = 0.01 </P>
+                <P> MAX_VAL = 1.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <!-- Vd: apparent volume of distribution (L), published ~37.6 for this subject -->
+            <PARAM>
+                <P> PARAMETER_NAME = Vd </P>
+                <P> MIN_VAL = 5.0 </P>
+                <P> MAX_VAL = 150.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+        <FIXED_PARAM_DESCRIPTION>
+        </FIXED_PARAM_DESCRIPTION>
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <!-- A_gut: drug amount in GI tract (mg); initial = dose * weight = 4 mg/kg * 80 kg -->
+            <VAR>
+                <P> NAME = A_gut </P>
+                <P> INIT_VAL = 320.0 </P>
+            </VAR>
+            <!-- A_plasma: drug amount in central compartment (mg); not directly observed -->
+            <VAR>
+                <P> NAME = A_plasma </P>
+                <P> INIT_VAL = 0.0 </P>
+            </VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> NUM_PARTICLES = 100 </P>
+            <P> NUM_ITERS = 20 </P>
+            <P> PROCESSORS = 8 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 20 </P>
+            <P> STEPSIZE_RTOL = 1e-6,1e-6 </P>
+            <P> STEPSIZE_ATOL = 1e-9,1e-9 </P>
+            <P> INITIAL_TIMESTEP = 0.01 </P>
+            <P> MAX_STEPS = 5000 </P>
+            <P> INIT_VALUE_LR = 1e-3 </P>
+            <P> END_VALUE_LR = 1e-4 </P>
+            <P> TRANSITION_STEPS_LR = 1000 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>

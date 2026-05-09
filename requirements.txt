@@ -1,0 +1,11 @@
+diffrax
+equinox
+jax
+matplotlib
+numpy
+optax
+pandas
+pyswarms
+python-dotenv
+pytest
+pyyaml

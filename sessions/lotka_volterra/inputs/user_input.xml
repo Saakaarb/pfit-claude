@@ -1,0 +1,84 @@
+<?xml version="1.0" ?>
+<FIT>
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = lynx_hare.csv </E>
+        </FILENAME>
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 4 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <!-- alpha: hare birth rate (yr^-1), published fit ~0.55 -->
+            <PARAM>
+                <P> PARAMETER_NAME = alpha </P>
+                <P> MIN_VAL = 0.1 </P>
+                <P> MAX_VAL = 2.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <!-- beta: predation rate, published fit ~0.028 -->
+            <PARAM>
+                <P> PARAMETER_NAME = beta </P>
+                <P> MIN_VAL = 0.001 </P>
+                <P> MAX_VAL = 0.5 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <!-- delta: prey-to-predator conversion efficiency, published fit ~0.024 -->
+            <PARAM>
+                <P> PARAMETER_NAME = delta </P>
+                <P> MIN_VAL = 0.001 </P>
+                <P> MAX_VAL = 0.5 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <!-- gamma: lynx death rate (yr^-1), published fit ~0.80 -->
+            <PARAM>
+                <P> PARAMETER_NAME = gamma </P>
+                <P> MIN_VAL = 0.1 </P>
+                <P> MAX_VAL = 2.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+        <FIXED_PARAM_DESCRIPTION>
+        </FIXED_PARAM_DESCRIPTION>
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <!-- col 1 in CSV: hare population (thousands) -->
+            <VAR>
+                <P> NAME = H </P>
+                <P> INIT_VAL = 30.0 </P>
+            </VAR>
+            <!-- col 2 in CSV: lynx population (thousands) -->
+            <VAR>
+                <P> NAME = L </P>
+                <P> INIT_VAL = 4.0 </P>
+            </VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> NUM_PARTICLES = 100 </P>
+            <P> NUM_ITERS = 30 </P>
+            <P> PROCESSORS = 8 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 20 </P>
+            <P> STEPSIZE_RTOL = 1e-6,1e-6 </P>
+            <P> STEPSIZE_ATOL = 1e-8,1e-8 </P>
+            <P> INITIAL_TIMESTEP = 0.01 </P>
+            <P> MAX_STEPS = 5000 </P>
+            <P> INIT_VALUE_LR = 1e-3 </P>
+            <P> END_VALUE_LR = 1e-4 </P>
+            <P> TRANSITION_STEPS_LR = 1000 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>

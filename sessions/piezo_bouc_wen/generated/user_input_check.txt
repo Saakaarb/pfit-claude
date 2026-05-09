@@ -1,0 +1,20 @@
+Issues
+
+1. The parameter "kp" search range is from 2.5E7 to 3.0E7 and "de" is from 1E-7 to 1.5E-7, both have MAX_VAL/MIN_VAL reasonably close (a factor of 1.2 for kp, 1.5 for de), so NOT using LOGSCALE is justified. However, if "de" were to ever span below 1E-7, consider using LOGSCALE in the future.
+2. In the function `writeout_description`, the trainable parameter dictionary keys are written as `trainable_parameters[&amp;amp;amp;#39;alpha&amp;amp;amp;#39;]`, etc. This should be `trainable_parameters['alpha']` for all parameters to avoid syntax errors during code translation.
+3. Indentation in the `writeout_description` function is inconsistent (e.g., the V_func is not aligned). While this does not impact the check, it might confuse the code conversion process. Ensure consistent indentation for accurate translation.
+4. In `writeout_description`, the `writeout_array` is hardcoded to shape [Nts, 5]—ensure this matches your intended number of writeout columns as requirements change.
+5. There are small tabs before some variable assignments and function definitions in the script (e.g., under `user_defined_system` and `writeout_description`), which may cause trouble during translation. While this is not a blocking issue for pseudocode, please check for consistent formatting.
+6. No fixed parameters are defined or used, which is consistent between your XML and code.
+7. No variables are present in both trainable parameters, fixed parameters, and integrated variables—no naming collisions.
+
+Checked
+
+- All trainable parameters ['alpha', 'beta', 'gamma', 'mp', 'cp', 'kp', 'de'] are present in the XML and properly used in the pseudocode.
+- All integrable variables ['xp', 'vp', 'h'] are present in the XML, given as solution indices, and their time derivatives correctly defined and returned in `user_defined_system`.
+- There are no missing or mismatched variable names across the XML and pseudocode.
+- The loss function returns a scalar and is scaled according to the maximum absolute value of the experimental displacement, likely ensuring the loss is between 0 and 1.
+- All optimization settings in the XML (population and gradient) are within reasonable ranges for a typical population-based and gradient-based fit.
+- Writeout Instructions: Writeout Instructions not ignored (WRITE_RESULTS = Y), function properly returns an array for output.
+- All fixed/trainable/integrated parameter names are pythonic and reasonable.
+- No logical or mathematical inconsistencies found in the ODE system or loss definition.

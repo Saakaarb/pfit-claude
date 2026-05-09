@@ -1,0 +1,91 @@
+<?xml version="1.0" ?>
+<FIT>
+    <!--
+        MAPK/ERK Cascade — Kholodenko (2000)
+        Eur. J. Biochemistry 267:1583-1588. BioModels BIOMD0000000026
+
+        11 ODEs (mass-action kinetics: M, Mp, Mpp, MAPKK, MKP3 + 6 complexes)
+        16 kinetic parameters (k1-k4, k_1,k_3, h1-h6, h_1,h_3,h_4,h_6)
+        Observable: Mpp (doubly phosphorylated MAPK = active ERK)
+
+        Published reference values (Kholodenko 2000, Table 1):
+            k1=0.02, k_1=1.0, k2=0.01, k3=0.032, k_3=1.0, k4=15.0
+            h1=0.045, h_1=1.0, h2=0.092, h3=1.0, h_3=0.01
+            h4=0.01, h_4=1.0, h5=0.5, h6=0.086, h_6=0.0011
+
+        CSV: time (arb. units), Mpp (nM)  [101 pts, 0-100]
+        Solution states: [M, Mp, Mpp, MAPKK, MKP3, M_MAPKK, Mp_MAPKK,
+                          Mpp_MKP3, Mp_MKP3_dep, Mp_MKP3, M_MKP3]
+        Loss uses solution[:,2] (Mpp) vs dataset[:,0]
+    -->
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = mapk_data.csv </E>
+        </FILENAME>
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 16 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <PARAM><P> PARAMETER_NAME = k1  </P><P> MIN_VAL = 0.001 </P><P> MAX_VAL = 1.0   </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = k_1 </P><P> MIN_VAL = 0.01  </P><P> MAX_VAL = 100.0 </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = k2  </P><P> MIN_VAL = 0.001 </P><P> MAX_VAL = 1.0   </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = k3  </P><P> MIN_VAL = 0.001 </P><P> MAX_VAL = 1.0   </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = k_3 </P><P> MIN_VAL = 0.01  </P><P> MAX_VAL = 100.0 </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = k4  </P><P> MIN_VAL = 1.0   </P><P> MAX_VAL = 1000.0</P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = h1  </P><P> MIN_VAL = 0.001 </P><P> MAX_VAL = 1.0   </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = h_1 </P><P> MIN_VAL = 0.01  </P><P> MAX_VAL = 100.0 </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = h2  </P><P> MIN_VAL = 0.001 </P><P> MAX_VAL = 1.0   </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = h3  </P><P> MIN_VAL = 0.01  </P><P> MAX_VAL = 100.0 </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = h_3 </P><P> MIN_VAL = 0.0001</P><P> MAX_VAL = 1.0   </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = h4  </P><P> MIN_VAL = 0.0001</P><P> MAX_VAL = 1.0   </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = h_4 </P><P> MIN_VAL = 0.01  </P><P> MAX_VAL = 100.0 </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = h5  </P><P> MIN_VAL = 0.01  </P><P> MAX_VAL = 10.0  </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = h6  </P><P> MIN_VAL = 0.001 </P><P> MAX_VAL = 1.0   </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = h_6 </P><P> MIN_VAL = 0.0001</P><P> MAX_VAL = 0.1   </P><P> LOGSCALE = Y </P></PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+        <FIXED_PARAM_DESCRIPTION>
+        </FIXED_PARAM_DESCRIPTION>
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <VAR><P> NAME = M           </P><P> INIT_VAL = 500.0 </P></VAR>
+            <VAR><P> NAME = Mp          </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = Mpp         </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = MAPKK       </P><P> INIT_VAL = 50.0  </P></VAR>
+            <VAR><P> NAME = MKP3        </P><P> INIT_VAL = 100.0 </P></VAR>
+            <VAR><P> NAME = M_MAPKK     </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = Mp_MAPKK    </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = Mpp_MKP3    </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = Mp_MKP3_dep </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = Mp_MKP3     </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = M_MKP3      </P><P> INIT_VAL = 0.0   </P></VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> NUM_PARTICLES = 200 </P>
+            <P> NUM_ITERS = 50 </P>
+            <P> PROCESSORS = 8 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 30 </P>
+            <P> STEPSIZE_RTOL = 1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6 </P>
+            <P> STEPSIZE_ATOL = 1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9 </P>
+            <P> INITIAL_TIMESTEP = 0.01 </P>
+            <P> MAX_STEPS = 10000 </P>
+            <P> INIT_VALUE_LR = 1e-3 </P>
+            <P> END_VALUE_LR = 1e-4 </P>
+            <P> TRANSITION_STEPS_LR = 2000 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>

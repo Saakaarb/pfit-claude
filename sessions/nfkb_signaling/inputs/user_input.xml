@@ -1,0 +1,132 @@
+<?xml version="1.0" ?>
+<FIT>
+    <!--
+        NF-kB Signaling — Lipniacki et al. (2004), J. Theor. Biol. 228:195
+        BioModels BIOMD0000000140
+
+        24 ODEs (IkB isoforms, NF-kB, IKK complexes, transcripts, nuclear species)
+        Fitting 10 key parameters that control oscillation dynamics.
+        Remaining 28 parameters fixed at published values.
+        Observable: NFkB_nuc (nuclear NF-kB, index 14)
+        IKK(0) = 0.2 represents TNF/LPS stimulus at t=0.
+
+        Published values of fitted parameters:
+            k1   = 5.4     (NF-kB cytoplasm->nucleus import rate)
+            k01  = 0.0048  (NF-kB nucleus->cytoplasm export rate)
+            tr1  = 0.2448  (IkB mRNA translation rate)
+            tr2  = 0.99    (NF-kB-driven IkBa transcription rate)
+            tr3  = 0.0168  (IkB mRNA degradation rate)
+            deg1 = 0.00678 (IkBa degradation rate)
+            tp1  = 0.018   (IkBa cytoplasm->nucleus transport)
+            tp2  = 0.012   (IkBa nucleus->cytoplasm transport)
+            r4   = 1.224   (IKK-IkBa-NFkB complex -> NFkB + IKK)
+            k2   = 0.828   (nuclear IkBa-NFkB -> cytoplasm export)
+
+        CSV: time (hours, 0-5), NFkB_nuc (151 pts)
+    -->
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = nfkb_data.csv </E>
+        </FILENAME>
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 10 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <PARAM><P> PARAMETER_NAME = k1   </P><P> MIN_VAL = 0.1    </P><P> MAX_VAL = 100.0  </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = k01  </P><P> MIN_VAL = 0.0001 </P><P> MAX_VAL = 0.1    </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = tr1  </P><P> MIN_VAL = 0.01   </P><P> MAX_VAL = 10.0   </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = tr2  </P><P> MIN_VAL = 0.01   </P><P> MAX_VAL = 100.0  </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = tr3  </P><P> MIN_VAL = 0.001  </P><P> MAX_VAL = 1.0    </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = deg1 </P><P> MIN_VAL = 0.0001 </P><P> MAX_VAL = 0.1    </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = tp1  </P><P> MIN_VAL = 0.001  </P><P> MAX_VAL = 1.0    </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = tp2  </P><P> MIN_VAL = 0.001  </P><P> MAX_VAL = 1.0    </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = r4   </P><P> MIN_VAL = 0.01   </P><P> MAX_VAL = 100.0  </P><P> LOGSCALE = Y </P></PARAM>
+            <PARAM><P> PARAMETER_NAME = k2   </P><P> MIN_VAL = 0.01   </P><P> MAX_VAL = 100.0  </P><P> LOGSCALE = Y </P></PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+        <FIXED_PARAM_DESCRIPTION>
+            <PARAM><P> NAME = a4    </P><P> VALUE = 30.0     </P></PARAM>
+            <PARAM><P> NAME = d4    </P><P> VALUE = 0.03     </P></PARAM>
+            <PARAM><P> NAME = a5    </P><P> VALUE = 30.0     </P></PARAM>
+            <PARAM><P> NAME = d5    </P><P> VALUE = 0.03     </P></PARAM>
+            <PARAM><P> NAME = a6    </P><P> VALUE = 30.0     </P></PARAM>
+            <PARAM><P> NAME = d6    </P><P> VALUE = 0.03     </P></PARAM>
+            <PARAM><P> NAME = r5    </P><P> VALUE = 0.45     </P></PARAM>
+            <PARAM><P> NAME = r6    </P><P> VALUE = 0.66     </P></PARAM>
+            <PARAM><P> NAME = deg4  </P><P> VALUE = 0.00135  </P></PARAM>
+            <PARAM><P> NAME = tr2a  </P><P> VALUE = 9.25e-05 </P></PARAM>
+            <PARAM><P> NAME = tr2b  </P><P> VALUE = 1.068e-05</P></PARAM>
+            <PARAM><P> NAME = tr2e  </P><P> VALUE = 7.62e-06 </P></PARAM>
+            <PARAM><P> NAME = a1    </P><P> VALUE = 1.35     </P></PARAM>
+            <PARAM><P> NAME = d1    </P><P> VALUE = 0.075    </P></PARAM>
+            <PARAM><P> NAME = a2    </P><P> VALUE = 0.36     </P></PARAM>
+            <PARAM><P> NAME = d2    </P><P> VALUE = 0.105    </P></PARAM>
+            <PARAM><P> NAME = a3    </P><P> VALUE = 0.54     </P></PARAM>
+            <PARAM><P> NAME = d3    </P><P> VALUE = 0.105    </P></PARAM>
+            <PARAM><P> NAME = a7    </P><P> VALUE = 11.1     </P></PARAM>
+            <PARAM><P> NAME = a8    </P><P> VALUE = 2.88     </P></PARAM>
+            <PARAM><P> NAME = k2_beta </P><P> VALUE = 0.624  </P></PARAM>
+            <PARAM><P> NAME = a9    </P><P> VALUE = 4.2      </P></PARAM>
+            <PARAM><P> NAME = k2_eps </P><P> VALUE = 0.624   </P></PARAM>
+            <PARAM><P> NAME = r1    </P><P> VALUE = 0.2442   </P></PARAM>
+            <PARAM><P> NAME = r2    </P><P> VALUE = 0.09     </P></PARAM>
+            <PARAM><P> NAME = r3    </P><P> VALUE = 0.132    </P></PARAM>
+            <PARAM><P> NAME = k02   </P><P> VALUE = 0.0072   </P></PARAM>
+            <PARAM><P> NAME = k2_IkBbeta_nuc_NFkB_nuc </P><P> VALUE = 0.0069 </P></PARAM>
+        </FIXED_PARAM_DESCRIPTION>
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <VAR><P> NAME = IkBalpha              </P><P> INIT_VAL = 0.1   </P></VAR>
+            <VAR><P> NAME = NFkB                  </P><P> INIT_VAL = 0.1   </P></VAR>
+            <VAR><P> NAME = IkBalpha_NFkB         </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBbeta               </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBbeta_NFkB          </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBeps               </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBeps_NFkB          </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IKK_IkBalpha          </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IKK_IkBalpha_NFkB     </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IKK                   </P><P> INIT_VAL = 0.2   </P></VAR>
+            <VAR><P> NAME = IKK_IkBbeta           </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IKK_IkBbeta_NFkB      </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IKK_IkBeps           </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IKK_IkBeps_NFkB      </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = NFkB_nuc              </P><P> INIT_VAL = 0.001 </P></VAR>
+            <VAR><P> NAME = IkBalpha_nuc          </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBalpha_nuc_NFkB_nuc </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBbeta_nuc           </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBbeta_nuc_NFkB_nuc  </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBeps_nuc           </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBalpha_transcript   </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBbeta_transcript    </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBeps_transcript    </P><P> INIT_VAL = 0.0   </P></VAR>
+            <VAR><P> NAME = IkBeps_nuc_NFkB_nuc  </P><P> INIT_VAL = 0.0   </P></VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> NUM_PARTICLES = 200 </P>
+            <P> NUM_ITERS = 50 </P>
+            <P> PROCESSORS = 8 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 30 </P>
+            <P> STEPSIZE_RTOL = 1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5 </P>
+            <P> STEPSIZE_ATOL = 1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8 </P>
+            <P> INITIAL_TIMESTEP = 0.001 </P>
+            <P> MAX_STEPS = 20000 </P>
+            <P> INIT_VALUE_LR = 1e-3 </P>
+            <P> END_VALUE_LR = 1e-4 </P>
+            <P> TRANSITION_STEPS_LR = 2000 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>
