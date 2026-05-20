@@ -66,10 +66,17 @@ Gradient:
 - Returns a scalar (or 1D array of length 1)
 - Loss is normalized to likely fall between 0 and 1
 - Only numpy/math libraries used
+- Must NOT loop over or aggregate multiple datasets (the framework handles per-experiment dispatch) — critical if violated
 
 **writeout_description checks:**
 - Returns an array
 - No undefined parameters used
+- Must NOT loop over or aggregate multiple datasets — critical if violated
+
+**Multi-experiment checks (when XML has more than one EXPERIMENT block):**
+- Every CSV filename referenced in `<FILENAME_DATA>` must exist in `sessions/<session>/inputs/`
+- Every `VAR/NAME` inside each `<INITIAL_CONDITIONS>` block must exactly match a variable name in `INTEGRATED_SYSTEM_DESCRIPTION` — mismatch is a critical error
+- The user functions (`_compute_loss_problem`, `writeout_description`) must not contain dataset loops or cross-experiment aggregation
 
 ## Important Rules
 - Treat user code as pseudocode — do NOT flag missing JAX imports or non-JAX syntax

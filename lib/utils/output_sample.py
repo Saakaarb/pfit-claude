@@ -76,7 +76,7 @@ def _integrate_system(constants, trainable_variables):
     init_cond = constants["init_cond"]
     init_time=constants["init_time"]
     dataset = constants["dataset"]
-    saveat = diffrax.SaveAt(ts=t_eval)
+    saveat = diffrax.SaveAt(t0=True, ts=t_eval[1:])
 
     # TODO add ability to add more arbitrary inputs here
     other_args = {"constants": constants, "trainable_variables": trainable_variables}

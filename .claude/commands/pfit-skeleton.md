@@ -23,10 +23,13 @@ Generate a user_model.py skeleton for the current session from its user_input.xm
 
 6. Write the skeleton to `sessions/<session_name>/generated/user_model.py`.
 
-7. Tell the user what was generated and remind them to fill in the ODE logic in `user_defined_system`, the loss computation in `_compute_loss_problem`, and the writeout in `writeout_description` before running `/pfit-check`.
+7. If the XML contains multiple `<EXPERIMENT>` blocks, add a comment near the top of each function (below the argument list) stating: `# dataset and t_eval represent ONE experiment's data; the framework calls this function once per experiment`.
+
+8. Tell the user what was generated and remind them to fill in the ODE logic in `user_defined_system`, the loss computation in `_compute_loss_problem`, and the writeout in `writeout_description` before running `/pfit-check`.
 
 ## Rules (from user_model_generation_instructions.txt)
 - Do NOT leave any function empty — include stubs with comments showing what to fill in
 - Add `import numpy as np` at the top
 - Do NOT add any boilerplate text; the file should be pure Python
 - Preserve all comments from the template
+- For multi-experiment XMLs: `dataset` and `t_eval` always represent a single experiment; do NOT generate loops over multiple datasets inside any of the three functions

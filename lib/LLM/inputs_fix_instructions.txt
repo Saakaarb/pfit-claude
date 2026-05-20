@@ -9,6 +9,12 @@ Fix any points you feel can either cause the code to error out, or cause poor co
 After you are done, your response should be the corrected XML , and then the corrected .py file, separated by "\n-------\n". DO NOT write anything else in your response, no boilerplate
 response text should be present. After the .py file, summarize the changes you have made, and separate this summary from the .py by "\n-------\n"
 
+Additional fix rules for multi-experiment XML:
+- If an EXPERIMENT/INITIAL_CONDITIONS block contains a VAR whose NAME does not match any variable
+  in MODEL/INTEGRATED_SYSTEM_DESCRIPTION, remove that VAR block entirely. Do not guess a corrected
+  name, as there is no safe automatic fix.
+- If an EXPERIMENT block is missing a FILENAME/FILENAME_DATA entry, flag it but do not invent a filename.
+
 
 # Instructions
 

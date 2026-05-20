@@ -14,6 +14,22 @@ You are provided with 2 files, an XML file and a pseudocode file.
 
 The XML file contains information about the parameters, trainable variables, integrable parameters and other information about the fitting problem. Specifically, you should check the following sections:
 
+------------EXPERIMENT (one or more blocks)
+
+Each EXPERIMENT block describes one CSV data file to fit against. Multiple EXPERIMENT blocks
+are allowed and represent simultaneous fitting to all datasets with the same parameter set.
+
+What you should watch for:
+- At least one EXPERIMENT block must be present. If none exists, this is a critical error.
+- Each EXPERIMENT block must contain a FILENAME sub-block with a FILENAME_DATA entry.
+  A missing FILENAME_DATA is a critical error.
+- If an EXPERIMENT block contains an INITIAL_CONDITIONS sub-block, each VAR entry inside it
+  must have a NAME that exactly matches a variable name defined in MODEL/INTEGRATED_SYSTEM_DESCRIPTION.
+  A name mismatch is a critical error.
+- It is valid and expected for different EXPERIMENT blocks to have different INITIAL_CONDITIONS.
+  Do NOT flag differing initial conditions across experiments as an error.
+- COLUMN_INFO inside an EXPERIMENT is optional and informational. Do not flag its absence.
+
 ------------MODEL
 
 --TRAINABLE_PARAMETER_DESCRIPTION
