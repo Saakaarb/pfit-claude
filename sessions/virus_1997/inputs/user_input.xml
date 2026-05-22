@@ -1,0 +1,76 @@
+<?xml version="1.0" ?>
+<FIT>
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = viral_load_fig2b.csv </E>
+        </FILENAME>
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 3 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <!-- a: death rate of infected cells; half-life ~2 days -> a ~ 0.35/day -->
+            <PARAM>
+                <P> PARAMETER_NAME = a </P>
+                <P> MIN_VAL = 0.05 </P>
+                <P> MAX_VAL = 5.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <!-- u: clearance rate of free virus; half-life ~6 hr -> u ~ 2.8/day -->
+            <PARAM>
+                <P> PARAMETER_NAME = u </P>
+                <P> MIN_VAL = 0.5 </P>
+                <P> MAX_VAL = 50.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <!-- k: virus production rate per infected cell (/day) -->
+            <PARAM>
+                <P> PARAMETER_NAME = k </P>
+                <P> MIN_VAL = 10.0 </P>
+                <P> MAX_VAL = 1.0E6 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <!-- y: infected cells (cells/ml); initial value from equilibrium y* = u*v*/k -->
+            <VAR>
+                <P> NAME = y </P>
+                <P> INIT_VAL = 500.0 </P>
+            </VAR>
+            <!-- v: free virus (copies/ml); first data point from Fig 2B -->
+            <VAR>
+                <P> NAME = v </P>
+                <P> INIT_VAL = 100438.0 </P>
+            </VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> NUM_PARTICLES = 100 </P>
+            <P> NUM_ITERS = 20 </P>
+            <P> PROCESSORS = 8 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 20 </P>
+            <P> STEPSIZE_RTOL = 1e-7,1e-7 </P>
+            <P> STEPSIZE_ATOL = 1e-9,1e-9 </P>
+            <P> INITIAL_TIMESTEP = 1e-4 </P>
+            <P> MAX_STEPS = 10000 </P>
+            <P> INIT_VALUE_LR = 1e-4 </P>
+            <P> END_VALUE_LR = 1e-5 </P>
+            <P> TRANSITION_STEPS_LR = 2000 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>

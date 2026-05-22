@@ -1,0 +1,108 @@
+<?xml version="1.0" ?>
+<FIT>
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = NMC_SOC80_M2_normalized_converted_units.csv </E>
+        </FILENAME>
+    </EXPERIMENT>
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 8 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <PARAM>
+                <P> PARAMETER_NAME= A1 </P>
+                <P> MIN_VAL=1E8 </P>
+                <P> MAX_VAL=1E25 </P>
+                <P> LOGSCALE= Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME= Ea1 </P>
+                <P> MIN_VAL=2E-19 </P>
+                <P> MAX_VAL=4E-19 </P>
+                <P> LOGSCALE= Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME= h1 </P>
+                <P> MIN_VAL=10 </P>
+                <P> MAX_VAL=1000 </P>
+                <P> LOGSCALE= Y </P>
+            </PARAM>
+            
+            <PARAM>
+                <P> PARAMETER_NAME= A2 </P>
+                <P> MIN_VAL=1E8 </P>
+                <P> MAX_VAL=1E25 </P>
+                <P> LOGSCALE= Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME= Ea2 </P>
+                <P> MIN_VAL=2E-19 </P>
+                <P> MAX_VAL=4E-19 </P>
+                <P> LOGSCALE= Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME= h2 </P>
+                <P> MIN_VAL=10 </P>
+                <P> MAX_VAL=1000 </P>
+                <P> LOGSCALE= Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME= m2 </P>
+                <P> MIN_VAL=1 </P>
+                <P> MAX_VAL=5 </P>
+                <P> LOGSCALE= Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME= n2 </P>
+                <P> MIN_VAL=1 </P>
+                <P> MAX_VAL=5 </P>
+                <P> LOGSCALE= Y </P>
+            </PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+        
+        <FIXED_PARAM_DESCRIPTION>
+            <PARAM>
+                <P> NAME = kb </P>
+                <P> VALUE = 1.38E-23 </P>
+            </PARAM>
+        </FIXED_PARAM_DESCRIPTION>
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <VAR>
+                <P> NAME = c1 </P>
+                <P> INIT_VAL = 1.0 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = c2 </P>
+                <P> INIT_VAL = 0.04 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = T </P>
+                <P> INIT_VAL = 354 </P>
+            </VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> NUM_PARTICLES = 200 </P>
+            <P> NUM_ITERS = 50 </P>
+            <P> PROCESSORS = 8 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 20 </P>
+            <P> STEPSIZE_RTOL = 1E-7,1E-7,1E-9 </P>
+            <P> STEPSIZE_ATOL = 1E-9,1E-9,1E-9 </P>
+            <P> INITIAL_TIMESTEP = 1e-2 </P>
+            <P> MAX_STEPS = 10000 </P>
+            <P> INIT_VALUE_LR = 1e-4 </P>
+            <P> END_VALUE_LR = 1e-5 </P>
+            <P> TRANSITION_STEPS_LR = 500 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>

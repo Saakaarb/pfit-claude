@@ -1,0 +1,26 @@
+Critical Errors
+
+None detected
+
+Warnings
+
+1. Parameter Scaling and Logscale for 'Dc':
+   - The trainable parameter 'Dc' is specified with a range MIN_VAL=0.1, MAX_VAL=1, and LOGSCALE=N. This is a one order of magnitude difference, and using logscale is not strictly necessary, but it is on the edge. If the parameter is suspected to span more than an order of magnitude in reality, 'LOGSCALE=Y' would be preferable. Otherwise, this is acceptable as is.
+
+2. Loss Function Scaling:
+   - In `_compute_loss_problem`, the force term `F_exp` is scaled using `np.max(np.log10(np.abs(F_exp)) + eps)`, which could lead to loss scaling being dependent on the largest observed force only. Ensure this appropriately scales your loss and adequately balances contributions from force and displacement.
+   - The loss function adds two RMSE-like terms, which seems reasonable, but be cautious of cases where the ranges of force and displacement errors differ by orders of magnitude, possibly unbalancing the loss components. Consider normalizing by standard deviation instead if loss balancing is a concern.
+
+3. Use of `np.abs(F1(...))` for Simulated Force:
+   - When constructing `F_sim`, the absolute value of the output of `F1` is used. Ensure this is physically meaningful for your dataset, as it may hide sign differences between simulated and experimental force.
+
+4. Use of Branching with `if` in `F2` (user_defined_system):
+   - The function `F2` uses a Python `if` statement for control flow. JAX cannot JIT-compile arbitrary Python control flow; when converting to JAX, this will need to be replaced with `np.where` or equivalent. Be prepared to rewrite this expression for compatibility.
+
+5. Population Opt and Gradient Opt Parameters:
+   - The number of particles (300), iterations (20), and processors (8) for the population optimizer, and 10 iterations for the gradient optimizer, may or may not be sufficient for convergence depending on the problem's complexity. These are more user-dependent, but consider increasing if optimization stalls.
+
+6. Fixed Parameter 'vf' and Initial Values:
+   - The value assigned to the fixed parameter 'vf' (0.1) and the initial values in the integrated system seem reasonable for now, but you should confirm these based on the physical context of your problem.
+
+Number of critical errors: 0

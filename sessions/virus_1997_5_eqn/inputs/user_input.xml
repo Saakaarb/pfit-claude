@@ -1,0 +1,128 @@
+<?xml version="1.0" ?>
+<FIT>
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = viral_dynamics_5eqn.csv </E>
+        </FILENAME>
+        <COLUMN_INFO>
+            <!-- col 0: CD4 count x (cells/ml) -->
+            <!-- col 1: total viral load V = v1+v2 (copies/ml) -->
+        </COLUMN_INFO>
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 5 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <!-- beta1: infection rate, drug-sensitive virus -->
+            <PARAM>
+                <P> PARAMETER_NAME = beta1 </P>
+                <P> MIN_VAL = 1.0E-12 </P>
+                <P> MAX_VAL = 1.0E-8 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <!-- beta2: infection rate, drug-resistant virus -->
+            <PARAM>
+                <P> PARAMETER_NAME = beta2 </P>
+                <P> MIN_VAL = 1.0E-12 </P>
+                <P> MAX_VAL = 1.0E-8 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <!-- k1: virus production rate per infected cell, strain 1 (/day) -->
+            <PARAM>
+                <P> PARAMETER_NAME = k1 </P>
+                <P> MIN_VAL = 10.0 </P>
+                <P> MAX_VAL = 1.0E5 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <!-- k2: virus production rate per infected cell, strain 2 (/day) -->
+            <PARAM>
+                <P> PARAMETER_NAME = k2 </P>
+                <P> MIN_VAL = 10.0 </P>
+                <P> MAX_VAL = 1.0E5 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <!-- a: death rate of infected cells (/day) -->
+            <PARAM>
+                <P> PARAMETER_NAME = a </P>
+                <P> MIN_VAL = 0.05 </P>
+                <P> MAX_VAL = 5.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+
+        <FIXED_PARAM_DESCRIPTION>
+            <PARAM>
+                <P> NAME = lam </P>
+                <P> VALUE = 1.0E7 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = d </P>
+                <P> VALUE = 0.1 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = u </P>
+                <P> VALUE = 5.0 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = mu </P>
+                <P> VALUE = 5.0E-5 </P>
+            </PARAM>
+        </FIXED_PARAM_DESCRIPTION>
+
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <!-- x: CD4+ uninfected cells (cells/ml) -->
+            <VAR>
+                <P> NAME = x </P>
+                <P> INIT_VAL = 1.0E7 </P>
+            </VAR>
+            <!-- y1: cells infected by drug-sensitive virus (cells/ml) -->
+            <VAR>
+                <P> NAME = y1 </P>
+                <P> INIT_VAL = 1.8E7 </P>
+            </VAR>
+            <!-- y2: cells infected by drug-resistant virus (cells/ml) -->
+            <VAR>
+                <P> NAME = y2 </P>
+                <P> INIT_VAL = 1800.0 </P>
+            </VAR>
+            <!-- v1: drug-sensitive free virus (copies/ml) -->
+            <VAR>
+                <P> NAME = v1 </P>
+                <P> INIT_VAL = 1.8E9 </P>
+            </VAR>
+            <!-- v2: drug-resistant free virus (copies/ml) -->
+            <VAR>
+                <P> NAME = v2 </P>
+                <P> INIT_VAL = 1.8E5 </P>
+            </VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> NUM_PARTICLES = 200 </P>
+            <P> NUM_ITERS = 30 </P>
+            <P> PROCESSORS = 8 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 30 </P>
+            <P> STEPSIZE_RTOL = 1e-7,1e-7,1e-7,1e-7,1e-7 </P>
+            <P> STEPSIZE_ATOL = 1e-9,1e-9,1e-9,1e-9,1e-9 </P>
+            <P> INITIAL_TIMESTEP = 1e-4 </P>
+            <P> MAX_STEPS = 50000 </P>
+            <P> INIT_VALUE_LR = 1e-4 </P>
+            <P> END_VALUE_LR = 1e-5 </P>
+            <P> TRANSITION_STEPS_LR = 2000 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>

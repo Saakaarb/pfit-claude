@@ -1,0 +1,12 @@
+Critical Errors
+
+None detected
+
+Warnings
+
+- All three trainable parameters ('k1', 'k2', 'k3') have the LOGSCALE attribute set to 'Y' in the XML. This makes sense for 'k2' (min=5E3, max=5E10) and 'k3' (min=1E0, max=1E8), but for 'k1' (min=0.001, max=10.0), the total range is only four orders of magnitude. While it’s not critical, using logscale for 'k1' is borderline and might not be necessary unless the parameter is known to vary exponentially.
+- In _compute_loss_problem, the loss function is normalized by dividing by the maximum found in the dataset (scale_factor), which should generally keep the loss between 0 and 1 as intended. However, if the maximum value in the dataset is zero for any variable/column, this could lead to divide-by-zero errors or NaNs. To be safe, add a small constant to the denominator or use np.maximum with a small floor value.
+- In writeout_description, the code assumes that 'dataset' and 'solution' will always have exactly three columns. If this is not the case in the provided data, the assignment will broadcast incorrectly or raise errors. Double-check that your 'dataset' and 'solution' will always have three columns.
+- Be sure your integrated variables ('y1', 'y2', 'y3') stay well-scaled and numerically stable with the current initial conditions and stiff dynamics. Robertson problems are known to be stiff and may benefit from tight tolerances—the current tolerances look appropriate, but it’s something to watch during runs.
+
+Number of critical errors: 0

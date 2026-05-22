@@ -55,7 +55,8 @@ if __name__ == "__main__":
     sessions_root = Path("sessions")
 
     if len(sys.argv) == 2:
-        session_dir = sessions_root / Path(sys.argv[1])
+        arg = Path(sys.argv[1])
+        session_dir = arg if arg.is_dir() else sessions_root / arg
         if not os.path.isdir(session_dir):
             raise ValueError(f"Session directory {session_dir} does not exist")
     else:

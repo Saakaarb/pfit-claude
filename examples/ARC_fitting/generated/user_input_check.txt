@@ -1,0 +1,21 @@
+## Critical Errors
+
+None detected.
+
+Number of critical errors: 0
+
+---
+
+## Warnings
+
+1. **_compute_loss_problem and writeout_description — incomplete call signature for user_defined_system**: Both functions call `user_defined_system(t, y, trainable_parameters, fixed_parameters)` with 4 arguments, missing `dataset` and `t_eval`. Since `user_defined_system` does not use those arguments internally, this is unlikely to cause a problem during JAX translation, but confirm this is intentional.
+
+2. **loss3 penalty (500) is not normalized**: When the penalty condition fires, `loss3 = 500` will dominate `loss1 + loss2` (~O(1)) by ~500x, making gradient information from the physical loss irrelevant during L-BFGS refinement. Consider scaling the penalty to O(1) if gradient-based refinement is important for your use case.
+
+---
+
+## Auto-corrections applied
+- `_compute_loss_problem`: `return loss` → `return loss1 + loss2 + loss3`
+- `writeout_description`: `T` → `solution[:,2]`
+- `writeout_description`: Added `Nts = solution_time.shape[0]`
+- `user_defined_system`: `np.array([dc1dt, dc2dt, dTdt])` → `np.array([dc1_dt, dc2_dt, dT_dt])`

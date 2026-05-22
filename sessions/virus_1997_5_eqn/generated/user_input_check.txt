@@ -1,0 +1,16 @@
+Validation Report — virus_1997_5_eqn
+=====================================
+
+Critical Errors
+---------------
+None detected.
+
+Warnings
+--------
+1. [user_model.py / _compute_loss_problem] The total loss is loss_V + loss_x, where each
+   component is individually normalized to [0, 1]. Their sum can reach ~2 for a poor fit,
+   slightly violating the 0–1 convention. This will not break the optimization but may
+   make loss values harder to compare across sessions. If you want strict normalization,
+   divide the sum by 2: return (loss_V + loss_x) / 2.0
+
+Number of critical errors: 0
