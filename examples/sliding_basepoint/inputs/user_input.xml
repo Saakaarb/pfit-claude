@@ -78,7 +78,7 @@
     </MODEL>
     <POPULATION_OPT>
         <SETTINGS>
-            <P> NUM_PARTICLES = 500 </P>
+            <P> NUM_PARTICLES = 2000 </P>
             <P> NUM_ITERS = 20 </P>
             <P> PROCESSORS = 8 </P>
             <P> PSO_STEPSIZE_RTOL = 1E-1,1E-1,1E0,1E0,1E-3,1E-3 </P>

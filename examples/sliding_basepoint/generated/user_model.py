@@ -85,14 +85,14 @@ def _compute_loss_problem(solution_time: np.ndarray, solution: np.ndarray, datas
         def F1(Fs,c1,v1):
                 return Fs-c1*np.abs(v1)*np.sign(v1)
         
-        F_exp=dataset[:,0:1]*1000
+        F_exp=dataset[:,0:1]*1000   # kN -> N
         s_exp=dataset[:,1:2]
-        
-        scale_factor_F=np.max(np.log10(np.abs(F_exp)))
-        scale_factor_s=np.max(np.abs(s_exp))
-        
+
+        Fm = np.max(np.abs(F_exp))
+        sm = np.max(np.abs(s_exp))
+
         Nts=solution_time.shape[0]
-        
+
         x2=solution[:,1]
         x1=solution[:,0]
         k=solution[:,4]
@@ -104,9 +104,10 @@ def _compute_loss_problem(solution_time: np.ndarray, solution: np.ndarray, datas
         for i in range(Nts):
                 F_sim[i]=np.abs(F1(Fs[i],c1[i],v1[i]))
                 s_sim[i]=x1[i]
-        F_loss=np.sqrt(np.mean(np.square((np.log10(F_sim[1:])-np.log10(F_exp[1:]))/scale_factor_F)))
-        s_loss=np.sqrt(np.mean(np.square((s_exp-s_sim)/scale_factor_s)))
-        loss=10*F_loss+s_loss
+        # paper loss (eq. 12): mean absolute relative error on F and s, equal weight
+        F_loss = np.mean(np.abs(F_exp[:,0] - F_sim) / Fm)
+        s_loss = np.mean(np.abs(s_exp[:,0] - s_sim) / sm)
+        loss = F_loss + s_loss
         #--------------------------------
 
         return loss # scalar

@@ -71,7 +71,7 @@ def user_defined_system(t, y, other_args):
 def _integrate_system(constants, trainable_variables):
     term = diffrax.ODETerm(user_defined_system)
     
-    solver = diffrax.Kvaerno5()
+    solver = diffrax.SOLVER_CLASS()
     t_eval = constants["t_eval"]
     init_cond = constants["init_cond"]
     init_time=constants["init_time"]

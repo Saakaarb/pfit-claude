@@ -72,6 +72,10 @@ This section describes the gradient optimization parameters, including the numbe
 
 What you should watch for:
 - Do the number of iterations make sense?
+- If INTEGRATOR is present, it must be one of the following valid diffrax solver names:
+    Stiff (implicit): Kvaerno3, Kvaerno5
+    Non-stiff (explicit): Dopri5, Dopri8, Tsit5, Euler, Heun, Ralston, Bosh3, Midpoint
+  Any other value is a critical error. If INTEGRATOR is absent, no error — it defaults to Kvaerno5.
 
 
 The .py file provided contains user-provided pseudocode for a few functions that you will be LATER required to convert into JAX code.

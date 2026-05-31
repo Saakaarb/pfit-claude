@@ -41,6 +41,7 @@ class XMLReader():
         self.end_value_lr=None
         self.transition_steps_lr=None
         self.decay_rate_lr=None
+        self.integrator="Kvaerno5"
         self.error_loss=5000.0
 
         # experiments: list of dicts, one per <EXPERIMENT> block in the XML.
@@ -249,6 +250,8 @@ class XMLReader():
                                 self.transition_steps_lr = float(value)
                             elif name == "DECAY_RATE_LR":
                                 self.decay_rate_lr = float(value)
+                            elif name == "INTEGRATOR":
+                                self.integrator = value
 
             elif child.tag == "PLOTTING_INFO":
 

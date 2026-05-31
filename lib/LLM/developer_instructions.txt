@@ -25,7 +25,9 @@ trainable_parameters vector, and the state y. You MUST stick to the same orderin
 dict and MUST be used accordingly. 
 
 
-Use the Kvaerno5 method for integration.
+The ODE solver class is read from the GRADIENT_OPT/SETTINGS/INTEGRATOR field in user_input.xml. If that field is absent, default to Kvaerno5.
+In the copied _integrate_system function, replace the placeholder `diffrax.SOLVER_CLASS()` with `diffrax.<IntegratorName>()` where IntegratorName is the value read from the XML (e.g. Kvaerno5, Kvaerno3, Dopri5, Dopri8, Tsit5).
+This substitution is the same pattern as max_steps — it must be a literal class instantiation, not a variable.
 
 You MUST include the following imports in the header of the generated script:
 
