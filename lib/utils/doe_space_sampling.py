@@ -4,6 +4,7 @@ import jax
 import random
 import itertools
 import time
+from scipy.stats.qmc import LatinHypercube, Sobol
 
 # from matplotlib import pyplot as plt
 # from mpl_toolkits.mplot3d import Axes3D
@@ -261,3 +262,52 @@ def pairwise_dist(sampling, value_ranges):
     # Vectorized L2 distances
     pairwise_dists = jax.vmap(l2_dist)(xi, xj)
     return pairwise_dists
+
+
+def get_lhs_sampling(n_samples: int, value_ranges: np.ndarray) -> np.ndarray:
+    """
+    Generate an initial sampling using Latin Hypercube Sampling (LHS).
+
+    Each dimension is divided into n_samples equal-probability strata and
+    exactly one sample is drawn from each stratum, guaranteeing uniform
+    marginal coverage without the cost of the Morris-Mitchell search.
+
+    Args:
+        n_samples (int): Number of sample points to generate.
+        value_ranges (np.ndarray): Shape (n_axes, 2) array of [min, max] per axis.
+
+    Returns:
+        np.ndarray: Shape (n_samples, n_axes) array of sample points scaled to value_ranges.
+    """
+    n_axes = value_ranges.shape[0]
+    sampler = LatinHypercube(d=n_axes)
+    # unit-hypercube samples in [0, 1]^n_axes
+    unit_samples = sampler.random(n=n_samples)
+    # scale each axis to its [min, max] range
+    min_vals = value_ranges[:, 0]
+    max_vals = value_ranges[:, 1]
+    return min_vals + unit_samples * (max_vals - min_vals)
+
+
+def get_sobol_sampling(n_samples: int, value_ranges: np.ndarray) -> np.ndarray:
+    """
+    Generate an initial sampling using a Sobol low-discrepancy sequence.
+
+    Sobol sequences achieve better uniformity than random sampling and are
+    especially effective in high dimensions. For best uniformity n_samples
+    should be a power of 2, but any value is accepted (scrambling is enabled
+    by default to remove correlation across dimensions).
+
+    Args:
+        n_samples (int): Number of sample points to generate.
+        value_ranges (np.ndarray): Shape (n_axes, 2) array of [min, max] per axis.
+
+    Returns:
+        np.ndarray: Shape (n_samples, n_axes) array of sample points scaled to value_ranges.
+    """
+    n_axes = value_ranges.shape[0]
+    sampler = Sobol(d=n_axes, scramble=True)
+    unit_samples = sampler.random(n=n_samples)
+    min_vals = value_ranges[:, 0]
+    max_vals = value_ranges[:, 1]
+    return min_vals + unit_samples * (max_vals - min_vals)

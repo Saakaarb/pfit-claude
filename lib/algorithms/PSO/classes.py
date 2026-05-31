@@ -1,6 +1,6 @@
 import numpy as np
 import pyswarms
-from lib.utils.doe_space_sampling import get_spacefilled_DoE
+from lib.utils.doe_space_sampling import get_spacefilled_DoE, get_lhs_sampling, get_sobol_sampling
 import time
 from lib.utils.xmlread import XMLReader
 from lib.utils.classes import ProblemObjectBase
@@ -186,22 +186,15 @@ class FitParamsPSO:
         )
 
         
-        doe_axis_lims = []
-        for i_axis in range(self.input_reader.n_search_axes):
+        doe_axis_lims = np.array([
+            [self.min_search_list[i_axis], self.max_search_list[i_axis]]
+            for i_axis in range(self.input_reader.n_search_axes)
+        ])
 
-            doe_axis_lims.append(
-                [self.min_search_list[i_axis], self.max_search_list[i_axis]]
-            )
+        print("Creating initial sampling (LHS)")
+        initial_positions = get_lhs_sampling(self.n_particles, doe_axis_lims)
 
-        q = 100
-
-        print("Creating initial sampling")
-        best_sampling, phi_p_best = get_spacefilled_DoE(
-            self.n_particles, np.array(doe_axis_lims), q
-        )
-
-        
-        self.swarm_obj.position = np.array(best_sampling)
+        self.swarm_obj.position = initial_positions
         self.bh = pyswarms.backend.handlers.BoundaryHandler(strategy="nearest")
         self.vh = pyswarms.backend.handlers.VelocityHandler(strategy="invert")
         self.oh = pyswarms.backend.handlers.OptionsHandler(
