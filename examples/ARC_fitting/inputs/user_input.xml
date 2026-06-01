@@ -7,13 +7,13 @@
     </EXPERIMENT>
     <MODEL>
         <TRAINABLE_PARAMETERS>
-            <P> N_TRAINABLE_PARAMETERS = 8 </P>
+            <P> N_TRAINABLE_PARAMETERS = 7 </P>
         </TRAINABLE_PARAMETERS>
         <TRAINABLE_PARAMETER_DESCRIPTION>
             <PARAM>
                 <P> PARAMETER_NAME= Ea1 </P>
                 <P> MIN_VAL=2E-19 </P>
-                <P> MAX_VAL=4E-19 </P>
+                <P> MAX_VAL=3E-19 </P>
                 <P> LOGSCALE= Y </P>
             </PARAM>
             <PARAM>
@@ -42,8 +42,8 @@
             </PARAM>
             <PARAM>
                 <P> PARAMETER_NAME= h2 </P>
-                <P> MIN_VAL=10 </P>
-                <P> MAX_VAL=1000 </P>
+                <P> MIN_VAL=100 </P>
+                <P> MAX_VAL=10000 </P>
                 <P> LOGSCALE= Y </P>
             </PARAM>
             <PARAM>
@@ -52,14 +52,8 @@
                 <P> MAX_VAL=5 </P>
                 <P> LOGSCALE= N </P>
             </PARAM>
-            <PARAM>
-                <P> PARAMETER_NAME= n2 </P>
-                <P> MIN_VAL=1 </P>
-                <P> MAX_VAL=5 </P>
-                <P> LOGSCALE= N </P>
-            </PARAM>
         </TRAINABLE_PARAMETER_DESCRIPTION>
-        
+
         <FIXED_PARAM_DESCRIPTION>
             <PARAM>
                 <P> NAME = kb </P>
@@ -83,12 +77,12 @@
     </MODEL>
     <POPULATION_OPT>
         <SETTINGS>
-            <P> POPULATION_SIZE = 1000 </P>
+            <P> POPULATION_SIZE = 500 </P>
             <P> NUM_ITERS = 20 </P>
             <P> PROCESSORS = 8 </P>
-            <P> ALGORITHM = DE </P>
-            <P> POP_STEPSIZE_RTOL = 1E-3,1E-3,1E-3 </P>
-            <P> POP_STEPSIZE_ATOL = 1E-3,1E-3,1E-3 </P>
+            <P> ALGORITHM = PSO </P>
+            <P> POP_STEPSIZE_RTOL = 1E-6,1E-6,1E-6 </P>
+            <P> POP_STEPSIZE_ATOL = 1E-8,1E-8,1E-4 </P>
         </SETTINGS>
     </POPULATION_OPT>
     <GRADIENT_OPT>

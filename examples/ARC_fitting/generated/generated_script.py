@@ -41,8 +41,8 @@ def user_defined_system(t, y, other_args):
     is_logscale = constants["is_logscale"]
     # ----------------------
 
-    # Order: ['Ea1', 'h1', 'A1', 'A2', 'Ea2', 'h2', 'm2', 'n2']
-    Ea1, h1, A1, A2, Ea2, h2, m2, n2 = unscale_value(trainable_variables, min_val, max_val, is_logscale)
+    # Order: ['Ea1', 'h1', 'A1', 'A2', 'Ea2', 'h2', 'm2']
+    Ea1, h1, A1, A2, Ea2, h2, m2 = unscale_value(trainable_variables, min_val, max_val, is_logscale)
 
     kb = fixed_parameters['kb']
 
@@ -51,7 +51,7 @@ def user_defined_system(t, y, other_args):
     T  = y[2]
 
     dc1_dt = -A1 * jnp.exp(-Ea1 / (kb * T)) * c1
-    dc2_dt = A2 * jnp.exp(-Ea2 / (kb * T)) * c2**n2 * (1 - c2)**m2
+    dc2_dt = A2 * jnp.exp(-Ea2 / (kb * T)) * (1 - c2)**m2
     dT_dt = jnp.abs(h1 * dc1_dt) + jnp.abs(h2 * dc2_dt)
 
     return jnp.array([dc1_dt, dc2_dt, dT_dt])

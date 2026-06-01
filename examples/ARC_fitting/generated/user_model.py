@@ -6,7 +6,7 @@ import numpy as np
 # N_col: number of columns in dataset provided (including the first column as time)
 
 # Ordering of parameters in trainable_parameters as provided by the user:
-# ['Ea1', 'h1', 'A1', 'A2', 'Ea2', 'h2', 'm2', 'n2']
+# ['Ea1', 'h1', 'A1', 'A2', 'Ea2', 'h2', 'm2']
 # Ordering of integrated variables as provided by the user:
 # ['c1', 'c2', 'T']
 
@@ -29,7 +29,6 @@ def user_defined_system(t: float, y: np.ndarray, trainable_parameters: dict, fix
         Ea2 = trainable_parameters['Ea2']
         h2  = trainable_parameters['h2']
         m2  = trainable_parameters['m2']
-        n2  = trainable_parameters['n2']
 
         kb = fixed_parameters['kb']
 
@@ -42,7 +41,7 @@ def user_defined_system(t: float, y: np.ndarray, trainable_parameters: dict, fix
         # this part is to be populated by the user
         #--------------------------------
         dc1_dt= - A1*np.exp(-Ea1/(kb*T))*c1
-        dc2_dt= A2*np.exp(-Ea2/(kb*T))*c2**n2 * (1-c2)**m2
+        dc2_dt= A2*np.exp(-Ea2/(kb*T)) * (1-c2)**m2
         dT_dt=np.abs(h1*dc1_dt)+np.abs(h2*dc2_dt)
 
         #if T > 500:
@@ -73,7 +72,6 @@ def _compute_loss_problem(solution_time: np.ndarray, solution: np.ndarray, datas
         Ea2 = trainable_parameters['Ea2']
         h2  = trainable_parameters['h2']
         m2  = trainable_parameters['m2']
-        n2  = trainable_parameters['n2']
 
         kb = fixed_parameters['kb']
         #--------------------------------
@@ -96,7 +94,7 @@ def _compute_loss_problem(solution_time: np.ndarray, solution: np.ndarray, datas
 
         if solution[-1,0] > 0.02 or solution[-1,1] < 0.98 or np.abs(T_final_sim-T_final_data)>50:
 
-                loss3=5
+                loss3=500
         else:
                 loss3=0
         #--------------------------------
@@ -123,7 +121,6 @@ def writeout_description(solution_time: np.ndarray, solution: np.ndarray, datase
         Ea2 = trainable_parameters['Ea2']
         h2  = trainable_parameters['h2']
         m2  = trainable_parameters['m2']
-        n2  = trainable_parameters['n2']
 
         kb = fixed_parameters['kb']
         #--------------------------------

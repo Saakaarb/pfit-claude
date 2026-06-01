@@ -102,7 +102,7 @@ class FitParamsNODE:
 
         self.input_reader = input_reader
 
-        self.optimizer_name = 'lbfgs'
+        self.optimizer_name = input_reader.gradient_optimizer
 
         self.n_iters_grad = self.input_reader.n_iters_grad 
         self.constants = {}

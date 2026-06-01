@@ -43,6 +43,7 @@ class XMLReader():
         self.decay_rate_lr=None
         self.integrator="Kvaerno5"
         self.algorithm="PSO"
+        self.gradient_optimizer='lbfgs'
         self.error_loss=5000.0
 
         # experiments: list of dicts, one per <EXPERIMENT> block in the XML.
@@ -255,6 +256,8 @@ class XMLReader():
                                 self.decay_rate_lr = float(value)
                             elif name == "INTEGRATOR":
                                 self.integrator = value
+                            elif name == "GRADIENT_OPTIMIZER":
+                                self.gradient_optimizer = value.lower()
 
             elif child.tag == "PLOTTING_INFO":
 
