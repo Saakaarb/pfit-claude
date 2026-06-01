@@ -378,7 +378,7 @@
 
     <POPULATION_OPT>
         <SETTINGS>
-            <P> NUM_PARTICLES = 300 </P>
+            <P> POPULATION_SIZE = 300 </P>
             <P> NUM_ITERS = 35 </P>
             <P> PROCESSORS = 8 </P>
         </SETTINGS>

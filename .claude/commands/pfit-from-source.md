@@ -63,7 +63,7 @@ Present your best-guess defaults (derived below) and ask the user to confirm or 
 - If no value is given, suggest a physically reasonable range and flag it explicitly for the user to review
 
 **Optimizer settings (suggest these defaults, adjustable by user):**
-- PSO: `NUM_PARTICLES = max(50, 10 × N_TRAINABLE)`, `NUM_ITERS = 20`, `PROCESSORS = 4`
+- Population-based: `POPULATION_SIZE = max(50, 10 × N_TRAINABLE)`, `NUM_ITERS = 20`, `PROCESSORS = 4`
 - Gradient: `NUM_ITERS = 10`, `MAX_STEPS = 10000`, `INITIAL_TIMESTEP = 1e-6` (adjust if the problem timescale is very different from 1), `INIT_VALUE_LR = 1e-4`, `END_VALUE_LR = 1e-5`, `TRANSITION_STEPS_LR = 2000`, `DECAY_RATE_LR = 0.9`
 - `STEPSIZE_RTOL` and `STEPSIZE_ATOL`: one value per integrated variable (e.g. `1e-7,1e-7` for 2 variables)
 

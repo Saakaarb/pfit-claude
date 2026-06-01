@@ -47,11 +47,11 @@
     </MODEL>
     <POPULATION_OPT>
         <SETTINGS>
-            <P> NUM_PARTICLES = 100 </P>
+            <P> POPULATION_SIZE = 100 </P>
             <P> NUM_ITERS = 20 </P>
             <P> PROCESSORS = 8 </P>
-            <P> PSO_STEPSIZE_RTOL = 1E-3,1E-3,1E-3 </P>
-            <P> PSO_STEPSIZE_ATOL = 1E-3,1E-3,1E-3 </P>
+            <P> POP_STEPSIZE_RTOL = 1E-3,1E-3,1E-3 </P>
+            <P> POP_STEPSIZE_ATOL = 1E-3,1E-3,1E-3 </P>
         </SETTINGS>
     </POPULATION_OPT>
     <GRADIENT_OPT>

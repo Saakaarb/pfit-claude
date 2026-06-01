@@ -43,13 +43,13 @@ Validate and auto-correct the user_model.py and user_input.xml for the current s
 
 **Optimizer settings checks (inspect actual values):**
 
-PSO:
-- `NUM_PARTICLES` < 20 → critical (too few to explore the space)
-- `NUM_PARTICLES` > 1000 and no `PSO_STEPSIZE_RTOL` set → warning (PSO will use tight gradient tolerances; likely very slow)
+Population-based (zero-order) optimizer:
+- `POPULATION_SIZE` < 20 → critical (too few to explore the space)
+- `POPULATION_SIZE` > 1000 and no `POP_STEPSIZE_RTOL` set → warning (will use tight gradient tolerances; likely very slow)
 - `PROCESSORS` > 8 → warning (hard limit in fit_parameters.py)
-- `NUM_ITERS` < 5 → warning (very few PSO iterations)
-- If `PSO_STEPSIZE_RTOL` is set and any value is tighter (smaller) than the corresponding `STEPSIZE_RTOL` value → warning (PSO tolerances should be looser than gradient tolerances, not tighter)
-- Assess whether `NUM_PARTICLES` and `NUM_ITERS` are adequate for the search space dimension (`N_TRAINABLE_PARAMETERS`). A reasonable rule of thumb: `NUM_PARTICLES` ≥ 10 × N and `NUM_ITERS` ≥ 20. If the product `NUM_PARTICLES × NUM_ITERS` is below 20 × N², flag a warning that the search budget may be insufficient to reliably find a good basin. State the actual values and the implied budget in the warning so the user can make an informed decision.
+- `NUM_ITERS` < 5 → warning (very few iterations)
+- If `POP_STEPSIZE_RTOL` is set and any value is tighter (smaller) than the corresponding `STEPSIZE_RTOL` value → warning (zero-order tolerances should be looser than gradient tolerances, not tighter)
+- Assess whether `POPULATION_SIZE` and `NUM_ITERS` are adequate for the search space dimension (`N_TRAINABLE_PARAMETERS`). A reasonable rule of thumb: `POPULATION_SIZE` ≥ 10 × N and `NUM_ITERS` ≥ 20. If the product `POPULATION_SIZE × NUM_ITERS` is below 20 × N², flag a warning that the search budget may be insufficient to reliably find a good basin. State the actual values and the implied budget in the warning so the user can make an informed decision.
 
 Gradient:
 - `NUM_ITERS` < 3 → warning (very few gradient iterations)

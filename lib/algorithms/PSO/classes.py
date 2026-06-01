@@ -118,7 +118,7 @@ class FitParamsPSO:
 
         self.bounds_tuple = (self.min_search_list, self.max_search_list)
 
-        self.n_particles = input_reader.n_particles
+        self.n_particles = input_reader.population_size
         self.n_search_axes = input_reader.n_search_axes
         self.swarm_start_options = {"c1": 2.0, "c2": 0.5, "w": 1.0}
         self.swarm_end_options = {"c1": 0.5, "c2": 2.0, "w": 0.5}

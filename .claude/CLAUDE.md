@@ -112,9 +112,10 @@ The user provides `inputs/user_input.xml`. Key sections:
 
   <POPULATION_OPT>
     <SETTINGS>
-      <P> NUM_PARTICLES = 100 </P>
+      <P> POPULATION_SIZE = 100 </P>
       <P> NUM_ITERS = 20 </P>
       <P> PROCESSORS = 8 </P>
+      <P> ALGORITHM = PSO </P>   <!-- optional; PSO (default) or DE -->
     </SETTINGS>
   </POPULATION_OPT>
 
@@ -292,12 +293,12 @@ Never use the system `python` or `python3` directly — JAX and diffrax are only
 **INTEGRATED_SYSTEM_DESCRIPTION:** variable names must be pythonic; initial values must be sensible
 
 **POPULATION_OPT:**
-- `NUM_PARTICLES < 20` → critical
-- `NUM_PARTICLES > 1000` and no `PSO_STEPSIZE_RTOL` → warning (likely very slow)
+- `POPULATION_SIZE < 20` → critical
+- `POPULATION_SIZE > 1000` and no `POP_STEPSIZE_RTOL` → warning (likely very slow)
 - `PROCESSORS > 8` → warning (hard limit in fit_parameters.py)
 - `NUM_ITERS < 5` → warning
-- `PSO_STEPSIZE_RTOL` tighter than `STEPSIZE_RTOL` → warning (PSO tolerances should be looser)
-- Budget check: `NUM_PARTICLES × NUM_ITERS` vs. `20 × N_TRAINABLE_PARAMETERS²` — flag if insufficient
+- `POP_STEPSIZE_RTOL` tighter than `STEPSIZE_RTOL` → warning (zero-order tolerances should be looser)
+- Budget check: `POPULATION_SIZE × NUM_ITERS` vs. `20 × N_TRAINABLE_PARAMETERS²` — flag if insufficient
 
 **GRADIENT_OPT:**
 - `NUM_ITERS < 3` → warning

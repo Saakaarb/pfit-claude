@@ -84,7 +84,7 @@
     </MODEL>
     <POPULATION_OPT>
         <SETTINGS>
-            <P> NUM_PARTICLES = 200 </P>
+            <P> POPULATION_SIZE = 200 </P>
             <P> NUM_ITERS = 50 </P>
             <P> PROCESSORS = 8 </P>
         </SETTINGS>

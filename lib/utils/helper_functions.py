@@ -5,6 +5,7 @@ import numpy as np
 from lib.utils.classes import ProblemObjectBase
 from functools import partial
 from lib.algorithms.PSO.classes import FitParamsPSO
+from lib.algorithms.DE.classes import FitParamsDE
 from lib.algorithms.NODE.classes import FitParamsNODE
 import xml.etree.ElementTree as ET
 from lib.utils.xmlread import XMLReader
@@ -357,37 +358,43 @@ def fit_equation_system(input_reader: XMLReader, problem_obj: CreatedClass)-> np
         - Progress is logged to the output directory
         - Final parameters are saved to final_design_point.csv
     """
-    ## create fit object code
-    # make sure this can be any algorithm
-    print(
-        "TODO replace with a function that takes the algorithm name as a string input"
-    )
+    algorithm = getattr(input_reader, 'algorithm', 'PSO').upper()
 
-    fit_obj_PSO = FitParamsPSO(input_reader, problem_obj)
+    if algorithm == 'DE':
+        fit_obj = FitParamsDE(input_reader, problem_obj)
+    else:
+        fit_obj = FitParamsPSO(input_reader, problem_obj)
 
-    # PSO problem object: use loose tolerances if specified, else fall back to gradient tolerances
-    pso_rtol = input_reader.pso_stepsize_rtol or input_reader.stepsize_rtol
-    pso_atol = input_reader.pso_stepsize_atol or input_reader.stepsize_atol
+    # use loose tolerances for global search if specified, else fall back to gradient tolerances
+    pop_rtol = input_reader.pop_stepsize_rtol or input_reader.stepsize_rtol
+    pop_atol = input_reader.pop_stepsize_atol or input_reader.stepsize_atol
     for c in problem_obj.constants_list:
-        c['stepsize_rtol'] = jnp.array(pso_rtol)
-        c['stepsize_atol'] = jnp.array(pso_atol)
-    problem_obj.set_min_limit(fit_obj_PSO.min_search_axis)
-    problem_obj.set_max_limit(fit_obj_PSO.max_search_axis)
+        c['stepsize_rtol'] = jnp.array(pop_rtol)
+        c['stepsize_atol'] = jnp.array(pop_atol)
+    problem_obj.set_min_limit(fit_obj.min_search_axis)
+    problem_obj.set_max_limit(fit_obj.max_search_axis)
     problem_obj.set_is_logscale(input_reader.axis_logscale)
 
-    print(f"PSO tolerances  — rtol: {pso_rtol}, atol: {pso_atol}")
+    print(f"Global search tolerances — rtol: {pop_rtol}, atol: {pop_atol}")
 
-    print("Writing pso log file")
-    log_path = Path(input_reader.output_dir) / "pso_fitting.log"
-    with open(log_path, 'w') as log_file:
-        log_file.write(f"Total number of PSO iterations: {input_reader.n_iters_pop}\n")
-        log_file.write("-" * 50 + "\n\n")
+    if algorithm == 'DE':
+        print("Writing de log file")
+        log_path = Path(input_reader.output_dir) / "de_fitting.log"
+        with open(log_path, 'w') as log_file:
+            log_file.write(f"Total DE iterations: {input_reader.n_iters_pop}\n")
+            log_file.write("-" * 50 + "\n\n")
+        best_position, best_cost = fit_obj.run(log_path)
+    else:
+        print("Writing pso log file")
+        log_path = Path(input_reader.output_dir) / "pso_fitting.log"
+        with open(log_path, 'w') as log_file:
+            log_file.write(f"Total number of PSO iterations: {input_reader.n_iters_pop}\n")
+            log_file.write("-" * 50 + "\n\n")
+        best_position, best_cost = optimize_function(fit_obj, input_reader, log_path)
 
-    best_position,best_cost = optimize_function(fit_obj_PSO, input_reader, log_path)
-
-    unscaled_best_position = fit_obj_PSO.unscale_design_point(best_position)
-    print("Best Position from PSO:", unscaled_best_position)
-    print("Best cost from PSO:",best_cost)
+    unscaled_best_position = fit_obj.unscale_design_point(best_position)
+    print(f"Best Position from {algorithm}:", unscaled_best_position)
+    print(f"Best cost from {algorithm}:", best_cost)
 
     # NODE uses a separate problem object so its JIT compilation bakes in tight tolerances
     problem_obj_node = CreatedClass(
@@ -396,8 +403,8 @@ def fit_equation_system(input_reader: XMLReader, problem_obj: CreatedClass)-> np
         compute_loss_problem=problem_obj._compute_loss_problem,
         write_problem_result=problem_obj._write_problem_result,
     )
-    problem_obj_node.set_min_limit(fit_obj_PSO.min_search_axis)
-    problem_obj_node.set_max_limit(fit_obj_PSO.max_search_axis)
+    problem_obj_node.set_min_limit(fit_obj.min_search_axis)
+    problem_obj_node.set_max_limit(fit_obj.max_search_axis)
     problem_obj_node.set_is_logscale(input_reader.axis_logscale)
     print(f"NODE tolerances — rtol: {input_reader.stepsize_rtol}, atol: {input_reader.stepsize_atol}")
 
@@ -413,9 +420,9 @@ def fit_equation_system(input_reader: XMLReader, problem_obj: CreatedClass)-> np
         tuned_best_loss = 1e10
 
     print("Tuned position from NODE(scaled):", tuned_best_position)
-    print("Tuned best loss:",tuned_best_loss)
+    print("Tuned best loss:", tuned_best_loss)
 
-    unscaled_best_position_tuned = fit_obj_PSO.unscale_design_point(
+    unscaled_best_position_tuned = fit_obj.unscale_design_point(
         np.array(tuned_best_position)
     )
     print("Final best position:", unscaled_best_position_tuned)

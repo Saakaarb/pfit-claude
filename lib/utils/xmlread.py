@@ -25,11 +25,11 @@ class XMLReader():
         # TODO read a boundary condition for DAEs
 
         # population optimizer settings
-        self.n_particles=None
+        self.population_size=None
         self.n_iters_pop=None
         self.processors=None
-        self.pso_stepsize_rtol=None  # if None, falls back to stepsize_rtol
-        self.pso_stepsize_atol=None  # if None, falls back to stepsize_atol
+        self.pop_stepsize_rtol=None  # if None, falls back to stepsize_rtol
+        self.pop_stepsize_atol=None  # if None, falls back to stepsize_atol
         # gradient based optimizer settings
         self.n_iters_grad=None
         self.stepsize_rtol=None
@@ -42,6 +42,7 @@ class XMLReader():
         self.transition_steps_lr=None
         self.decay_rate_lr=None
         self.integrator="Kvaerno5"
+        self.algorithm="PSO"
         self.error_loss=5000.0
 
         # experiments: list of dicts, one per <EXPERIMENT> block in the XML.
@@ -207,16 +208,18 @@ class XMLReader():
                             name = child3.text.split('=')[0].strip()
                             value = child3.text.split('=')[1].strip()
 
-                            if name == "NUM_PARTICLES":
-                                self.n_particles = int(value)
+                            if name == "POPULATION_SIZE":
+                                self.population_size = int(value)
                             elif name == "NUM_ITERS":
                                 self.n_iters_pop = int(value)
                             elif name == "PROCESSORS":
                                 self.processors = int(value)
-                            elif name == "PSO_STEPSIZE_RTOL":
-                                self.pso_stepsize_rtol = [float(x.strip()) for x in value.split(',')]
-                            elif name == "PSO_STEPSIZE_ATOL":
-                                self.pso_stepsize_atol = [float(x.strip()) for x in value.split(',')]
+                            elif name == "POP_STEPSIZE_RTOL":
+                                self.pop_stepsize_rtol = [float(x.strip()) for x in value.split(',')]
+                            elif name == "POP_STEPSIZE_ATOL":
+                                self.pop_stepsize_atol = [float(x.strip()) for x in value.split(',')]
+                            elif name == "ALGORITHM":
+                                self.algorithm = value
                             else:
                                 raise ValueError
 
