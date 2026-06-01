@@ -86,17 +86,17 @@ def _compute_loss_problem(solution_time: np.ndarray, solution: np.ndarray, datas
                 derivs=user_defined_system(solution_time[i],solution[i,:],
                                                 trainable_parameters,fixed_parameters)
                 heat_rate_pred[i]=derivs[-1]
-        # Add epsilon to avoid log10 of zero or negative
         eps = 1e-12
-        loss1 = 1*np.sqrt(np.mean(np.square((np.log10(heat_rate_pred+eps)-np.log10(dataset[:,-1]+eps))/np.log10(np.max(dataset[:,-1]+eps)))))
-        loss2 = 10*np.mean(np.abs((dataset[:,0]-solution[:,2])/np.max(np.abs(dataset[:,0]))))
+        log_range = np.log10(np.max(dataset[:,-1]+eps)) - np.log10(np.min(dataset[:,-1]+eps))
+        loss1 = np.mean(np.abs(np.log10(heat_rate_pred+eps) - np.log10(dataset[:,-1]+eps))) / log_range
+        loss2 = np.mean(np.abs((dataset[:,0]-solution[:,2])/np.max(np.abs(dataset[:,0]))))
 
         T_final_sim=solution[-1,-1]
         T_final_data=dataset[-1,0]
 
         if solution[-1,0] > 0.02 or solution[-1,1] < 0.98 or np.abs(T_final_sim-T_final_data)>50:
 
-                loss3=500
+                loss3=5
         else:
                 loss3=0
         #--------------------------------

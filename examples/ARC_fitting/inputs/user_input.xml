@@ -83,9 +83,10 @@
     </MODEL>
     <POPULATION_OPT>
         <SETTINGS>
-            <P> POPULATION_SIZE = 350 </P>
-            <P> NUM_ITERS = 50 </P>
+            <P> POPULATION_SIZE = 1000 </P>
+            <P> NUM_ITERS = 20 </P>
             <P> PROCESSORS = 8 </P>
+            <P> ALGORITHM = DE </P>
             <P> POP_STEPSIZE_RTOL = 1E-3,1E-3,1E-3 </P>
             <P> POP_STEPSIZE_ATOL = 1E-3,1E-3,1E-3 </P>
         </SETTINGS>

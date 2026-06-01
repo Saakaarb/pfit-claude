@@ -104,13 +104,9 @@ def _compute_loss_problem(constants, trainable_variables):
     heat_rate_pred = jax.vmap(compute_dTdt_at_t)(solution_time, solution)
 
     eps = 1e-12
-    loss1 = 1.0 * jnp.sqrt(jnp.mean(jnp.square(
-        (jnp.log10(heat_rate_pred + eps) - jnp.log10(dataset[:, -1] + eps)) /
-        jnp.log10(jnp.max(dataset[:, -1] + eps))
-    )))
-    loss2 = 10.0 * jnp.mean(jnp.abs(
-        (dataset[:, 0] - solution[:, 2]) / jnp.max(jnp.abs(dataset[:, 0]))
-    ))
+    log_range = jnp.log10(jnp.max(dataset[:, -1] + eps)) - jnp.log10(jnp.min(dataset[:, -1] + eps))
+    loss1 = jnp.mean(jnp.abs(jnp.log10(heat_rate_pred + eps) - jnp.log10(dataset[:, -1] + eps))) / log_range
+    loss2 = jnp.mean(jnp.abs((dataset[:, 0] - solution[:, 2]) / jnp.max(jnp.abs(dataset[:, 0]))))
 
     T_final_sim = solution[-1, -1]
     T_final_data = dataset[-1, 0]
@@ -118,7 +114,7 @@ def _compute_loss_problem(constants, trainable_variables):
         jnp.logical_or(solution[-1, 0] > 0.02, solution[-1, 1] < 0.98),
         jnp.abs(T_final_sim - T_final_data) > 50
     )
-    loss3 = jnp.where(cond, 500.0, 0.0)
+    loss3 = jnp.where(cond, 5.0, 0.0)
 
     loss_value = loss1 + loss2 + loss3
 
