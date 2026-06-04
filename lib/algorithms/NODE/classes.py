@@ -262,7 +262,7 @@ class FitParamsNODE:
             self.optimizer = optax.lbfgs()
             iter_write_freq = 1
         elif self.optimizer_name == 'adam':
-            iter_write_freq = 100
+            iter_write_freq = 1
             self.learning_rate = optax.exponential_decay(
             init_value=self.input_reader.init_value_lr,
             transition_steps=self.input_reader.transition_steps_lr,

@@ -69,6 +69,8 @@
             <P> END_VALUE_LR = 1e-5 </P>
             <P> TRANSITION_STEPS_LR = 2000 </P>
             <P> DECAY_RATE_LR = 0.9 </P>
+            <P> INTEGRATOR = Kvaerno5 </P>
+            <P> GRADIENT_OPTIMIZER = lbfgs </P>
         </SETTINGS>
     </GRADIENT_OPT>
     <PLOTTING_INFO>

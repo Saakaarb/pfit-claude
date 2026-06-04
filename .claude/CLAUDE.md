@@ -127,6 +127,7 @@ The user provides `inputs/user_input.xml`. Key sections:
       <P> INITIAL_TIMESTEP = 1e-6 </P>
       <P> MAX_STEPS = 10000 </P>
       <P> INTEGRATOR = Kvaerno5 </P>   <!-- optional; default Kvaerno5. Stiff: Kvaerno3, Kvaerno5. Non-stiff: Dopri5, Dopri8, Tsit5 -->
+      <P> GRADIENT_OPTIMIZER = lbfgs </P>   <!-- optional; lbfgs (default) or adam -->
       <P> INIT_VALUE_LR = 1e-4 </P>
       <P> END_VALUE_LR = 1e-5 </P>
       <P> TRANSITION_STEPS_LR = 2000 </P>

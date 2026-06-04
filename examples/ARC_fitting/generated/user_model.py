@@ -29,6 +29,7 @@ def user_defined_system(t: float, y: np.ndarray, trainable_parameters: dict, fix
         Ea2 = trainable_parameters['Ea2']
         h2  = trainable_parameters['h2']
         m2  = trainable_parameters['m2']
+        n1  = trainable_parameters['n1']
 
         kb = fixed_parameters['kb']
 
@@ -40,13 +41,12 @@ def user_defined_system(t: float, y: np.ndarray, trainable_parameters: dict, fix
 
         # this part is to be populated by the user
         #--------------------------------
-        dc1_dt= - A1*np.exp(-Ea1/(kb*T))*c1
+        dc1_dt= - A1*np.exp(-Ea1/(kb*T))*c1**n1
         dc2_dt= A2*np.exp(-Ea2/(kb*T)) * (1-c2)**m2
-        dT_dt=np.abs(h1*dc1_dt)+np.abs(h2*dc2_dt)
+        dT_dt=np.abs(h1*dc1_dt)
 
-        #if T > 500:
-
-        #        dT_dt+=np.abs(h2*dc2_dt)
+        if T > 500:
+                dT_dt+=np.abs(h2*dc2_dt)
         
         #--------------------------------
         derivatives = np.array([dc1_dt, dc2_dt, dT_dt]) #
@@ -72,6 +72,7 @@ def _compute_loss_problem(solution_time: np.ndarray, solution: np.ndarray, datas
         Ea2 = trainable_parameters['Ea2']
         h2  = trainable_parameters['h2']
         m2  = trainable_parameters['m2']
+        n1  = trainable_parameters['n1']
 
         kb = fixed_parameters['kb']
         #--------------------------------
@@ -89,14 +90,13 @@ def _compute_loss_problem(solution_time: np.ndarray, solution: np.ndarray, datas
         loss1 = np.mean(np.abs(np.log10(heat_rate_pred+eps) - np.log10(dataset[:,-1]+eps))) / log_range
         loss2 = np.mean(np.abs((dataset[:,0]-solution[:,2])/np.max(np.abs(dataset[:,0]))))
 
-        T_final_sim=solution[-1,-1]
-        T_final_data=dataset[-1,0]
+        c1_end = solution[-1, 0]
+        c2_end = solution[-1, 1]
+        T_end  = solution[-1, 2]
 
-        if solution[-1,0] > 0.02 or solution[-1,1] < 0.98 or np.abs(T_final_sim-T_final_data)>50:
-
-                loss3=500
-        else:
-                loss3=0
+        loss3 = 100.0 * (np.maximum(0.0, c1_end - 0.1) +
+                         np.maximum(0.0, 0.9 - c2_end) +
+                         np.maximum(0.0, 600.0 - T_end) / 600.0)
         #--------------------------------
 
         return loss1 + loss2 + loss3 # scalar
@@ -121,6 +121,7 @@ def writeout_description(solution_time: np.ndarray, solution: np.ndarray, datase
         Ea2 = trainable_parameters['Ea2']
         h2  = trainable_parameters['h2']
         m2  = trainable_parameters['m2']
+        n1  = trainable_parameters['n1']
 
         kb = fixed_parameters['kb']
         #--------------------------------

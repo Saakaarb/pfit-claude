@@ -41,8 +41,8 @@ def user_defined_system(t, y, other_args):
     is_logscale = constants["is_logscale"]
     # ----------------------
 
-    # Order: ['Ea1', 'h1', 'A1', 'A2', 'Ea2', 'h2', 'm2']
-    Ea1, h1, A1, A2, Ea2, h2, m2 = unscale_value(trainable_variables, min_val, max_val, is_logscale)
+    # Order: ['Ea1', 'h1', 'A1', 'A2', 'Ea2', 'h2', 'm2', 'n1']
+    Ea1, h1, A1, A2, Ea2, h2, m2, n1 = unscale_value(trainable_variables, min_val, max_val, is_logscale)
 
     kb = fixed_parameters['kb']
 
@@ -50,9 +50,10 @@ def user_defined_system(t, y, other_args):
     c2 = y[1]
     T  = y[2]
 
-    dc1_dt = -A1 * jnp.exp(-Ea1 / (kb * T)) * c1
+    dc1_dt = -A1 * jnp.exp(-Ea1 / (kb * T)) * c1**n1
     dc2_dt = A2 * jnp.exp(-Ea2 / (kb * T)) * (1 - c2)**m2
-    dT_dt = jnp.abs(h1 * dc1_dt) + jnp.abs(h2 * dc2_dt)
+    dT_dt = jnp.abs(h1 * dc1_dt)
+    dT_dt = jnp.where(T > 500.0, dT_dt + jnp.abs(h2 * dc2_dt), dT_dt)
 
     return jnp.array([dc1_dt, dc2_dt, dT_dt])
 
@@ -98,23 +99,21 @@ def _compute_loss_problem(constants, trainable_variables):
 
     def compute_dTdt_at_t(t, y):
         other_args = {"constants": constants, "trainable_variables": trainable_variables}
-        derivs = user_defined_system(t, y, other_args)
-        return derivs[-1]
+        return user_defined_system(t, y, other_args)[-1]
 
     heat_rate_pred = jax.vmap(compute_dTdt_at_t)(solution_time, solution)
-
     eps = 1e-12
     log_range = jnp.log10(jnp.max(dataset[:, -1] + eps)) - jnp.log10(jnp.min(dataset[:, -1] + eps))
     loss1 = jnp.mean(jnp.abs(jnp.log10(heat_rate_pred + eps) - jnp.log10(dataset[:, -1] + eps))) / log_range
+
     loss2 = jnp.mean(jnp.abs((dataset[:, 0] - solution[:, 2]) / jnp.max(jnp.abs(dataset[:, 0]))))
 
-    T_final_sim = solution[-1, -1]
-    T_final_data = dataset[-1, 0]
-    cond = jnp.logical_or(
-        jnp.logical_or(solution[-1, 0] > 0.02, solution[-1, 1] < 0.98),
-        jnp.abs(T_final_sim - T_final_data) > 50
-    )
-    loss3 = jnp.where(cond, 5.0, 0.0)
+    c1_end = solution[-1, 0]
+    c2_end = solution[-1, 1]
+    T_end  = solution[-1, 2]
+    loss3 = 100.0 * (jnp.maximum(0.0, c1_end - 0.1) +
+                     jnp.maximum(0.0, 0.9 - c2_end) +
+                     jnp.maximum(0.0, 600.0 - T_end) / 600.0)
 
     loss_value = loss1 + loss2 + loss3
 
