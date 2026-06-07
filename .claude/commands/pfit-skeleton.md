@@ -27,6 +27,8 @@ Generate a user_model.py skeleton for the current session from its user_input.xm
 
 8. Tell the user what was generated and remind them to fill in the ODE logic in `user_defined_system`, the loss computation in `_compute_loss_problem`, and the writeout in `writeout_description` before running `/pfit-check`.
 
+9. At the end, VERIFY your implementation by cross checking against the input XML again
+
 ## Rules (from user_model_generation_instructions.txt)
 - Do NOT leave any function empty — include stubs with comments showing what to fill in
 - Add `import numpy as np` at the top

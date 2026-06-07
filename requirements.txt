@@ -1,9 +1,20 @@
-diffrax
-equinox
-jax
+# JAX / diffrax ecosystem — pinned to a mutually compatible, validated set.
+# NOTE: diffrax 0.7.2 works only with jax 0.6.x. Pairing diffrax 0.7.2 with the
+# 2026-latest jax (0.10) breaks the stiff-solver closure conversion (VeryChord
+# init_state KeyError); diffrax 0.7.0/0.7.1 fail to integrate even on jax 0.6.2.
+# numpy must stay on 2.2.x — numpy 2.4 breaks integration with this jax.
+jax==0.6.2
+jaxlib==0.6.2
+diffrax==0.7.2
+equinox==0.13.8
+lineax==0.1.0
+optimistix==0.1.0
+optax==0.2.8
+numpy==2.2.6
+# scipy is required by the differential-evolution (DE) population optimizer
+# (scipy.optimize.differential_evolution); previously pulled in only transitively.
+scipy==1.15.3
 matplotlib
-numpy
-optax
 pandas
 pyswarms
 python-dotenv

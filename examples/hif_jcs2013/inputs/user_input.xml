@@ -1,0 +1,404 @@
+<?xml version="1.0" ?>
+<FIT>
+    <!-- Experiment 1: 3% O2 hypoxia — luciferase readout only -->
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = exp1_hypoxia3pct.csv </E>
+        </FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR>
+                <P> NAME = O2_exp </P>
+                <P> INIT_VAL = 14.286 </P>
+            </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+
+    <!-- Experiment 2: 1% O2 hypoxia — luciferase readout only -->
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = exp2_hypoxia1pct.csv </E>
+        </FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR>
+                <P> NAME = O2_exp </P>
+                <P> INIT_VAL = 4.762 </P>
+            </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+
+    <!-- Experiment 3: DMOG (PHD+FIH inhibition) — protein stabilisation readout -->
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = exp3_DMOG_protein.csv </E>
+        </FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR>
+                <P> NAME = PHD_factor </P>
+                <P> INIT_VAL = 0.01 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = FIH_factor </P>
+                <P> INIT_VAL = 0.01 </P>
+            </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+
+    <!-- Experiment 4: JNJ1935 (selective PHD inhibitor) — protein stabilisation readout -->
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = exp4_JNJ_protein.csv </E>
+        </FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR>
+                <P> NAME = PHD_factor </P>
+                <P> INIT_VAL = 0.10 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = FIH_factor </P>
+                <P> INIT_VAL = 0.80 </P>
+            </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+
+    <!-- Experiment 5: DMOG — luciferase readout -->
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = exp5_DMOG_luc.csv </E>
+        </FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR>
+                <P> NAME = PHD_factor </P>
+                <P> INIT_VAL = 0.01 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = FIH_factor </P>
+                <P> INIT_VAL = 0.01 </P>
+            </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+
+    <!-- Experiment 6: JNJ1935 — luciferase readout -->
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = exp6_JNJ_luc.csv </E>
+        </FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR>
+                <P> NAME = PHD_factor </P>
+                <P> INIT_VAL = 0.10 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = FIH_factor </P>
+                <P> INIT_VAL = 0.80 </P>
+            </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 22 </P>
+        </TRAINABLE_PARAMETERS>
+        <!-- Order: k1, k2, k3, Km3b, k4, Km4, k5, Km5b, k6, k7, k8,
+                    k9, k10, k11, k12, k13, k14, k21f, k21r, k22f, k22r, k24 -->
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <PARAM>
+                <P> PARAMETER_NAME = k1 </P>
+                <P> MIN_VAL = 1e-5 </P>
+                <P> MAX_VAL = 0.5 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k2 </P>
+                <P> MIN_VAL = 1e-6 </P>
+                <P> MAX_VAL = 0.02 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k3 </P>
+                <P> MIN_VAL = 1e-4 </P>
+                <P> MAX_VAL = 4.5 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = Km3b </P>
+                <P> MIN_VAL = 1.0 </P>
+                <P> MAX_VAL = 1e4 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k4 </P>
+                <P> MIN_VAL = 1e-3 </P>
+                <P> MAX_VAL = 10.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = Km4 </P>
+                <P> MIN_VAL = 1.5 </P>
+                <P> MAX_VAL = 1.5e4 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k5 </P>
+                <P> MIN_VAL = 4e-3 </P>
+                <P> MAX_VAL = 40.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = Km5b </P>
+                <P> MIN_VAL = 0.2 </P>
+                <P> MAX_VAL = 2000.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k6 </P>
+                <P> MIN_VAL = 1e-5 </P>
+                <P> MAX_VAL = 0.1 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k7 </P>
+                <P> MIN_VAL = 3e-5 </P>
+                <P> MAX_VAL = 0.3 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k8 </P>
+                <P> MIN_VAL = 1e-4 </P>
+                <P> MAX_VAL = 1.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k9 </P>
+                <P> MIN_VAL = 1e-5 </P>
+                <P> MAX_VAL = 0.1 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k10 </P>
+                <P> MIN_VAL = 1e-5 </P>
+                <P> MAX_VAL = 0.1 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k11 </P>
+                <P> MIN_VAL = 1e-6 </P>
+                <P> MAX_VAL = 0.01 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k12 </P>
+                <P> MIN_VAL = 1e-6 </P>
+                <P> MAX_VAL = 0.01 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k13 </P>
+                <P> MIN_VAL = 2e-6 </P>
+                <P> MAX_VAL = 0.02 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k14 </P>
+                <P> MIN_VAL = 1e-6 </P>
+                <P> MAX_VAL = 0.01 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k21f </P>
+                <P> MIN_VAL = 5e-6 </P>
+                <P> MAX_VAL = 0.05 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k21r </P>
+                <P> MIN_VAL = 1e-4 </P>
+                <P> MAX_VAL = 1.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k22f </P>
+                <P> MIN_VAL = 1e-5 </P>
+                <P> MAX_VAL = 0.1 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k22r </P>
+                <P> MIN_VAL = 1e-4 </P>
+                <P> MAX_VAL = 1.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k24 </P>
+                <P> MIN_VAL = 2e-5 </P>
+                <P> MAX_VAL = 0.2 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+
+        <FIXED_PARAM_DESCRIPTION>
+            <PARAM>
+                <P> NAME = Km3a </P>
+                <P> VALUE = 250.0 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = Km5a </P>
+                <P> VALUE = 90.0 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = k23 </P>
+                <P> VALUE = 0.0016 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = k25 </P>
+                <P> VALUE = 0.00001 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = k26 </P>
+                <P> VALUE = 0.00038 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = k27 </P>
+                <P> VALUE = 0.009 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = k28 </P>
+                <P> VALUE = 0.0001 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = k29 </P>
+                <P> VALUE = 0.02 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = FIH </P>
+                <P> VALUE = 110.0 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = FIHn </P>
+                <P> VALUE = 40.0 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = VHL </P>
+                <P> VALUE = 50.0 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = VHLn </P>
+                <P> VALUE = 50.0 </P>
+            </PARAM>
+            <PARAM>
+                <P> NAME = HIF0 </P>
+                <P> VALUE = 10.947 </P>
+            </PARAM>
+        </FIXED_PARAM_DESCRIPTION>
+
+        <!-- Variable order: 17 biological + 3 dummy (O2_exp, PHD_factor, FIH_factor) -->
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <VAR>
+                <P> NAME = HIFa </P>
+                <P> INIT_VAL = 0.01131 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = HIFa_pOH </P>
+                <P> INIT_VAL = 0.0024 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = HIFa_aOH </P>
+                <P> INIT_VAL = 8.1736 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = HIFa_aOHpOH </P>
+                <P> INIT_VAL = 1.077 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = HIFan_pOH </P>
+                <P> INIT_VAL = 0.00142 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = HIFan </P>
+                <P> INIT_VAL = 0.00668 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = HIFd </P>
+                <P> INIT_VAL = 0.05667 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = HIFd_HRE </P>
+                <P> INIT_VAL = 0.2818 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = HIFan_aOH </P>
+                <P> INIT_VAL = 2.854 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = HIFan_aOHpOH </P>
+                <P> INIT_VAL = 0.3933 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = PHD </P>
+                <P> INIT_VAL = 55.038 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = PHDn </P>
+                <P> INIT_VAL = 54.967 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = HIFb </P>
+                <P> INIT_VAL = 169.66 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = HRE </P>
+                <P> INIT_VAL = 49.718 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = mRNA </P>
+                <P> INIT_VAL = 0.0 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = Protein </P>
+                <P> INIT_VAL = 0.0 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = Luc </P>
+                <P> INIT_VAL = 0.0 </P>
+            </VAR>
+            <!-- Dummy state variables: dY/dt = 0, set per-experiment via INITIAL_CONDITIONS -->
+            <VAR>
+                <P> NAME = O2_exp </P>
+                <P> INIT_VAL = 100.0 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = PHD_factor </P>
+                <P> INIT_VAL = 1.0 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = FIH_factor </P>
+                <P> INIT_VAL = 1.0 </P>
+            </VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> POPULATION_SIZE = 300 </P>
+            <P> NUM_ITERS = 35 </P>
+            <P> PROCESSORS = 8 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 30 </P>
+            <P> STEPSIZE_RTOL = 1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-3,1e-3,1e-3 </P>
+            <P> STEPSIZE_ATOL = 1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-6,1e-6,1e-6 </P>
+            <P> INITIAL_TIMESTEP = 1.0 </P>
+            <P> MAX_STEPS = 50000 </P>
+            <P> INIT_VALUE_LR = 1e-3 </P>
+            <P> END_VALUE_LR = 1e-4 </P>
+            <P> TRANSITION_STEPS_LR = 3000 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>

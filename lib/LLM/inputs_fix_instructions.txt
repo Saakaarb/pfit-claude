@@ -22,6 +22,6 @@ Make corrections to the .py file and the .xml, based on the report. You MUST foc
 
 1. Making MININAL CHANGES; make as few changes as possible to fix as many errors as possible
 2. DO NOT change the logic of the code, unless it is fundamentally wrong and is pointed out in the report
-3. if it is not possible to fix an error, ignore the error
+3. if it is not possible to fix an error, ignore the error and INFORM the user
 4. If there are no errors to fix, leave the files as they are
 5. DO NOT make any assumptions about what each column index in the dataset corresponds to: user them as provided by the user and indicated in the code given to you
