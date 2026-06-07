@@ -264,23 +264,31 @@ def pairwise_dist(sampling, value_ranges):
     return pairwise_dists
 
 
-def get_lhs_sampling(n_samples: int, value_ranges: np.ndarray) -> np.ndarray:
+def get_lhs_sampling(n_samples: int, value_ranges: np.ndarray,
+                     optimization: str = "random-cd") -> np.ndarray:
     """
-    Generate an initial sampling using Latin Hypercube Sampling (LHS).
+    Generate an initial sampling using optimized Latin Hypercube Sampling (LHS).
 
     Each dimension is divided into n_samples equal-probability strata and
     exactly one sample is drawn from each stratum, guaranteeing uniform
-    marginal coverage without the cost of the Morris-Mitchell search.
+    marginal coverage. By default the strata pairing is then *optimized* to
+    improve space-filling: ``optimization="random-cd"`` permutes the columns to
+    minimize the centered L2 discrepancy, producing a more uniform design than a
+    plain LHS at a small one-time setup cost.
 
     Args:
         n_samples (int): Number of sample points to generate.
         value_ranges (np.ndarray): Shape (n_axes, 2) array of [min, max] per axis.
+        optimization (str | None): LHS optimization passed to
+            ``scipy.stats.qmc.LatinHypercube``. One of ``"random-cd"`` (default,
+            minimizes centered discrepancy), ``"lloyd"`` (Lloyd-Mitchell
+            iterations), or ``None`` for a plain (un-optimized) LHS.
 
     Returns:
         np.ndarray: Shape (n_samples, n_axes) array of sample points scaled to value_ranges.
     """
     n_axes = value_ranges.shape[0]
-    sampler = LatinHypercube(d=n_axes)
+    sampler = LatinHypercube(d=n_axes, optimization=optimization)
     # unit-hypercube samples in [0, 1]^n_axes
     unit_samples = sampler.random(n=n_samples)
     # scale each axis to its [min, max] range

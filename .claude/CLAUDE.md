@@ -296,7 +296,7 @@ Never use the system `python` or `python3` directly — JAX and diffrax are only
 **POPULATION_OPT:**
 - `POPULATION_SIZE < 20` → critical
 - `POPULATION_SIZE > 1000` and no `POP_STEPSIZE_RTOL` → warning (likely very slow)
-- `PROCESSORS > 8` → warning (hard limit in fit_parameters.py)
+- `PROCESSORS > os.cpu_count()` → warning (no hard cap; oversubscribing cores won't help)
 - `NUM_ITERS < 5` → warning
 - `POP_STEPSIZE_RTOL` tighter than `STEPSIZE_RTOL` → warning (zero-order tolerances should be looser)
 - Budget check: `POPULATION_SIZE × NUM_ITERS` vs. `20 × N_TRAINABLE_PARAMETERS²` — flag if insufficient

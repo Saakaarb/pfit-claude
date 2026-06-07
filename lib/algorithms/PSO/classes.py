@@ -191,7 +191,7 @@ class FitParamsPSO:
             for i_axis in range(self.input_reader.n_search_axes)
         ])
 
-        print("Creating initial sampling (LHS)")
+        print("Creating initial sampling (optimized LHS)")
         initial_positions = get_lhs_sampling(self.n_particles, doe_axis_lims)
 
         self.swarm_obj.position = initial_positions

@@ -88,8 +88,7 @@ class CreatedClass(ProblemObjectBase):
         user_selected_n_devices=int(self.input_reader.processors)
 
         if user_selected_n_devices > n_devices_total:
-            print(f"User selected {user_selected_n_devices} devices, but only {n_devices_total} are available. The code is constrained to see a maximum of 8 devices. Using all available devices.")
-            print("The hardcoded upper limit of 8 can be changed in fit_parameters.py")
+            print(f"User selected {user_selected_n_devices} devices, but only {n_devices_total} are available to JAX. Using all available devices.")
 
         used_devices = all_devices[:min(n_devices_total, user_selected_n_devices)]
 
