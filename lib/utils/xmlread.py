@@ -30,6 +30,7 @@ class XMLReader():
         self.processors=None
         self.pop_stepsize_rtol=None  # if None, falls back to stepsize_rtol
         self.pop_stepsize_atol=None  # if None, falls back to stepsize_atol
+        self.random_seed=None  # if set, makes the global search fully deterministic
         # gradient based optimizer settings
         self.n_iters_grad=None
         self.stepsize_rtol=None
@@ -221,6 +222,8 @@ class XMLReader():
                                 self.pop_stepsize_atol = [float(x.strip()) for x in value.split(',')]
                             elif name == "ALGORITHM":
                                 self.algorithm = value
+                            elif name == "RANDOM_SEED":
+                                self.random_seed = int(value)
                             else:
                                 raise ValueError
 

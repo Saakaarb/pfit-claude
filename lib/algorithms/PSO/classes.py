@@ -85,6 +85,7 @@ class FitParamsPSO:
 
         self.problem_obj = problem_object
         self.input_reader = input_reader
+        self.random_seed = getattr(input_reader, "random_seed", None)
         # Set bounds and scaling info
 
         self.min_search_list = []
@@ -176,6 +177,14 @@ class FitParamsPSO:
         get_spacefilled_DoE : Function used for initial particle positioning
         """
 
+        # Seed numpy's global RNG: pyswarms draws initial velocities (here) and
+        # the per-iteration cognitive/social r1,r2 terms (compute_velocity) from
+        # np.random's global state, so seeding it once makes the whole swarm
+        # trajectory deterministic. The LHS sampler below is seeded separately
+        # because scipy.qmc uses its own Generator, not this global state.
+        if self.random_seed is not None:
+            np.random.seed(self.random_seed)
+
         self.my_topology = pyswarms.backend.topology.Star()
         self.swarm_obj = pyswarms.backend.generators.create_swarm(
             self.n_particles,
@@ -192,7 +201,7 @@ class FitParamsPSO:
         ])
 
         print("Creating initial sampling (optimized LHS)")
-        initial_positions = get_lhs_sampling(self.n_particles, doe_axis_lims)
+        initial_positions = get_lhs_sampling(self.n_particles, doe_axis_lims, seed=self.random_seed)
 
         self.swarm_obj.position = initial_positions
         self.bh = pyswarms.backend.handlers.BoundaryHandler(strategy="nearest")

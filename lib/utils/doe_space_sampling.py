@@ -265,7 +265,8 @@ def pairwise_dist(sampling, value_ranges):
 
 
 def get_lhs_sampling(n_samples: int, value_ranges: np.ndarray,
-                     optimization: str = "random-cd") -> np.ndarray:
+                     optimization: str = "random-cd",
+                     seed: int = None) -> np.ndarray:
     """
     Generate an initial sampling using optimized Latin Hypercube Sampling (LHS).
 
@@ -283,12 +284,16 @@ def get_lhs_sampling(n_samples: int, value_ranges: np.ndarray,
             ``scipy.stats.qmc.LatinHypercube``. One of ``"random-cd"`` (default,
             minimizes centered discrepancy), ``"lloyd"`` (Lloyd-Mitchell
             iterations), or ``None`` for a plain (un-optimized) LHS.
+        seed (int | None): Seed for the sampler's internal RNG. When set, the
+            generated sampling is fully reproducible. ``scipy.stats.qmc`` uses
+            its own Generator (NOT numpy's global state), so this must be passed
+            explicitly — ``np.random.seed`` has no effect on it.
 
     Returns:
         np.ndarray: Shape (n_samples, n_axes) array of sample points scaled to value_ranges.
     """
     n_axes = value_ranges.shape[0]
-    sampler = LatinHypercube(d=n_axes, optimization=optimization)
+    sampler = LatinHypercube(d=n_axes, optimization=optimization, seed=seed)
     # unit-hypercube samples in [0, 1]^n_axes
     unit_samples = sampler.random(n=n_samples)
     # scale each axis to its [min, max] range
@@ -297,7 +302,8 @@ def get_lhs_sampling(n_samples: int, value_ranges: np.ndarray,
     return min_vals + unit_samples * (max_vals - min_vals)
 
 
-def get_sobol_sampling(n_samples: int, value_ranges: np.ndarray) -> np.ndarray:
+def get_sobol_sampling(n_samples: int, value_ranges: np.ndarray,
+                       seed: int = None) -> np.ndarray:
     """
     Generate an initial sampling using a Sobol low-discrepancy sequence.
 
@@ -314,7 +320,7 @@ def get_sobol_sampling(n_samples: int, value_ranges: np.ndarray) -> np.ndarray:
         np.ndarray: Shape (n_samples, n_axes) array of sample points scaled to value_ranges.
     """
     n_axes = value_ranges.shape[0]
-    sampler = Sobol(d=n_axes, scramble=True)
+    sampler = Sobol(d=n_axes, scramble=True, seed=seed)
     unit_samples = sampler.random(n=n_samples)
     min_vals = value_ranges[:, 0]
     max_vals = value_ranges[:, 1]

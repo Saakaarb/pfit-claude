@@ -57,6 +57,9 @@ Gradient:
 - `MAX_STEPS` < 1000 → warning (low; many integrations may hit the step limit and return error_loss)
 - `INIT_VALUE_LR` < `END_VALUE_LR` → critical (learning rate schedule is inverted; loss will diverge)
 - Any `STEPSIZE_RTOL` or `STEPSIZE_ATOL` value < 1e-12 → warning (extremely tight; near floating-point precision, may never converge)
+- **Optimizer-specific iteration/LR guidance (inspect `GRADIENT_OPTIMIZER`):**
+  - `lbfgs` (default) is quasi-Newton — it takes large, curvature-informed steps, so a SMALL number of iterations is fine (tens, even <10). The learning-rate settings are largely irrelevant for L-BFGS.
+  - `adam` is a first-order method — it takes many small steps, so it needs a LARGE `NUM_ITERS` (hundreds to ~1000) AND a modest, annealing learning rate. Flag a warning if `GRADIENT_OPTIMIZER = adam` and either `NUM_ITERS` < ~200 (too few Adam steps to converge) or `INIT_VALUE_LR` > ~1e-2 (too high — Adam will oscillate/diverge on the stiff ODE loss surface; start around 1e-3 and anneal down, e.g. to 1e-5).
 
 **user_defined_system checks:**
 - Every integrated variable has a derivative defined and returned

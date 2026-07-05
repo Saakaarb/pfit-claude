@@ -117,6 +117,7 @@ The user provides `inputs/user_input.xml`. Key sections:
       <P> NUM_ITERS = 20 </P>
       <P> PROCESSORS = 8 </P>
       <P> ALGORITHM = PSO </P>   <!-- optional; PSO (default) or DE -->
+      <P> RANDOM_SEED = 0 </P>   <!-- optional; fixes ALL RNGs (LHS init + PSO velocities / DE mutation) for a reproducible fit. Omit for stochastic runs -->
     </SETTINGS>
   </POPULATION_OPT>
 
@@ -218,6 +219,16 @@ User functions are translated to JAX:
 
 All optimization is done in [-1, 1] space. For log-scale parameters, log10 is applied before linear scaling.
 
+## Reproducibility
+
+Setting `RANDOM_SEED` in `POPULATION_OPT/SETTINGS` makes the entire fit deterministic (same machine + same library versions). It is threaded to every stochastic component:
+- **LHS initial sampling** (`get_lhs_sampling`, used by both PSO and DE) — passed as the `seed=` argument. `scipy.stats.qmc` uses its own Generator, NOT NumPy's global state, so it *must* be seeded explicitly; `np.random.seed()` alone does not control it.
+- **PSO** — `np.random.seed(seed)` is called once in `initialize_swarm`, covering both the initial velocities (`create_swarm`) and the per-iteration cognitive/social draws (`compute_velocity`), which pyswarms takes from NumPy's global RNG.
+- **DE** — the same seed is passed to `scipy.optimize.differential_evolution(seed=...)`. When `RANDOM_SEED` is unset, DE falls back to `42` (its historical default), so DE is reproducible by default; PSO is not unless `RANDOM_SEED` is set.
+- **Gradient stage (NODE)** — already deterministic (optax lbfgs/adam have no RNG; the init guess is the fixed best global-search point).
+
+The parallel loss evaluation (`pmap` sharding) is order-independent of `PROCESSORS`, so the device count does not affect results. Determinism is bit-for-bit only on identical hardware and identical `jax`/`diffrax`/`scipy`/`pyswarms` versions.
+
 ## Python Environment
 
 Always use the venv in the project root for any Python commands:
@@ -309,6 +320,9 @@ Never use the system `python` or `python3` directly — JAX and diffrax are only
 - `MAX_STEPS < 1000` → warning
 - `INIT_VALUE_LR < END_VALUE_LR` → critical (inverted LR schedule)
 - Any `STEPSIZE_RTOL` or `STEPSIZE_ATOL` < 1e-12 → warning
+- **Optimizer choice governs iteration count and LR** (`GRADIENT_OPTIMIZER`):
+  - `lbfgs` (default, quasi-Newton): takes large curvature-informed steps, so a *small* `NUM_ITERS` (tens, even <10) is fine and the LR schedule barely matters.
+  - `adam` (first-order): needs *many* small steps — set `NUM_ITERS` in the hundreds to ~1000 and a modest annealing LR (start ~1e-3, decay toward ~1e-5). Warn if `adam` with `NUM_ITERS` < ~200 or `INIT_VALUE_LR` > ~1e-2 (a high Adam LR oscillates/diverges on the stiff ODE loss surface).
 
 #### user_model.py checks
 

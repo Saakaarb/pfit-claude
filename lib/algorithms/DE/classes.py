@@ -12,6 +12,11 @@ class FitParamsDE:
     def __init__(self, input_reader: XMLReader, problem_object: ProblemObjectBase):
         self.problem_obj = problem_object
         self.input_reader = input_reader
+        # Fall back to 42 when unset so DE stays reproducible by default (its
+        # historical behavior); an explicit RANDOM_SEED overrides it.
+        self.random_seed = getattr(input_reader, "random_seed", None)
+        if self.random_seed is None:
+            self.random_seed = 42
 
         self.min_search_list = []
         self.max_search_list = []
@@ -78,7 +83,7 @@ class FitParamsDE:
 
         # generate initial population using the same LHS function as PSO
         lhs_bounds = np.array([[-1.0, 1.0]] * self.n_search_axes)
-        initial_population = get_lhs_sampling(n_pop, lhs_bounds)
+        initial_population = get_lhs_sampling(n_pop, lhs_bounds, seed=self.random_seed)
 
         print(f"DE population size: {n_pop}, max iterations: {self.input_reader.n_iters_pop}")
         with open(file_obj, 'a') as f:
@@ -116,7 +121,7 @@ class FitParamsDE:
             maxiter=self.input_reader.n_iters_pop,
             init=initial_population,
             vectorized=True,
-            seed=42,
+            seed=self.random_seed,
             callback=callback,
             mutation=(0.5, 1.0),
             recombination=0.7,
