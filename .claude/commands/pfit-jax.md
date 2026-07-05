@@ -9,6 +9,7 @@ Convert user_model.py to a JAX-jittable generated_script.py for the current sess
    - `sessions/<session_name>/generated/user_model.py` — user pseudocode to convert
    - `lib/LLM/developer_instructions.txt` — JAX conversion rules
    - `lib/utils/output_sample.py` — template with fixed functions to copy verbatim
+   - `lib/LLM/staggered_data_instructions.txt` — read ONLY if `_compute_loss_problem` masks NaNs (ragged/staggered sampling). Explains the NaN-safe translation: sanitise the data with `jnp.where(mask, dataset, 0.0)` BEFORE dividing, and use `jnp.isnan` / `jnp.nanmax`, so NaN never enters the autodiff graph.
 
 3. Following `developer_instructions.txt`, generate `generated_script.py`:
 

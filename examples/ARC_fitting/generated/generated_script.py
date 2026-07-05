@@ -53,7 +53,7 @@ def user_defined_system(t, y, other_args):
     dc1_dt = -A1 * jnp.exp(-Ea1 / (kb * T)) * c1**n1
     dc2_dt = A2 * jnp.exp(-Ea2 / (kb * T)) * (1 - c2)**m2
     dT_dt = jnp.abs(h1 * dc1_dt)
-    dT_dt = jnp.where(T > 500.0, dT_dt + jnp.abs(h2 * dc2_dt), dT_dt)
+    dT_dt = jnp.where(T > 485.0, dT_dt + jnp.abs(h2 * dc2_dt), dT_dt)
 
     return jnp.array([dc1_dt, dc2_dt, dT_dt])
 

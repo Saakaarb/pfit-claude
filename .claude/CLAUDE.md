@@ -46,6 +46,7 @@ sessions/<session_name>/
 | `lib/LLM/user_file_check_instructions.txt` | Rules for validating XML + user_model.py |
 | `lib/LLM/inputs_fix_instructions.txt` | Rules for auto-correcting errors |
 | `lib/LLM/developer_instructions.txt` | Rules for generating JAX generated_script.py |
+| `lib/LLM/staggered_data_instructions.txt` | How to handle staggered/ragged sampling (observables measured at different times): union grid + NaN masking, t=0 anchor, NaN-safe loss; and the interpolation alternative |
 | `lib/utils/user_model_sample_unpopulated.py` | Template skeleton for user_model.py |
 | `lib/utils/user_model_sample_populated.py` | Populated example (Robertson system) |
 | `lib/utils/output_sample.py` | Template for generated_script.py (copy fixed functions verbatim) |
@@ -208,6 +209,8 @@ User functions are translated to JAX:
 - `_write_problem_result()` — NOT jitted (does file I/O)
 
 **Critical**: `max_steps` in `_integrate_system` must be the literal integer from `GRADIENT_OPT/MAX_STEPS` in the XML.
+
+**Performance — if the first DE/PSO iteration takes very long (minutes+), drop `MAX_STEPS`.** During global search the population includes wild parameter sets; for systems that can blow up (e.g. an unbounded `+k*x^2` growth term), those members drive the stiff solver to grind all the way to `max_steps` before failing, and the cost is `population_size × max_steps × (stiff solve)`. A large `MAX_STEPS` (e.g. 100000) then makes a single iteration take many minutes. Lowering it (e.g. to 5000) makes doomed solves fail fast and return `error_loss`, while still resolving good members (which typically need far fewer steps) — this can be a 10–40× speedup with no loss of fit quality. Halving the population helps proportionally too. Remember to change `MAX_STEPS` in BOTH the XML and the `max_steps` literal in `generated_script.py`.
 
 **Multi-experiment**: `_compute_loss_problem` and `_write_problem_result` are each called once per experiment by the framework with a single `constants` dict. Do NOT add any cross-experiment aggregation logic inside these functions — the framework averages losses automatically.
 

@@ -10,6 +10,7 @@ Validate and auto-correct the user_model.py and user_input.xml for the current s
    - `lib/LLM/user_file_check_instructions.txt` — validation rules
    - `lib/LLM/inputs_fix_instructions.txt` — correction rules
    - `lib/LLM/model_output_check_inputcheck_instructions.txt` — report formatting rules
+   - `lib/LLM/staggered_data_instructions.txt` — read if the data is staggered/ragged. Do NOT flag intentional blank/NaN cells, a t=0 (IC-time) anchor row, or `np.isnan`/`np.nanmax` in the loss as errors.
 
 3. **Validate** both files by carefully applying every check in `user_file_check_instructions.txt`, plus the optimizer settings checks listed at the bottom of this file. For optimizer settings, read the actual numerical values from the XML and evaluate each check against them explicitly. Produce a report with two sections:
    - **Critical Errors** — will certainly cause downstream failure (JAX compilation, runtime, integration)

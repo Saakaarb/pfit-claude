@@ -88,6 +88,8 @@ Write to: `sessions/<session>/inputs/user_input.xml`
 
 Generate a **fully-populated** (not skeleton) `user_model.py` using the structure from `lib/utils/user_model_sample_populated.py` as a template.
 
+> **Staggered/ragged data:** if the source reports different observables at different (non-shared) time points, read `lib/LLM/staggered_data_instructions.txt` BEFORE building the data CSV and the loss. In brief: build one CSV on the union of all times with blank cells for unmeasured (observable, time) pairs (→ NaN), add a t=0 anchor row if the ICs precede the first sample, and mask NaNs in `_compute_loss_problem` with the sanitise-before-divide pattern. Do NOT split each observable into its own file.
+
 #### `user_defined_system`
 - Unpack every trainable parameter from the `trainable_parameters` dict (keys match XML names)
 - Unpack every fixed parameter from the `fixed_parameters` dict

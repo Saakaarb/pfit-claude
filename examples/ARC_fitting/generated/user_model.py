@@ -45,7 +45,7 @@ def user_defined_system(t: float, y: np.ndarray, trainable_parameters: dict, fix
         dc2_dt= A2*np.exp(-Ea2/(kb*T)) * (1-c2)**m2
         dT_dt=np.abs(h1*dc1_dt)
 
-        if T > 500:
+        if T > 485:
                 dT_dt+=np.abs(h2*dc2_dt)
         
         #--------------------------------

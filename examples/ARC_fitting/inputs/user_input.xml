@@ -43,7 +43,7 @@
             <PARAM>
                 <P> PARAMETER_NAME= h2 </P>
                 <P> MIN_VAL=1 </P>
-                <P> MAX_VAL=1000 </P>
+                <P> MAX_VAL=1200 </P>
                 <P> LOGSCALE= Y </P>
             </PARAM>
             <PARAM>

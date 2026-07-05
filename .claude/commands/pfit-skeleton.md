@@ -18,6 +18,7 @@ Generate a user_model.py skeleton for the current session from its user_input.xm
    - `lib/utils/user_model_sample_unpopulated.py` — skeleton template
    - `lib/utils/user_model_sample_populated.py` — populated example (Robertson)
    - `lib/utils/user_input_sample.xml` — example XML (Robertson)
+   - `lib/LLM/staggered_data_instructions.txt` — read if observables are sampled at different (non-shared) time points; covers the union-grid + NaN-masking layout, the t=0 anchor row, and why per-observable file splitting does NOT work
 
 5. **Only proceed past this point if step 3 found 0 critical input issues.** Following the rules in `user_model_generation_instructions.txt` and using the Robertson example as a reference, generate a `user_model.py` skeleton populated with:
    - The correct trainable parameter names (from `TRAINABLE_PARAMETER_DESCRIPTION`)
