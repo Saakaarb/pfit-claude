@@ -35,7 +35,37 @@ sessions/<session_name>/
     ├── result_solution_exp1.csv   ← one file per experiment
     ├── result_solution_exp2.csv   ← (only exp1 exists for single-experiment fits)
     ├── pso_fitting.log
-    └── NODE_fitting.log
+    ├── NODE_fitting.log
+    ├── sloppiness_report.txt      ← post-fit diagnostic (automatic)
+    └── sloppiness_spectrum.png    ← post-fit diagnostic (automatic)
+```
+
+## Post-fit diagnostics (automatic)
+
+Every gradient-based run (`fit_parameters.py` and `fit_gradient_only.py`)
+automatically computes a **sloppiness / identifiability diagnostic** after the
+gradient (NODE) stage and writes `outputs/sloppiness_report.txt` and
+`outputs/sloppiness_spectrum.png`. It eigendecomposes the Hessian of the loss at
+the best fit in log-parameter space — the Fisher-information / "sloppiness"
+spectrum (Gutenkunst et al. 2007; Hass et al. 2019) — and reports:
+- the eigenvalue spectrum and its spread (the fit is **sloppy** if the spectrum
+  spans more than ~6 orders of magnitude);
+- the number of practically **non-identifiable** (near-zero-eigenvalue) directions;
+- the **stiffest / sloppiest eigenvectors** (which parameter *combinations* the
+  data does / does not constrain) plus a per-parameter "sloppiness participation".
+
+Properties: it never breaks a fit (wrapped in try/except), auto-skips models with
+more than 60 parameters (finite-difference Hessian cost), tries second-order
+autodiff and falls back to finite-differencing the gradient (the fallback is what
+runs, since 2nd-order AD through the stiff solver is unavailable), and uses the
+framework loss's implied noise model — so the **spread and eigenvectors match the
+Gauss-Newton FIM, but absolute confidence intervals are not calibrated**. It is a
+LOCAL measure, meaningful only at a converged optimum. Implementation lives in
+`lib/utils/sloppiness.py`.
+
+Re-run stand-alone on any completed session (without re-fitting) with:
+```
+python analyze_fit.py <session_name>
 ```
 
 ## Key Reference Files

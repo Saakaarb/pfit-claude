@@ -434,6 +434,12 @@ def fit_equation_system(input_reader: XMLReader, problem_obj: CreatedClass)-> np
     #TODO edit this to save the number obtained with the name of each parameter
     np.savetxt(input_reader.output_dir/Path(f"final_design_point.csv"),unscaled_best_position_tuned_np,delimiter=",")
 
+    # post-fit sloppiness / identifiability diagnostic (never fatal)
+    from lib.utils.sloppiness import run_sloppiness_analysis
+    run_sloppiness_analysis(problem_obj_node._compute_loss_problem, problem_obj_node.constants_list,
+                            np.array(tuned_best_position), input_reader.trainable_parameter_names,
+                            input_reader.output_dir)
+
     return unscaled_best_position_tuned
 
 
@@ -532,6 +538,12 @@ def fit_gradient_only_system(path_to_input: Path, path_to_output_dir: Path, gene
         unscaled_best_position_tuned_np = np.array(unscaled_best_position_tuned)
         np.savetxt(input_reader.output_dir / Path("final_design_point.csv"),
                    unscaled_best_position_tuned_np, delimiter=",")
+
+        # post-fit sloppiness / identifiability diagnostic (never fatal)
+        from lib.utils.sloppiness import run_sloppiness_analysis
+        run_sloppiness_analysis(problem_obj_node._compute_loss_problem, problem_obj_node.constants_list,
+                                np.array(tuned_best_position), input_reader.trainable_parameter_names,
+                                input_reader.output_dir)
 
         return unscaled_best_position_tuned
 
