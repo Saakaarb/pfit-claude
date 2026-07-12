@@ -191,6 +191,32 @@ class FitParamsNODE:
 
         return unscale_value(val, min_val, max_val)
 
+    def unscale_design_point(self, position: np.ndarray) -> np.ndarray:
+        """Map a scaled design point in [-1, 1] back to real parameter units.
+
+        Mirrors FitParamsDE/FitParamsPSO.unscale_design_point so a NODE-only run
+        can produce the same real-unit output (with 10** applied to log-scale axes).
+        """
+        if not isinstance(position, np.ndarray):
+            raise ValueError("Query point to unscale_design_point must be a np array")
+        unscaled_position = np.zeros_like(position)
+        for i_axis in range(self.n_search_axes):
+            if self.axis_logscale[i_axis]:
+                unscaled_position[i_axis] = 10 ** (
+                    self.unscale_value(
+                        position[i_axis],
+                        self.min_search_axis[i_axis],
+                        self.max_search_axis[i_axis],
+                    )
+                )
+            else:
+                unscaled_position[i_axis] = self.unscale_value(
+                    position[i_axis],
+                    self.min_search_axis[i_axis],
+                    self.max_search_axis[i_axis],
+                )
+        return unscaled_position
+
 
     def compute_loss(self, trainable_params: np.ndarray)-> float:
 

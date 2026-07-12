@@ -436,6 +436,114 @@ def fit_equation_system(input_reader: XMLReader, problem_obj: CreatedClass)-> np
 
     return unscaled_best_position_tuned
 
+
+def fit_gradient_only_system(path_to_input: Path, path_to_output_dir: Path, generated_dir: Path,
+                             session_path: Path, init_guess: np.ndarray)-> np.ndarray:
+    """Run ONLY the gradient (NODE) refinement stage, seeded from an existing point.
+
+    This skips the population-based global search entirely and starts the
+    gradient optimizer directly from ``init_guess`` (in real parameter units).
+    It is the entry point used by ``fit_gradient_only.py`` so a user can cheaply
+    re-refine a previously found design point (e.g. with a different optimizer,
+    more iterations, or tighter tolerances) without repeating the expensive
+    PSO/DE search.
+
+    Unlike ``fit_generic_system`` this does NOT wipe the output directory — the
+    population-search logs and the ``final_design_point.csv`` that seeds this run
+    are preserved. Only the NODE outputs (``NODE_fitting.log``,
+    ``result_solution_expN.csv``, ``final_design_point.csv``) are overwritten.
+
+    Parameters
+    ----------
+    path_to_input : Path
+        Path to the session's user_input.xml.
+    path_to_output_dir : Path
+        Session output directory (must already exist).
+    generated_dir : Path
+        Directory containing generated_script.py.
+    session_path : Path
+        Session root, used to resolve experiment data files.
+    init_guess : numpy.ndarray
+        Starting parameter set in real (unscaled) units, in XML trainable order.
+
+    Returns
+    -------
+    numpy.ndarray
+        The refined parameter set in real units.
+    """
+    try:
+        generated_script_path = Path(generated_dir) / "generated_script.py"
+        spec = importlib.util.spec_from_file_location("generated_script", generated_script_path)
+        generated_script = importlib.util.module_from_spec(spec)
+        sys.modules["generated_script"] = generated_script
+        spec.loader.exec_module(generated_script)
+
+        input_reader = get_input_reader(path_to_input)
+        input_reader.check_name_uniqueness()
+        input_reader.output_dir = path_to_output_dir
+
+        # load all experiment datasets (identical to fit_generic_system)
+        experiments_data = []
+        for i, exp in enumerate(input_reader.experiments):
+            dataset_path = session_path / Path(input_reader.user_input_dirname) / Path(exp['filename'])
+            with open(dataset_path, 'r', encoding='utf-8-sig') as f:
+                all_data = np.genfromtxt(f, dtype=float, delimiter=',')
+            experiments_data.append({
+                't_eval':  all_data[:, 0],
+                'dataset': all_data[:, 1:],
+                'y0':      jnp.array(input_reader.get_y0(i)),
+            })
+
+        # NODE problem object is built with the (tight) gradient tolerances that
+        # CreatedClass reads from input_reader.stepsize_rtol/atol by default.
+        problem_obj_node = CreatedClass(
+            experiments=experiments_data, input_reader=input_reader,
+            compute_loss_problem=generated_script._compute_loss_problem,
+            write_problem_result=generated_script._write_problem_result)
+
+        init_guess = np.asarray(init_guess, dtype=float)
+        if init_guess.shape[0] != input_reader.n_search_axes:
+            raise ValueError(
+                f"init_guess has {init_guess.shape[0]} entries but the XML defines "
+                f"{input_reader.n_search_axes} trainable parameters")
+
+        fit_obj_NODE = FitParamsNODE(input_reader, problem_obj_node, init_guess=init_guess)
+        problem_obj_node.set_min_limit(fit_obj_NODE.min_search_axis)
+        problem_obj_node.set_max_limit(fit_obj_NODE.max_search_axis)
+        problem_obj_node.set_is_logscale(input_reader.axis_logscale)
+
+        print(f"Gradient-only run — optimizer: {input_reader.gradient_optimizer}, "
+              f"iters: {input_reader.n_iters_grad}")
+        print(f"NODE tolerances — rtol: {input_reader.stepsize_rtol}, atol: {input_reader.stepsize_atol}")
+        print(f"Initial guess (real units): {init_guess}")
+
+        tuned_best_position, tuned_best_loss = fit_obj_NODE.train_NODE()
+
+        print("Tuned position from NODE(scaled):", tuned_best_position)
+        print("Tuned best loss:", tuned_best_loss)
+
+        unscaled_best_position_tuned = fit_obj_NODE.unscale_design_point(
+            np.array(tuned_best_position))
+        print("Final best position:", unscaled_best_position_tuned)
+
+        if input_reader.write_results:
+            problem_obj_node.write_problem_result(tuned_best_position, input_reader, label="result")
+
+        unscaled_best_position_tuned_np = np.array(unscaled_best_position_tuned)
+        np.savetxt(input_reader.output_dir / Path("final_design_point.csv"),
+                   unscaled_best_position_tuned_np, delimiter=",")
+
+        return unscaled_best_position_tuned
+
+    except Exception as e:
+        error_message = f"Gradient-only fitting process failed with error: {str(e)}"
+        print(error_message)
+        error_file = Path(path_to_output_dir) / "fitting_error.txt"
+        with open(error_file, 'w') as f:
+            f.write(error_message)
+        raise e
+
+
 def optimize_function(fit_obj: FitParamsPSO, input_reader: XMLReader, file_obj: Path)-> tuple[np.ndarray, float]:
     """
     Execute PSO optimization iterations with logging and error handling.
