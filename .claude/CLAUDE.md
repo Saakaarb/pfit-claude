@@ -81,7 +81,7 @@ python analyze_fit.py <session_name>
 | `lib/utils/user_model_sample_populated.py` | Populated example (Robertson system) |
 | `lib/utils/output_sample.py` | Template for generated_script.py (copy fixed functions verbatim) |
 | `lib/utils/user_input_sample.xml` | Example XML (Robertson system) |
-| `examples/` | Complete worked examples (robertson, ARC, piezo, sliding_basepoint; `hif_jcs2013` is the multi-experiment example — 6 experiments) |
+| `examples/` | Complete worked examples (robertson, ARC, piezo, sliding_basepoint) |
 
 ## Multi-Experiment Execution Model
 
