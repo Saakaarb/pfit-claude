@@ -1,0 +1,20 @@
+## Critical Errors
+
+None detected.
+
+## Warnings
+
+1. Very wide search ranges. All six trainable rate constants are searched over
+   [1e-5, 1e5] (ten orders of magnitude) on a log scale. This is the range
+   specified by the PEtab benchmark and is correctly log-scaled, but it is a
+   large space and the published optimum sits near the box edges (k_imp_homo and
+   k_phos are O(1e5), near the upper bound; k_exp_hetero is O(1e-5), near the
+   lower bound). The global search must therefore reach the corners of the box;
+   the DE budget (300 x 30 = 9000 evaluations) is adequate, but a poor fit would
+   most likely mean a parameter pinned at a bound and worth re-examining.
+
+2. specC17 is unpacked inside user_defined_system but only used in the
+   observables (loss / writeout), not in the ODE right-hand side. This is
+   harmless and needs no change.
+
+Number of critical errors: 0

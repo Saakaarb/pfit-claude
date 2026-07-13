@@ -1,0 +1,91 @@
+<?xml version="1.0" ?>
+<FIT>
+    <!-- Rahman et al. (2016) Math. Biosci. - HIV transmission with disease stages -->
+    <!-- and treatment. PEtab benchmark: 7 compartments, 9 fitted rate params, -->
+    <!-- 1 condition, 1 observable (prevalence %), 23 yearly time points. -->
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = data.csv </E>
+        </FILENAME>
+        <!-- data column (0-based, time excluded): 0 = prevalence (%) -->
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 9 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <!-- Search bounds taken directly from the PEtab parameters table. -->
+            <!-- Order: 0 rel_n 1 beta_m 2 rel_w 3 treat_w 4 worsen_n -->
+            <!--        5 worsen_m 6 improve_m 7 improve_w 8 bcr        -->
+            <PARAM> <P> PARAMETER_NAME = infected_normal_transmission_rate_relative </P> <P> MIN_VAL = 0.1 </P>  <P> MAX_VAL = 1000 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = infected_moderate_transmission_rate </P>        <P> MIN_VAL = 1e-4 </P> <P> MAX_VAL = 1 </P>    <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = infected_weak_transmission_rate_relative </P>   <P> MIN_VAL = 0.1 </P>  <P> MAX_VAL = 1000 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = infected_weak_treatment_rate </P>               <P> MIN_VAL = 1e-4 </P> <P> MAX_VAL = 1 </P>    <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = infected_normal_worsen_rate </P>                <P> MIN_VAL = 1e-4 </P> <P> MAX_VAL = 1 </P>    <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = infected_moderate_worsen_rate </P>              <P> MIN_VAL = 1e-4 </P> <P> MAX_VAL = 1 </P>    <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = treated_moderate_improve_rate </P>              <P> MIN_VAL = 1e-4 </P> <P> MAX_VAL = 1 </P>    <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = treated_weak_improve_rate </P>                  <P> MIN_VAL = 1e-4 </P> <P> MAX_VAL = 1 </P>    <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = behavioural_change_rate </P>                    <P> MIN_VAL = 1e-9 </P> <P> MAX_VAL = 1e-5 </P> <P> LOGSCALE = Y </P> </PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+
+        <FIXED_PARAM_DESCRIPTION>
+            <PARAM> <P> NAME = recruitment_rate </P>              <P> VALUE = 1032672 </P> </PARAM>
+            <PARAM> <P> NAME = susceptible_death_rate </P>        <P> VALUE = 0.0288 </P>  </PARAM>
+            <PARAM> <P> NAME = infected_normal_death_rate </P>    <P> VALUE = 0.0888 </P>  </PARAM>
+            <PARAM> <P> NAME = infected_moderate_death_rate </P>  <P> VALUE = 0.1368 </P>  </PARAM>
+            <PARAM> <P> NAME = infected_weak_death_rate </P>      <P> VALUE = 0.3108 </P>  </PARAM>
+            <PARAM> <P> NAME = treated_normal_death_rate </P>     <P> VALUE = 0.0408 </P>  </PARAM>
+            <PARAM> <P> NAME = treated_moderate_death_rate </P>   <P> VALUE = 0.0528 </P>  </PARAM>
+            <PARAM> <P> NAME = treated_weak_death_rate </P>       <P> VALUE = 0.1752 </P>  </PARAM>
+            <PARAM> <P> NAME = infected_normal_treatment_rate </P>   <P> VALUE = 0.0 </P>  </PARAM>
+            <PARAM> <P> NAME = infected_moderate_treatment_rate </P> <P> VALUE = 0.0 </P>  </PARAM>
+            <PARAM> <P> NAME = treated_transmission_factor </P>   <P> VALUE = 0.04 </P>    </PARAM>
+        </FIXED_PARAM_DESCRIPTION>
+
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <!-- Fixed initial populations (SBML initialAmount). -->
+            <VAR> <P> NAME = susceptible </P>      <P> INIT_VAL = 17940000 </P> </VAR>
+            <VAR> <P> NAME = infected_normal </P>  <P> INIT_VAL = 16300 </P>    </VAR>
+            <VAR> <P> NAME = infected_moderate </P> <P> INIT_VAL = 9000 </P>    </VAR>
+            <VAR> <P> NAME = infected_weak </P>    <P> INIT_VAL = 11000 </P>    </VAR>
+            <VAR> <P> NAME = treated_normal </P>   <P> INIT_VAL = 0 </P>        </VAR>
+            <VAR> <P> NAME = treated_moderate </P> <P> INIT_VAL = 0 </P>        </VAR>
+            <VAR> <P> NAME = treated_weak </P>     <P> INIT_VAL = 0 </P>        </VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> POPULATION_SIZE = 600 </P>
+            <P> NUM_ITERS = 30 </P>
+            <P> PROCESSORS = 16 </P>
+            <P> ALGORITHM = DE </P>
+            <P> RANDOM_SEED = 42 </P>
+            <P> POP_STEPSIZE_RTOL = 1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6 </P>
+            <P> POP_STEPSIZE_ATOL = 1e-1,1e-1,1e-1,1e-1,1e-1,1e-1,1e-1 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 1000 </P>
+            <!-- 7 integrated variables -> 7 entries each -->
+            <P> STEPSIZE_RTOL = 1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8 </P>
+            <P> STEPSIZE_ATOL = 1e-2,1e-2,1e-2,1e-2,1e-2,1e-2,1e-2 </P>
+            <P> INITIAL_TIME = 0.0 </P>
+            <P> INITIAL_TIMESTEP = 1e-3 </P>
+            <P> MAX_STEPS = 10000 </P>
+            <P> INTEGRATOR = Kvaerno5 </P>
+            <P> GRADIENT_OPTIMIZER = adam </P>
+            <P> INIT_VALUE_LR = 1e-3 </P>
+            <P> END_VALUE_LR = 1e-5 </P>
+            <P> TRANSITION_STEPS_LR = 100 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>

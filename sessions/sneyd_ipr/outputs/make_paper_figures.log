@@ -1,0 +1,30 @@
+2026-07-12 20:34:11 [INFO] generating paper figures for sneyd_ipr in /home/saakaar_luminarycloud_com/Desktop/param_fitting/pfit-claude/sessions/sneyd_ipr/outputs
+2026-07-12 20:34:11 [DEBUG] parsed 30 points from de_fitting.log
+2026-07-12 20:34:11 [DEBUG] parsed 999 points from NODE_fitting.log
+2026-07-12 20:34:11 [INFO] wrote loss_history.png  (DE final=3.1422e-02, NODE final=2.1167e-02)
+2026-07-12 20:34:11 [INFO] wrote fit_ca01.png  (Ca$^{2+}$ = 0.1 $\mu$M, RMSE=0.0037)
+2026-07-12 20:34:12 [INFO] wrote fit_ca02.png  (Ca$^{2+}$ = 0.2 $\mu$M, RMSE=0.0279)
+2026-07-12 20:34:12 [INFO] wrote fit_ca04.png  (Ca$^{2+}$ = 0.4 $\mu$M, RMSE=0.0238)
+2026-07-12 20:34:12 [INFO] wrote fit_ca1.png  (Ca$^{2+}$ = 1 $\mu$M, RMSE=0.0260)
+2026-07-12 20:34:12 [INFO] wrote fit_ca3.png  (Ca$^{2+}$ = 3 $\mu$M, RMSE=0.0165)
+2026-07-12 20:34:12 [INFO] wrote fit_ca10.png  (Ca$^{2+}$ = 10 $\mu$M, RMSE=0.0168)
+2026-07-12 20:34:13 [INFO] wrote fit_ip3.png  (IP$_3$ = 3 $\mu$M, RMSE=0.0184)
+2026-07-12 20:34:13 [INFO] wrote fit_ip5.png  (IP$_3$ = 5 $\mu$M, RMSE=0.0203)
+2026-07-12 20:34:13 [INFO] wrote fit_ip10.png  (IP$_3$ = 10 $\mu$M, RMSE=0.0372)
+2026-07-12 20:34:13 [INFO] wrote sloppiness_spectrum_paper.png  (spread=5.2 dec, 3 flat)
+2026-07-12 20:34:13 [INFO] done
+2026-07-12 20:39:37 [INFO] generating paper figures for sneyd_ipr in /home/saakaar_luminarycloud_com/Desktop/param_fitting/pfit-claude/sessions/sneyd_ipr/outputs
+2026-07-12 20:39:37 [DEBUG] parsed 30 points from de_fitting.log
+2026-07-12 20:39:37 [DEBUG] parsed 999 points from NODE_fitting.log
+2026-07-12 20:39:38 [INFO] wrote loss_history.png  (DE best=3.1422e-02, NODE final=2.1167e-02)
+2026-07-12 20:39:38 [INFO] wrote fit_ca01.png  (Ca$^{2+}$ = 0.1 $\mu$M, RMSE=0.0037)
+2026-07-12 20:39:38 [INFO] wrote fit_ca02.png  (Ca$^{2+}$ = 0.2 $\mu$M, RMSE=0.0279)
+2026-07-12 20:39:38 [INFO] wrote fit_ca04.png  (Ca$^{2+}$ = 0.4 $\mu$M, RMSE=0.0238)
+2026-07-12 20:39:38 [INFO] wrote fit_ca1.png  (Ca$^{2+}$ = 1 $\mu$M, RMSE=0.0260)
+2026-07-12 20:39:39 [INFO] wrote fit_ca3.png  (Ca$^{2+}$ = 3 $\mu$M, RMSE=0.0165)
+2026-07-12 20:39:39 [INFO] wrote fit_ca10.png  (Ca$^{2+}$ = 10 $\mu$M, RMSE=0.0168)
+2026-07-12 20:39:39 [INFO] wrote fit_ip3.png  (IP$_3$ = 3 $\mu$M, RMSE=0.0184)
+2026-07-12 20:39:39 [INFO] wrote fit_ip5.png  (IP$_3$ = 5 $\mu$M, RMSE=0.0203)
+2026-07-12 20:39:39 [INFO] wrote fit_ip10.png  (IP$_3$ = 10 $\mu$M, RMSE=0.0372)
+2026-07-12 20:39:40 [INFO] wrote sloppiness_spectrum_paper.png  (spread=5.2 dec, 3 flat)
+2026-07-12 20:39:40 [INFO] done

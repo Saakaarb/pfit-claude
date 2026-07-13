@@ -1,0 +1,15 @@
+## Critical Errors
+
+None detected.
+
+## Warnings
+
+1. PROCESSORS = 16. Ensure the host has at least 16 logical cores; oversubscribing
+   beyond os.cpu_count() will not speed up the run.
+
+2. Loss weighting. The PEtab problem specifies constant measurement noise
+   (sigma = 1) for the single prevalence observable, so the peak-normalised RMSE
+   used here has the same minimiser as the Gaussian objective and stays ~[0,1].
+   No action needed; noted for transparency.
+
+Number of critical errors: 0

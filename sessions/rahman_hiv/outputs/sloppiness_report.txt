@@ -1,0 +1,33 @@
+Sloppiness / identifiability report
+============================================================
+trainable parameters : 9  (infected_normal_transmission_rate_relative, infected_moderate_transmission_rate, infected_weak_transmission_rate_relative, infected_weak_treatment_rate, infected_normal_worsen_rate, infected_moderate_worsen_rate, treated_moderate_improve_rate, treated_weak_improve_rate, behavioural_change_rate)
+experiments          : 1
+loss at best fit     : 0.00431847   (|grad|_inf = 0.0069)
+Hessian method       : finite-difference   (log10-parameter space)
+
+Eigenvalue spectrum of the loss Hessian (Fisher / sloppiness spectrum):
+  lambda_1  = +1.8678e+03   (normalised +1.00e+00)
+  lambda_2  = +1.0483e+02   (normalised +5.61e-02)
+  lambda_3  = +5.0409e-01   (normalised +2.70e-04)
+  lambda_4  = +4.3038e-02   (normalised +2.30e-05)
+  lambda_5  = +7.0156e-03   (normalised +3.76e-06)
+  lambda_6  = +3.2840e-04   (normalised +1.76e-07)
+  lambda_7  = +1.9986e-06   (normalised +1.07e-09)
+  lambda_8  = +4.4625e-10   (normalised +2.39e-13)
+  lambda_9  = -1.7959e-05   (normalised -9.61e-09)
+
+spread over identifiable modes : 5.43 orders of magnitude
+non-identifiable (flat) directions (normalised < 1e-06) : 4  <- effectively lambda=0 (spectrum spans >6 decades)
+VERDICT              : SLOPPY / NON-IDENTIFIABLE  (4 flat direction(s) despite 5.4-decade identifiable spread)
+
+STIFFEST direction (best-constrained combination):
+   infected_moderate_transmission_rate(-0.68), behavioural_change_rate(+0.53), infected_normal_transmission_rate_relative(-0.40), infected_weak_transmission_rate_relative(-0.27)
+SLOPPIEST direction (least-constrained combination):
+   infected_normal_transmission_rate_relative(+0.58), infected_weak_transmission_rate_relative(+0.57), infected_moderate_transmission_rate(-0.55), infected_moderate_worsen_rate(-0.18)
+
+Note: the stiffest/sloppiest directions are combinations of parameters
+(eigenvectors); they are NOT a per-parameter identifiability verdict.
+
+Caveats: local quadratic measure at the optimum; Hessian of the framework
+RMSE loss (spread & eigenvectors match the Gauss-Newton FIM; absolute scale
+is noise-model dependent); valid only at a converged fit.

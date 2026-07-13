@@ -1,0 +1,6 @@
+2026-07-12 21:42:37 [INFO] plotting fit using config /home/saakaar_luminarycloud_com/Desktop/param_fitting/pfit-claude/sessions/hif1a_1pct_fit/plot_fit_config.yaml
+2026-07-12 21:42:37 [DEBUG] reading result CSV /home/saakaar_luminarycloud_com/Desktop/param_fitting/pfit-claude/sessions/hif1a_1pct_fit/outputs/result_solution_exp1.csv
+2026-07-12 21:42:37 [INFO] loaded 7 time points, 5 columns
+2026-07-12 21:42:37 [INFO] HIF-1$\alpha$ stabilisation: RMSE=0.17877
+2026-07-12 21:42:37 [INFO] Luciferase (max-normalised): RMSE=0.02034
+2026-07-12 21:42:38 [INFO] wrote /home/saakaar_luminarycloud_com/Desktop/param_fitting/pfit-claude/sessions/hif1a_1pct_fit/outputs/fit_comparison.png

@@ -1,0 +1,114 @@
+<?xml version="1.0" ?>
+<FIT>
+    <!-- Boehm et al. (2014) J. Proteome Res. 13:5685 - STAT5A/B dimerisation -->
+    <!-- PEtab benchmark: single condition, 3 observables, 16 time points (min) -->
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = data.csv </E>
+        </FILENAME>
+        <!-- data columns (0-based, time excluded): 0 = pSTAT5A_rel, 1 = pSTAT5B_rel, 2 = rSTAT5A_rel -->
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 6 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <!-- Order in the trainable vector: -->
+            <!-- 0: Epo_degradation_BaF3   1: k_exp_hetero   2: k_exp_homo -->
+            <!-- 3: k_imp_hetero           4: k_imp_homo     5: k_phos     -->
+            <!-- Search ranges: +/- 2 orders of magnitude around each published value. -->
+            <PARAM>
+                <P> PARAMETER_NAME = Epo_degradation_BaF3 </P>
+                <P> MIN_VAL = 2.6983e-4 </P>
+                <P> MAX_VAL = 2.6983e0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k_exp_hetero </P>
+                <P> MIN_VAL = 1.0007e-7 </P>
+                <P> MAX_VAL = 1.0007e-3 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k_exp_homo </P>
+                <P> MIN_VAL = 6.1702e-5 </P>
+                <P> MAX_VAL = 6.1702e-1 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k_imp_hetero </P>
+                <P> MIN_VAL = 1.6368e-4 </P>
+                <P> MAX_VAL = 1.6368e0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k_imp_homo </P>
+                <P> MIN_VAL = 9.7749e2 </P>
+                <P> MAX_VAL = 9.7749e6 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k_phos </P>
+                <P> MIN_VAL = 1.5767e2 </P>
+                <P> MAX_VAL = 1.5767e6 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+
+        <FIXED_PARAM_DESCRIPTION>
+            <!-- compartment volumes -->
+            <PARAM> <P> NAME = cyt </P>      <P> VALUE = 1.4 </P>     </PARAM>
+            <PARAM> <P> NAME = nuc </P>      <P> VALUE = 0.45 </P>    </PARAM>
+            <!-- baseline Epo input amplitude; BaF3_Epo(t) = Epo0 * exp(-Epo_degradation_BaF3 * t) -->
+            <PARAM> <P> NAME = Epo0 </P>     <P> VALUE = 1.25e-7 </P> </PARAM>
+            <!-- observable specificity constant (fixed in the PEtab problem) -->
+            <PARAM> <P> NAME = specC17 </P>  <P> VALUE = 0.107 </P>   </PARAM>
+        </FIXED_PARAM_DESCRIPTION>
+
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <!-- Initial conditions: total STAT5 = 207.6 split by ratio = 0.693 -->
+            <!-- STAT5A0 = 207.6 * 0.693 = 143.8668 ; STAT5B0 = 207.6 * 0.307 = 63.7332 -->
+            <VAR> <P> NAME = STAT5A </P>   <P> INIT_VAL = 143.8668 </P> </VAR>
+            <VAR> <P> NAME = STAT5B </P>   <P> INIT_VAL = 63.7332 </P>  </VAR>
+            <VAR> <P> NAME = pApB </P>     <P> INIT_VAL = 0.0 </P>      </VAR>
+            <VAR> <P> NAME = pApA </P>     <P> INIT_VAL = 0.0 </P>      </VAR>
+            <VAR> <P> NAME = pBpB </P>     <P> INIT_VAL = 0.0 </P>      </VAR>
+            <VAR> <P> NAME = nucpApA </P>  <P> INIT_VAL = 0.0 </P>      </VAR>
+            <VAR> <P> NAME = nucpApB </P>  <P> INIT_VAL = 0.0 </P>      </VAR>
+            <VAR> <P> NAME = nucpBpB </P>  <P> INIT_VAL = 0.0 </P>      </VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> POPULATION_SIZE = 600 </P>
+            <P> NUM_ITERS = 30 </P>
+            <P> PROCESSORS = 8 </P>
+            <P> ALGORITHM = DE </P>
+            <P> POP_STEPSIZE_RTOL = 1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6 </P>
+            <P> POP_STEPSIZE_ATOL = 1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 3000 </P>
+            <!-- 8 integrated variables -> 8 entries each for RTOL/ATOL -->
+            <P> STEPSIZE_RTOL = 1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8 </P>
+            <P> STEPSIZE_ATOL = 1e-10,1e-10,1e-10,1e-10,1e-10,1e-10,1e-10,1e-10 </P>
+            <P> INITIAL_TIMESTEP = 1e-4 </P>
+            <P> MAX_STEPS = 100000 </P>
+            <P> INTEGRATOR = Kvaerno5 </P>
+            <P> GRADIENT_OPTIMIZER = adam </P>
+            <P> INIT_VALUE_LR = 1e-3 </P>
+            <P> END_VALUE_LR = 1e-5 </P>
+            <P> TRANSITION_STEPS_LR = 1000 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>

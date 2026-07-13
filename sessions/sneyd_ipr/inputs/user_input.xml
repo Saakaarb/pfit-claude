@@ -1,0 +1,147 @@
+<?xml version="1.0" ?>
+<FIT>
+    <!-- Sneyd & Dufour (2002) PNAS - IP3 receptor Ca2+ channel gating. -->
+    <!-- 6-state Markov scheme (O,R,I1,S,A,I2). Observable: open probability -->
+    <!-- Po = (0.9*A + 0.1*O)^4. MULTI-EXPERIMENT: 9 clamps differing only in the -->
+    <!-- fixed IP3 and Ca concentrations, injected as two constant "input" states -->
+    <!-- (ip3_in, ca_in) overridden per experiment via INITIAL_CONDITIONS. -->
+
+    <EXPERIMENT>
+        <FILENAME><E> FILENAME_DATA = ca01.csv </E></FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR> <P> NAME = ip3_in </P> <P> INIT_VAL = 10 </P>  </VAR>
+            <VAR> <P> NAME = ca_in </P>  <P> INIT_VAL = 0.1 </P> </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+    <EXPERIMENT>
+        <FILENAME><E> FILENAME_DATA = ca02.csv </E></FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR> <P> NAME = ip3_in </P> <P> INIT_VAL = 10 </P>  </VAR>
+            <VAR> <P> NAME = ca_in </P>  <P> INIT_VAL = 0.2 </P> </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+    <EXPERIMENT>
+        <FILENAME><E> FILENAME_DATA = ca04.csv </E></FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR> <P> NAME = ip3_in </P> <P> INIT_VAL = 10 </P>  </VAR>
+            <VAR> <P> NAME = ca_in </P>  <P> INIT_VAL = 0.4 </P> </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+    <EXPERIMENT>
+        <FILENAME><E> FILENAME_DATA = ca1.csv </E></FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR> <P> NAME = ip3_in </P> <P> INIT_VAL = 10 </P>  </VAR>
+            <VAR> <P> NAME = ca_in </P>  <P> INIT_VAL = 1.0 </P> </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+    <EXPERIMENT>
+        <FILENAME><E> FILENAME_DATA = ca3.csv </E></FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR> <P> NAME = ip3_in </P> <P> INIT_VAL = 10 </P>  </VAR>
+            <VAR> <P> NAME = ca_in </P>  <P> INIT_VAL = 3.0 </P> </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+    <EXPERIMENT>
+        <FILENAME><E> FILENAME_DATA = ca10.csv </E></FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR> <P> NAME = ip3_in </P> <P> INIT_VAL = 10 </P>   </VAR>
+            <VAR> <P> NAME = ca_in </P>  <P> INIT_VAL = 10.0 </P> </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+    <EXPERIMENT>
+        <FILENAME><E> FILENAME_DATA = ip3.csv </E></FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR> <P> NAME = ip3_in </P> <P> INIT_VAL = 3 </P>   </VAR>
+            <VAR> <P> NAME = ca_in </P>  <P> INIT_VAL = 0.4 </P> </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+    <EXPERIMENT>
+        <FILENAME><E> FILENAME_DATA = ip5.csv </E></FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR> <P> NAME = ip3_in </P> <P> INIT_VAL = 5 </P>   </VAR>
+            <VAR> <P> NAME = ca_in </P>  <P> INIT_VAL = 0.4 </P> </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+    <EXPERIMENT>
+        <FILENAME><E> FILENAME_DATA = ip10.csv </E></FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR> <P> NAME = ip3_in </P> <P> INIT_VAL = 10 </P>  </VAR>
+            <VAR> <P> NAME = ca_in </P>  <P> INIT_VAL = 0.4 </P> </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 14 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <!-- Order: 0 k1 1 k2 2 k3 3 k4 4 k_1 5 k_2 6 k_3 7 k_4 -->
+            <!--        8 l2 9 l4 10 l6 11 l_2 12 l_4 13 l_6         -->
+            <!-- Bounds from the PEtab parameters table. -->
+            <PARAM> <P> PARAMETER_NAME = k1 </P>  <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = k2 </P>  <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = k3 </P>  <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = k4 </P>  <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = k_1 </P> <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = k_2 </P> <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = k_3 </P> <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = k_4 </P> <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = l2 </P>  <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = l4 </P>  <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = l6 </P>  <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = l_2 </P> <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = l_4 </P> <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+            <PARAM> <P> PARAMETER_NAME = l_6 </P> <P> MIN_VAL = 1e-3 </P> <P> MAX_VAL = 1e5 </P> <P> LOGSCALE = Y </P> </PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+
+        <FIXED_PARAM_DESCRIPTION>
+        </FIXED_PARAM_DESCRIPTION>
+
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <!-- 6 channel states (initial: all in R). ip3_in/ca_in are constant -->
+            <!-- input carriers (dy/dt = 0) set per experiment above. -->
+            <VAR> <P> NAME = IPR_O </P>  <P> INIT_VAL = 0 </P>  </VAR>
+            <VAR> <P> NAME = IPR_R </P>  <P> INIT_VAL = 1 </P>  </VAR>
+            <VAR> <P> NAME = IPR_I1 </P> <P> INIT_VAL = 0 </P>  </VAR>
+            <VAR> <P> NAME = IPR_S </P>  <P> INIT_VAL = 0 </P>  </VAR>
+            <VAR> <P> NAME = IPR_A </P>  <P> INIT_VAL = 0 </P>  </VAR>
+            <VAR> <P> NAME = IPR_I2 </P> <P> INIT_VAL = 0 </P>  </VAR>
+            <VAR> <P> NAME = ip3_in </P> <P> INIT_VAL = 10 </P> </VAR>
+            <VAR> <P> NAME = ca_in </P>  <P> INIT_VAL = 0.4 </P> </VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> POPULATION_SIZE = 1000 </P>
+            <P> NUM_ITERS = 30 </P>
+            <P> PROCESSORS = 16 </P>
+            <P> ALGORITHM = DE </P>
+            <P> POP_STEPSIZE_RTOL = 1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6 </P>
+            <P> POP_STEPSIZE_ATOL = 1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <!-- Adam needs MANY steps at a modest, annealing learning rate. -->
+            <P> NUM_ITERS = 1000 </P>
+            <!-- 8 integrated variables -> 8 entries each -->
+            <P> STEPSIZE_RTOL = 1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8,1e-8 </P>
+            <P> STEPSIZE_ATOL = 1e-10,1e-10,1e-10,1e-10,1e-10,1e-10,1e-10,1e-10 </P>
+            <P> INITIAL_TIME = 0.0 </P>
+            <P> INITIAL_TIMESTEP = 1e-5 </P>
+            <P> MAX_STEPS = 10000 </P>
+            <P> INTEGRATOR = Kvaerno5 </P>
+            <P> GRADIENT_OPTIMIZER = adam </P>
+            <P> INIT_VALUE_LR = 1e-3 </P>
+            <P> END_VALUE_LR = 1e-5 </P>
+            <P> TRANSITION_STEPS_LR = 100 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>

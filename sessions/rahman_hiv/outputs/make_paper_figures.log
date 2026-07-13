@@ -1,0 +1,12 @@
+2026-07-12 20:39:42 [INFO] generating paper figures for rahman_hiv in /home/saakaar_luminarycloud_com/Desktop/param_fitting/pfit-claude/sessions/rahman_hiv/outputs
+2026-07-12 20:39:42 [DEBUG] parsed 30 points from de_fitting.log
+2026-07-12 20:39:42 [DEBUG] parsed 999 points from NODE_fitting.log
+2026-07-12 20:39:42 [INFO] wrote loss_history.png  (DE best=1.5750e-02, NODE final=4.3185e-03)
+2026-07-12 20:39:42 [INFO] done
+2026-07-12 20:42:25 [INFO] generating paper figures for rahman_hiv in /home/saakaar_luminarycloud_com/Desktop/param_fitting/pfit-claude/sessions/rahman_hiv/outputs
+2026-07-12 20:42:25 [DEBUG] parsed 30 points from de_fitting.log
+2026-07-12 20:42:25 [DEBUG] parsed 999 points from NODE_fitting.log
+2026-07-12 20:42:26 [INFO] wrote loss_history.png  (DE best=1.5750e-02, NODE final=4.3185e-03)
+2026-07-12 20:42:26 [INFO] wrote fit_prevalence.png  (RMSE=0.0043)
+2026-07-12 20:42:26 [INFO] wrote sloppiness_spectrum_paper.png  (spread=5.4 dec, 4 flat)
+2026-07-12 20:42:26 [INFO] done

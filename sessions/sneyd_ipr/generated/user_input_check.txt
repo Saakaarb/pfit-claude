@@ -1,0 +1,21 @@
+## Critical Errors
+
+None detected.
+
+## Warnings
+
+1. Per-condition inputs via augmented states. IP3 and Ca are held at fixed
+   clamp values that differ per experiment. They are represented as two constant
+   integrated variables (ip3_in, ca_in) with derivative 0, whose initial values
+   are set per experiment through INITIAL_CONDITIONS. This is intentional and is
+   the correct way to inject per-experiment fixed inputs in this framework;
+   do not flag ip3_in/ca_in as spurious states.
+
+2. PROCESSORS = 16. Ensure the host has at least 16 logical cores.
+
+3. Stiffness / MAX_STEPS. Several rate constants reach ~1e5, so the channel
+   kinetics are stiff; Kvaerno5 is used. The system is conserved (state sum = 1)
+   so it cannot blow up, but if the first DE iteration is very slow, lower
+   MAX_STEPS (see the performance note in CLAUDE.md).
+
+Number of critical errors: 0

@@ -1,0 +1,17 @@
+# Configuration for plot_fit.py (hif1a_1pct_fit session)
+# Paths are relative to this file's directory (the session root).
+# Kept here (not in outputs/) because fit_parameters.py clears outputs/ on each run.
+result_csv: outputs/result_solution_exp1.csv   # columns: time, data_HIF, model_HIF, data_luc, model_luc
+output_png: outputs/fit_comparison.png
+time_divisor: 3600.0                    # seconds -> hours
+time_label: "time (h)"
+final_loss: 0.044525                    # gradient-stage final loss (NODE_fitting.log)
+observables:
+  - title: "HIF-1$\\alpha$ stabilisation"
+    ylabel: "HIF-1$\\alpha$ (fold change)"
+    data_col: 1
+    model_col: 2
+  - title: "Luciferase (max-normalised)"
+    ylabel: "luciferase (a.u.)"
+    data_col: 3
+    model_col: 4

@@ -1,0 +1,142 @@
+<?xml version="1.0" ?>
+<FIT>
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = data.csv </E>
+        </FILENAME>
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 6 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <!-- Order of parameters in the trainable vector (referenced by index in user_model.py): -->
+            <!-- 0: k1     1: k3     2: k5     3: k22f    4: k24    5: k29 -->
+            <PARAM>
+                <P> PARAMETER_NAME = k1 </P>
+                <P> MIN_VAL = 5e-4 </P>
+                <P> MAX_VAL = 5e-2 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k3 </P>
+                <P> MIN_VAL = 4.5e-3 </P>
+                <P> MAX_VAL = 4.5e-1 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k5 </P>
+                <P> MIN_VAL = 4e-2 </P>
+                <P> MAX_VAL = 4e0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k22f </P>
+                <P> MIN_VAL = 1e-4 </P>
+                <P> MAX_VAL = 1e-1 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k24 </P>
+                <P> MIN_VAL = 2e-4 </P>
+                <P> MAX_VAL = 2e-2 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k29 </P>
+                <P> MIN_VAL = 2e-3 </P>
+                <P> MAX_VAL = 2e-1 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+
+        <FIXED_PARAM_DESCRIPTION>
+            <!-- Forcing for this experiment: 1% O2 = 100 uM * (1/21) = 4.7619 uM -->
+            <PARAM> <P> NAME = O2_uM </P>     <P> VALUE = 4.7619 </P> </PARAM>
+
+            <!-- Kinetic constants from Table S3 (Nguyen et al. 2013) held fixed -->
+            <PARAM> <P> NAME = k2 </P>        <P> VALUE = 0.0002 </P> </PARAM>
+            <PARAM> <P> NAME = Km3a </P>      <P> VALUE = 250.0 </P> </PARAM>
+            <PARAM> <P> NAME = Km3b </P>      <P> VALUE = 100.0 </P> </PARAM>
+            <PARAM> <P> NAME = k4 </P>        <P> VALUE = 0.1 </P> </PARAM>
+            <PARAM> <P> NAME = Km4 </P>       <P> VALUE = 150.0 </P> </PARAM>
+            <PARAM> <P> NAME = Km5a </P>      <P> VALUE = 90.0 </P> </PARAM>
+            <PARAM> <P> NAME = Km5b </P>      <P> VALUE = 20.0 </P> </PARAM>
+            <PARAM> <P> NAME = k6 </P>        <P> VALUE = 0.001 </P> </PARAM>
+            <PARAM> <P> NAME = k7 </P>        <P> VALUE = 0.003 </P> </PARAM>
+            <PARAM> <P> NAME = Km7a </P>      <P> VALUE = 250.0 </P> </PARAM>
+            <PARAM> <P> NAME = Km7b </P>      <P> VALUE = 100.0 </P> </PARAM>
+            <PARAM> <P> NAME = k8 </P>        <P> VALUE = 0.01 </P> </PARAM>
+            <PARAM> <P> NAME = Km8 </P>       <P> VALUE = 150.0 </P> </PARAM>
+            <PARAM> <P> NAME = k9 </P>        <P> VALUE = 0.001 </P> </PARAM>
+            <PARAM> <P> NAME = k10 </P>       <P> VALUE = 0.001 </P> </PARAM>
+            <PARAM> <P> NAME = k11 </P>       <P> VALUE = 0.0001 </P> </PARAM>
+            <PARAM> <P> NAME = k12 </P>       <P> VALUE = 0.0001 </P> </PARAM>
+            <PARAM> <P> NAME = k13 </P>       <P> VALUE = 0.0002 </P> </PARAM>
+            <PARAM> <P> NAME = k14 </P>       <P> VALUE = 0.0001 </P> </PARAM>
+            <PARAM> <P> NAME = k21f </P>      <P> VALUE = 0.0005 </P> </PARAM>
+            <PARAM> <P> NAME = k21r </P>      <P> VALUE = 0.01 </P> </PARAM>
+            <PARAM> <P> NAME = k22r </P>      <P> VALUE = 0.01 </P> </PARAM>
+            <PARAM> <P> NAME = k23 </P>       <P> VALUE = 0.0016 </P> </PARAM>
+            <PARAM> <P> NAME = k25 </P>       <P> VALUE = 0.00001 </P> </PARAM>
+            <PARAM> <P> NAME = k26 </P>       <P> VALUE = 0.00038 </P> </PARAM>
+            <PARAM> <P> NAME = k27 </P>       <P> VALUE = 0.009 </P> </PARAM>
+            <PARAM> <P> NAME = k28 </P>       <P> VALUE = 0.0001 </P> </PARAM>
+            <PARAM> <P> NAME = FIH </P>       <P> VALUE = 110.0 </P> </PARAM>
+            <PARAM> <P> NAME = FIHn </P>      <P> VALUE = 40.0 </P> </PARAM>
+            <PARAM> <P> NAME = VHL </P>       <P> VALUE = 50.0 </P> </PARAM>
+            <PARAM> <P> NAME = VHLn </P>      <P> VALUE = 50.0 </P> </PARAM>
+        </FIXED_PARAM_DESCRIPTION>
+
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <!-- Initial conditions from Table S2. Order matters: solution columns follow this order. -->
+            <VAR> <P> NAME = HIFa </P>          <P> INIT_VAL = 5.0 </P>   </VAR>
+            <VAR> <P> NAME = HIFa_pOH </P>      <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = HIFa_aOH </P>      <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = HIFa_aOHpOH </P>   <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = HIFan </P>         <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = HIFan_pOH </P>     <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = HIFan_aOH </P>     <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = HIFan_aOHpOH </P>  <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = HIFd </P>          <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = HIFd_HRE </P>      <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = PHD </P>           <P> INIT_VAL = 100.0 </P> </VAR>
+            <VAR> <P> NAME = PHDn </P>          <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = HIFb </P>          <P> INIT_VAL = 170.0 </P> </VAR>
+            <VAR> <P> NAME = HRE </P>           <P> INIT_VAL = 50.0 </P>  </VAR>
+            <VAR> <P> NAME = mRNA </P>          <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = Protein </P>       <P> INIT_VAL = 0.0 </P>   </VAR>
+            <VAR> <P> NAME = Luciferase </P>    <P> INIT_VAL = 0.0 </P>   </VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> POPULATION_SIZE = 300 </P>
+            <P> NUM_ITERS = 20 </P>
+            <P> PROCESSORS = 8 </P>
+            <P> ALGORITHM = DE </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 1000 </P>
+            <P> GRADIENT_OPTIMIZER = adam </P>
+            <!-- 17 integrated variables -> 17 entries each for RTOL/ATOL -->
+            <P> STEPSIZE_RTOL = 1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7 </P>
+            <P> STEPSIZE_ATOL = 1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9,1e-9 </P>
+            <P> INITIAL_TIMESTEP = 1.0 </P>
+            <P> MAX_STEPS = 50000 </P>
+            <P> INIT_VALUE_LR = 1e-3 </P>
+            <P> END_VALUE_LR = 1e-5 </P>
+            <P> TRANSITION_STEPS_LR = 2000 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>
