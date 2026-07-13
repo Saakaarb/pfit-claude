@@ -1,0 +1,293 @@
+INFO:2026-07-13 05:54:42,831:jax._src.xla_bridge:752: Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+2026-07-13 05:54:42,831 - jax._src.xla_bridge - INFO - Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+Configuring JAX with 8 CPU device(s) (PROCESSORS from XML)
+Launching driver script
+Available devices:  [CpuDevice(id=0), CpuDevice(id=1), CpuDevice(id=2), CpuDevice(id=3), CpuDevice(id=4), CpuDevice(id=5), CpuDevice(id=6), CpuDevice(id=7)]
+Launching fitting process...
+Creating initial sampling (optimized LHS)
+Global search tolerances — rtol: [1.0, 1.0, 1.0], atol: [0.001, 0.001, 0.001]
+Writing pso log file
+Starting Search Iterations
+Iteration: 1
+Best Cost: 1.2132E-01
+Best position: [ 0.5213488  -0.9916988   0.46232854  0.1135718   0.03680749  0.16352158]
+Time for iteration: 3.0989441871643066
+-------
+Iteration: 2
+Best Cost: 1.2077E-01
+Best position: [ 0.28361061 -1.         -0.22597657 -0.17919572 -0.82075081  0.37265836]
+Time for iteration: 0.8963227272033691
+-------
+Iteration: 3
+Best Cost: 1.1848E-01
+Best position: [ 0.14635374 -1.         -0.47703435 -0.30604876  0.05552319  0.28576186]
+Time for iteration: 0.9275162220001221
+-------
+Iteration: 4
+Best Cost: 1.1794E-01
+Best position: [ 0.30832772 -1.         -0.48591456  0.72427041 -1.          0.43002636]
+Time for iteration: 0.9007830619812012
+-------
+Iteration: 5
+Best Cost: 1.0974E-01
+Best position: [ 0.18571521 -1.         -0.65150104  0.1301922  -1.          0.69565807]
+Time for iteration: 0.9284017086029053
+-------
+Iteration: 6
+Best Cost: 1.0661E-01
+Best position: [ 0.18772788 -1.         -0.64581635 -0.1391916  -0.60485242  0.0360082 ]
+Time for iteration: 0.9509994983673096
+-------
+Iteration: 7
+Best Cost: 1.0661E-01
+Best position: [ 0.18772788 -1.         -0.64581635 -0.1391916  -0.60485242  0.0360082 ]
+Time for iteration: 0.9870057106018066
+-------
+Iteration: 8
+Best Cost: 1.0523E-01
+Best position: [ 0.19839363 -1.         -0.65132807 -0.26066724 -0.52927975  0.19240719]
+Time for iteration: 0.9360752105712891
+-------
+Iteration: 9
+Best Cost: 1.0523E-01
+Best position: [ 0.19839363 -1.         -0.65132807 -0.26066724 -0.52927975  0.19240719]
+Time for iteration: 0.9221217632293701
+-------
+Iteration: 10
+Best Cost: 9.2898E-02
+Best position: [ 0.10861288 -0.99516947 -0.6559211  -0.02459792 -1.          0.02766527]
+Time for iteration: 0.9112288951873779
+-------
+Iteration: 11
+Best Cost: 9.2898E-02
+Best position: [ 0.10861288 -0.99516947 -0.6559211  -0.02459792 -1.          0.02766527]
+Time for iteration: 0.9264068603515625
+-------
+Iteration: 12
+Best Cost: 9.2898E-02
+Best position: [ 0.10861288 -0.99516947 -0.6559211  -0.02459792 -1.          0.02766527]
+Time for iteration: 0.8694324493408203
+-------
+Iteration: 13
+Best Cost: 9.2898E-02
+Best position: [ 0.10861288 -0.99516947 -0.6559211  -0.02459792 -1.          0.02766527]
+Time for iteration: 0.8886871337890625
+-------
+Iteration: 14
+Best Cost: 9.2898E-02
+Best position: [ 0.10861288 -0.99516947 -0.6559211  -0.02459792 -1.          0.02766527]
+Time for iteration: 0.8121805191040039
+-------
+Iteration: 15
+Best Cost: 9.2898E-02
+Best position: [ 0.10861288 -0.99516947 -0.6559211  -0.02459792 -1.          0.02766527]
+Time for iteration: 0.8740205764770508
+-------
+Iteration: 16
+Best Cost: 9.1954E-02
+Best position: [ 0.24358314 -1.         -0.72715448 -0.14295774 -0.92140151  0.25852667]
+Time for iteration: 0.912827730178833
+-------
+Iteration: 17
+Best Cost: 9.1954E-02
+Best position: [ 0.24358314 -1.         -0.72715448 -0.14295774 -0.92140151  0.25852667]
+Time for iteration: 0.9378750324249268
+-------
+Iteration: 18
+Best Cost: 9.1954E-02
+Best position: [ 0.24358314 -1.         -0.72715448 -0.14295774 -0.92140151  0.25852667]
+Time for iteration: 0.9290697574615479
+-------
+Iteration: 19
+Best Cost: 9.1954E-02
+Best position: [ 0.24358314 -1.         -0.72715448 -0.14295774 -0.92140151  0.25852667]
+Time for iteration: 0.8322813510894775
+-------
+Iteration: 20
+Best Cost: 9.1954E-02
+Best position: [ 0.24358314 -1.         -0.72715448 -0.14295774 -0.92140151  0.25852667]
+Time for iteration: 0.8675365447998047
+-------
+Iteration: 21
+Best Cost: 9.1954E-02
+Best position: [ 0.24358314 -1.         -0.72715448 -0.14295774 -0.92140151  0.25852667]
+Time for iteration: 0.8758375644683838
+-------
+Iteration: 22
+Best Cost: 9.1593E-02
+Best position: [ 0.17833465 -1.         -0.69704791 -0.16067373 -0.94098075  0.27641591]
+Time for iteration: 0.9065887928009033
+-------
+Iteration: 23
+Best Cost: 9.1593E-02
+Best position: [ 0.17833465 -1.         -0.69704791 -0.16067373 -0.94098075  0.27641591]
+Time for iteration: 0.9545376300811768
+-------
+Iteration: 24
+Best Cost: 9.1593E-02
+Best position: [ 0.17833465 -1.         -0.69704791 -0.16067373 -0.94098075  0.27641591]
+Time for iteration: 0.8097801208496094
+-------
+Iteration: 25
+Best Cost: 9.1593E-02
+Best position: [ 0.17833465 -1.         -0.69704791 -0.16067373 -0.94098075  0.27641591]
+Time for iteration: 0.8044431209564209
+-------
+Iteration: 26
+Best Cost: 9.1593E-02
+Best position: [ 0.17833465 -1.         -0.69704791 -0.16067373 -0.94098075  0.27641591]
+Time for iteration: 0.9613316059112549
+-------
+Iteration: 27
+Best Cost: 9.1593E-02
+Best position: [ 0.17833465 -1.         -0.69704791 -0.16067373 -0.94098075  0.27641591]
+Time for iteration: 0.7589883804321289
+-------
+Iteration: 28
+Best Cost: 9.0517E-02
+Best position: [ 0.17819659 -1.         -0.69839303 -0.14607999 -0.93916415  0.27412392]
+Time for iteration: 0.795628547668457
+-------
+Iteration: 29
+Best Cost: 9.0517E-02
+Best position: [ 0.17819659 -1.         -0.69839303 -0.14607999 -0.93916415  0.27412392]
+Time for iteration: 0.7271378040313721
+-------
+Iteration: 30
+Best Cost: 9.0517E-02
+Best position: [ 0.17819659 -1.         -0.69839303 -0.14607999 -0.93916415  0.27412392]
+Time for iteration: 0.8866186141967773
+-------
+Iteration: 31
+Best Cost: 9.0517E-02
+Best position: [ 0.17819659 -1.         -0.69839303 -0.14607999 -0.93916415  0.27412392]
+Time for iteration: 0.8971831798553467
+-------
+Iteration: 32
+Best Cost: 9.0517E-02
+Best position: [ 0.17819659 -1.         -0.69839303 -0.14607999 -0.93916415  0.27412392]
+Time for iteration: 0.864793062210083
+-------
+Iteration: 33
+Best Cost: 9.0517E-02
+Best position: [ 0.17819659 -1.         -0.69839303 -0.14607999 -0.93916415  0.27412392]
+Time for iteration: 0.7021105289459229
+-------
+Iteration: 34
+Best Cost: 9.0328E-02
+Best position: [ 0.19014165 -1.         -0.71354604 -0.34634954 -0.92297341  0.26393268]
+Time for iteration: 0.8253607749938965
+-------
+Iteration: 35
+Best Cost: 9.0328E-02
+Best position: [ 0.19014165 -1.         -0.71354604 -0.34634954 -0.92297341  0.26393268]
+Time for iteration: 0.7324318885803223
+-------
+Iteration: 36
+Best Cost: 9.0328E-02
+Best position: [ 0.19014165 -1.         -0.71354604 -0.34634954 -0.92297341  0.26393268]
+Time for iteration: 0.6987676620483398
+-------
+Iteration: 37
+Best Cost: 9.0328E-02
+Best position: [ 0.19014165 -1.         -0.71354604 -0.34634954 -0.92297341  0.26393268]
+Time for iteration: 0.5872163772583008
+-------
+Iteration: 38
+Best Cost: 9.0328E-02
+Best position: [ 0.19014165 -1.         -0.71354604 -0.34634954 -0.92297341  0.26393268]
+Time for iteration: 0.6194496154785156
+-------
+Iteration: 39
+Best Cost: 9.0069E-02
+Best position: [ 0.17980048 -1.         -0.70986724 -0.1375084  -0.94091992  0.26372879]
+Time for iteration: 0.6422765254974365
+-------
+Iteration: 40
+Best Cost: 9.0069E-02
+Best position: [ 0.17980048 -1.         -0.70986724 -0.1375084  -0.94091992  0.26372879]
+Time for iteration: 0.4892890453338623
+-------
+Iteration: 41
+Best Cost: 8.9999E-02
+Best position: [ 0.17347725 -1.         -0.70715294 -0.06539057 -0.94789436  0.26393219]
+Time for iteration: 0.4912221431732178
+-------
+Iteration: 42
+Best Cost: 8.9999E-02
+Best position: [ 0.17347725 -1.         -0.70715294 -0.06539057 -0.94789436  0.26393219]
+Time for iteration: 0.4946599006652832
+-------
+Iteration: 43
+Best Cost: 8.9999E-02
+Best position: [ 0.17347725 -1.         -0.70715294 -0.06539057 -0.94789436  0.26393219]
+Time for iteration: 0.4076051712036133
+-------
+Iteration: 44
+Best Cost: 8.9991E-02
+Best position: [ 0.17068297 -1.         -0.70808526 -0.07276608 -0.95129455  0.26502778]
+Time for iteration: 0.3359642028808594
+-------
+Iteration: 45
+Best Cost: 8.9943E-02
+Best position: [ 0.17475208 -1.         -0.70979771 -0.03175101 -0.94736314  0.26565917]
+Time for iteration: 0.3779881000518799
+-------
+Iteration: 46
+Best Cost: 8.9855E-02
+Best position: [ 0.16662877 -1.         -0.70761691  0.00472293 -0.95170897  0.26568871]
+Time for iteration: 0.3522152900695801
+-------
+Iteration: 47
+Best Cost: 8.9839E-02
+Best position: [ 0.16339054 -1.         -0.70646631 -0.09805416 -0.94912001  0.26575845]
+Time for iteration: 0.3678314685821533
+-------
+Iteration: 48
+Best Cost: 8.9839E-02
+Best position: [ 0.16339054 -1.         -0.70646631 -0.09805416 -0.94912001  0.26575845]
+Time for iteration: 0.3227715492248535
+-------
+Iteration: 49
+Best Cost: 8.9814E-02
+Best position: [ 0.15973945 -1.         -0.70462389 -0.13378832 -0.94808173  0.26541155]
+Time for iteration: 0.3218567371368408
+-------
+Iteration: 50
+Best Cost: 8.9790E-02
+Best position: [ 0.15877376 -1.         -0.70483484 -0.13349313 -0.948135    0.26515418]
+Time for iteration: 0.28516697883605957
+-------
+Final best position found(scaled): [ 0.15877376 -1.         -0.70483484 -0.13349313 -0.948135    0.26515418]
+Done with PSO search
+Best Position from PSO: [5.79386880e-01 0.00000000e+00 1.47582578e-02 2.43325344e+01
+ 1.01057020e+07 1.29238318e-07]
+Best cost from PSO: 0.08978958056702503
+NODE tolerances — rtol: [1.0, 1.0, 1.0], atol: [1e-08, 1e-05, 1e-10]
+Trainable_params: [ 0.15877376 -1.         -0.70483484 -0.13349313 -0.948135    0.26515418]
+Note: framework currently handles multiple trajectories of the same size and upto the same simulation time. Variable length and final time trajectories will be added in the future
+Iteration:,loss value, best loss: 0 0.11649990711147823 0.11649990711147823
+Iteration:,loss value, best loss: 1 0.11635042842945971 0.11635042842945971
+Iteration time: 9.40317964553833
+Iteration:,loss value, best loss: 2 0.11603853480355629 0.11603853480355629
+Iteration time: 3.9229211807250977
+Iteration:,loss value, best loss: 3 0.1158594994754297 0.1158594994754297
+Iteration time: 3.922677993774414
+Iteration:,loss value, best loss: 4 0.11584786140459828 0.11584786140459828
+Iteration time: 3.8580188751220703
+Iteration:,loss value, best loss: 5 0.11579152521265902 0.11579152521265902
+Iteration time: 4.170138359069824
+Iteration:,loss value, best loss: 6 0.11579025222620616 0.11579025222620616
+Iteration time: 4.035573720932007
+Iteration:,loss value, best loss: 7 0.11579007562111533 0.11579007562111533
+Iteration time: 4.221083879470825
+Iteration:,loss value, best loss: 8 0.11578549621534605 0.11578549621534605
+Iteration time: 3.9822030067443848
+Iteration:,loss value, best loss: 9 0.11578438813882004 0.11578438813882004
+Iteration time: 4.099065780639648
+Tuned position from NODE(scaled): [ 0.15797202 -0.99221832 -0.70446326 -0.13349284 -0.94813528  0.2656457 ]
+Tuned best loss: 0.11578438813882004
+Final best position: [5.78986009e-01 3.89084160e-04 1.47768370e-02 2.43325358e+01
+ 1.01057014e+07 1.29251196e-07]
+[sloppiness] loss=0.1158  |grad|_inf=1.9  computing 6x6 Hessian ...
+[sloppiness] well-determined (not sloppy)  (spread 4.9 dec, 0 flat)

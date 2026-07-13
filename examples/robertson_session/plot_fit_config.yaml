@@ -1,0 +1,21 @@
+# Fit plot config for robertson_session.
+# result_solution_exp1.csv columns: [t, data_A, data_B, data_C, model_A, model_B, model_C]
+result_csv: outputs/result_solution_exp1.csv
+output_png: outputs/fit_result.png
+time_divisor: 1.0
+time_label: "time (s, log)"
+logx: true
+suptitle: "robertson_session — fitted model vs. data (loss 4.7e-4)"
+observables:
+  - title: "$y_1$ (A)"
+    ylabel: "concentration"
+    data_col: 1
+    model_col: 4
+  - title: "$y_2$ (B)"
+    ylabel: "concentration"
+    data_col: 2
+    model_col: 5
+  - title: "$y_3$ (C)"
+    ylabel: "concentration"
+    data_col: 3
+    model_col: 6

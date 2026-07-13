@@ -1,0 +1,13 @@
+# Fit plot config for piezo_bouc_wen.
+# result_solution_exp1.csv columns: [t, data_disp, model_disp, model_h, V, model_vp]
+result_csv: outputs/result_solution_exp1.csv
+output_png: outputs/fit_result.png
+time_divisor: 1.0
+time_label: "time (s)"
+logx: false
+suptitle: "piezo_bouc_wen — fitted model vs. data (loss 0.116)"
+observables:
+  - title: "Actuator displacement"
+    ylabel: "displacement (m)"
+    data_col: 1
+    model_col: 2

@@ -1,0 +1,6 @@
+2026-07-13 06:02:46 [INFO] plotting using /home/saakaar_luminarycloud_com/Desktop/param_fitting/pfit-claude/examples/robertson_session/plot_fit_config.yaml
+2026-07-13 06:02:46 [INFO] loaded 17 rows, 7 cols
+2026-07-13 06:02:46 [INFO] $y_1$ (A) RMSE=5.059e-05
+2026-07-13 06:02:46 [INFO] $y_2$ (B) RMSE=2.941e-08
+2026-07-13 06:02:46 [INFO] $y_3$ (C) RMSE=5.055e-05
+2026-07-13 06:02:47 [INFO] wrote /home/saakaar_luminarycloud_com/Desktop/param_fitting/pfit-claude/examples/robertson_session/outputs/fit_result.png
