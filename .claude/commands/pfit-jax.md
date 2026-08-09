@@ -5,6 +5,13 @@ Convert user_model.py to a JAX-jittable generated_script.py for the current sess
 1. Ask the user for the session name if not provided as an argument. The session directory is `sessions/<session_name>/`.
 
 2. Read the following files:
+   - `lib/LLM/api/diffrax.md` — **REQUIRED.** Version-pinned diffrax API digest: the
+     complete list of valid solver classes, the full `RESULTS` code table, and the
+     real `diffeqsolve` / `SaveAt` / `PIDController` signatures for the *installed*
+     version. Never write a diffrax call from memory — this file is authoritative.
+   - `lib/LLM/api/jax.md` — **REQUIRED.** The jnp functions available for translation
+     and the tracing rules (no Python branching on traced values, no in-place
+     assignment, NaN-before-divide sanitisation).
    - `sessions/<session_name>/inputs/user_input.xml` — for parameter info and MAX_STEPS value
    - `sessions/<session_name>/generated/user_model.py` — user pseudocode to convert
    - `lib/LLM/developer_instructions.txt` — JAX conversion rules
@@ -41,6 +48,18 @@ Convert user_model.py to a JAX-jittable generated_script.py for the current sess
    ```
 
 4. **Critical translation rules:**
+   - The `INTEGRATOR` named in the XML must appear in the solver table of
+     `lib/LLM/api/diffrax.md` **and** have `Adaptive = yes` in that table. A name
+     absent from the table does not exist in the installed diffrax and will raise
+     `AttributeError`; a non-adaptive solver is incompatible with the
+     `PIDController` that `_integrate_system` always uses. If the XML names an
+     invalid solver, stop and report it rather than generating the script.
+   - The integration-failure mask in `_compute_loss_problem` must be exactly
+     `failed = jnp.invert(result == RESULTS.successful)`. Do NOT enumerate
+     individual failure codes — of the 14 codes in the `RESULTS` table of
+     `lib/LLM/api/diffrax.md`, only `successful` yields a usable trajectory, and
+     several others return inf/NaN trajectories that would otherwise be scored
+     as a genuine fit and produce NaN gradients.
    - `scale_value`, `unscale_value`, `_integrate_system` must be copied VERBATIM from `output_sample.py` — do NOT modify them
    - `max_steps` in `_integrate_system` must be the literal integer from `MAX_STEPS` in `GRADIENT_OPT/SETTINGS` of the XML — not a variable, a literal number
    - In `user_defined_system`: unpack trainable parameters via `unscale_value(trainable_variables, min_val, max_val, is_logscale)` in the same order as the XML; use `fixed_parameters` as a dict
@@ -52,13 +71,19 @@ Convert user_model.py to a JAX-jittable generated_script.py for the current sess
 
 5. Write the result to `sessions/<session_name>/generated/generated_script.py`.
 
-6. **Verify** the generated script by running:
+6. If any file under `lib/LLM/api/` was needed but is missing, or its header
+   versions do not match the installed packages, regenerate the digests first:
+   ```bash
+   ./venv/bin/python3 tools/gen_api_context.py
+   ```
+
+7. **Verify** the generated script by running:
    ```bash
    cd sessions/<session_name> && python -c "import sys; sys.path.insert(0, '../..'); import generated.generated_script as gs; print('Import OK')"
    ```
    If this fails with a syntax or import error, read the error, fix `generated_script.py`, and retry. Repeat up to 3 times.
 
-7. Tell the user:
+8. Tell the user:
    - If successful: "generated_script.py created and verified. Run `python fit_parameters.py <session_name>` to start optimization."
    - If import errors remain after retries: show the error and the relevant section of generated_script.py so the user can investigate.
 

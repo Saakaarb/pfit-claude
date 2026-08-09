@@ -74,6 +74,18 @@ def _write_problem_result(constants,trainable_variables):
 The names of the created functions MUST be as defined above. DO NOT CHANGE THEM.
 _write_problem_result should NOT be jit compiled.
 
+In _compute_loss_problem, the integration-failure mask MUST be written exactly as:
+
+    failed = jnp.invert(result == RESULTS.successful)
+
+DO NOT enumerate individual failure codes (e.g. RESULTS.max_steps_reached,
+RESULTS.singular). diffrax defines 14 result codes and only `successful` means the
+trajectory is usable; several of the others (dt_min_reached, nonlinear_divergence,
+nonfinite, max_steps_rejected) return a trajectory containing inf or NaN. If those
+are not masked, the inf flows into the loss, and the gradient stage receives NaN
+gradients and stalls without any error being reported. The full code table is in
+lib/LLM/api/diffrax.md.
+
 The fixed parameters listed in the input XML from the prompt should be used as is and should not be trained or modified. These are SEPARATE from the trainable parameters.
 
 The order of the trainable parameters in the trainable parameters vector IS identical to the order in which the parameters are provided in the input XML. 

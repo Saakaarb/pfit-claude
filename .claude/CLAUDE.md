@@ -72,6 +72,10 @@ python analyze_fit.py <session_name>
 
 | File | Purpose |
 |------|---------|
+| `lib/LLM/api/diffrax.md` | **Version-pinned diffrax API digest** — valid solver names, `RESULTS` codes, real signatures |
+| `lib/LLM/api/jax.md` | **Version-pinned jax/jnp digest** — available functions + tracing rules |
+| `lib/LLM/api/optax.md` | **Version-pinned optax digest** — optimizer/schedule signatures and defaults |
+| `lib/LLM/api/population_optimizers.md` | **Version-pinned scipy-DE / pyswarms digest** |
 | `lib/LLM/user_model_generation_instructions.txt` | Rules for generating user_model.py skeleton |
 | `lib/LLM/user_file_check_instructions.txt` | Rules for validating XML + user_model.py |
 | `lib/LLM/inputs_fix_instructions.txt` | Rules for auto-correcting errors |
@@ -263,9 +267,47 @@ The parallel loss evaluation (`pmap` sharding) is order-independent of `PROCESSO
 
 Always use the venv in the project root for any Python commands:
 ```bash
-/home/sbhatnagar/wsl/pfit-claude/venv/bin/python3
+./venv/bin/python3
 ```
 Never use the system `python` or `python3` directly — JAX and diffrax are only installed in this venv.
+
+## API digests (version-pinned library context)
+
+`requirements.txt` pins an old, mutually-compatible set (jax 0.6.2 / diffrax
+0.7.2 / optax 0.2.8 / scipy 1.15.3) whose APIs differ from current upstream
+docs. To keep generated code correct, `tools/gen_api_context.py` introspects the
+**installed** packages and writes compact digests to `lib/LLM/api/`:
+
+| Digest | Contents |
+|---|---|
+| `diffrax.md` | Every concrete solver class with kind (stiff/non-stiff/SDE) and whether it is **adaptive**; the full 14-member `RESULTS` table; `diffeqsolve` / `SaveAt` / `PIDController` / adjoint signatures |
+| `jax.md` | `jnp` functions available for translation + tracing rules |
+| `optax.md` | Optimizer and schedule signatures with real defaults |
+| `population_optimizers.md` | `scipy.optimize.differential_evolution` signature and strategies; pyswarms handler strategies |
+| `MANIFEST.md` | The pinned version stamp for all digests |
+
+**Rules:**
+- Never write a diffrax/jax/optax call from memory — consult the digest.
+- `/pfit-skeleton`, `/pfit-check`, `/pfit-jax` and `/pfit-from-source` all read
+  the relevant digests as a required step.
+- Every digest header carries its version stamp. If it disagrees with the
+  installed packages, the digest is **stale** — regenerate before trusting it.
+- Regenerate after any change to `requirements.txt`:
+  ```bash
+  ./venv/bin/python3 tools/gen_api_context.py
+  ```
+  Settings and the curated "gotchas" live in `tools/gen_api_context.yaml`; the
+  digests themselves are generated artifacts and must not be hand-edited. The
+  generator only rewrites files whose content changed, so a re-run on an
+  unchanged environment leaves the git tree clean.
+
+Two constraints the digests encode that are easy to get wrong:
+- A solver with `Adaptive = NO` (e.g. `Euler`, `LeapfrogMidpoint`,
+  `SemiImplicitEuler`) **cannot** be used — `_integrate_system` always drives the
+  solve with `PIDController`, which requires an error estimate.
+- `optax.lbfgs()` needs the non-standard
+  `update(grad, state, params, value=..., grad=..., value_fn=...)` call and
+  ignores all the XML learning-rate fields (they apply to `adam` only).
 
 ## Skills Available
 
@@ -448,6 +490,27 @@ def _write_problem_result(constants, trainable_variables):  # TRANSLATE, NOT jit
 - Do NOT add loops, stacks, or concatenations across experiments inside `_compute_loss_problem` or `_write_problem_result` — the framework in `helper_functions.py` handles calling these functions per-experiment and averaging
 - `_integrate_system` uses `constants["init_cond"]` as `y0` — for multi-experiment fits this is automatically set per-experiment by the framework before calling `_compute_loss_problem`
 - The generated script is identical for single and multi-experiment fits; the per-experiment dispatch is entirely outside the generated script
+
+#### Integration-failure mask (critical)
+In `_compute_loss_problem`, the mask must be exactly:
+```python
+failed = jnp.invert(result == RESULTS.successful)
+```
+Do NOT enumerate individual codes (the old `max_steps_reached or singular` form).
+diffrax defines **14** `RESULTS` codes and only `successful` yields a usable
+trajectory; `dt_min_reached`, `nonlinear_divergence`, `nonfinite` and
+`max_steps_rejected` all return trajectories containing `inf`/`NaN`. Unmasked,
+those are scored as a genuine fit and hand the NODE stage NaN gradients, which
+stalls the fit with no error reported. Full code table: `lib/LLM/api/diffrax.md`.
+
+#### Integrator choice is asymmetric
+Only **adaptive** solvers are usable — `_integrate_system` always drives the solve
+with `PIDController`, which needs an error estimate. `lib/LLM/api/diffrax.md`
+lists only the 15 usable ones and names the excluded solvers with reasons.
+Prefer an implicit (stiff) solver when stiffness is uncertain: on a non-stiff
+system it is merely slower per step, whereas an explicit solver on a stiff system
+fails outright (step size collapses, `max_steps` exhausted, every candidate
+scores `error_loss`).
 
 #### SaveAt fix (critical)
 Always use `diffrax.SaveAt(t0=True, ts=t_eval[1:])` — NOT `SaveAt(ts=t_eval)`. diffrax requires `saveat.ts` to be strictly monotone; when `t_eval[0] == t0`, using `ts=t_eval` triggers `_EquinoxRuntimeError: saveat.ts must be increasing or decreasing` because t0 is prepended implicitly. `t0=True, ts=t_eval[1:]` saves the initial point separately and keeps remaining ts strictly after t0.

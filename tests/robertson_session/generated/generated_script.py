@@ -68,7 +68,9 @@ def _integrate_system(constants, trainable_variables):
 def _compute_loss_problem(constants, trainable_variables):
     dataset = constants["dataset"]
     solution_time, solution, result = _integrate_system(constants, trainable_variables)
-    failed = jnp.logical_or(result == RESULTS.max_steps_reached, result == RESULTS.singular)
+    # Any code other than RESULTS.successful means the trajectory is untrustworthy
+    # (it may contain inf/NaN). See lib/LLM/api/diffrax.md for the full code table.
+    failed = jnp.invert(result == RESULTS.successful)
     # Scale factor is max along each column
     scale_factor = jnp.max(dataset, axis=0)
     loss_value = jnp.sqrt(jnp.mean(jnp.square((solution - dataset) / scale_factor)))

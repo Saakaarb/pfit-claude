@@ -226,7 +226,9 @@ def _compute_loss_problem(constants, trainable_variables):
     constants = _strongify_constants(constants)
     dataset = constants["dataset"]
     solution_time, solution, result = _integrate_system(constants, trainable_variables)
-    failed = jnp.logical_or(result == RESULTS.max_steps_reached, result == RESULTS.singular)
+    # Any code other than RESULTS.successful means the trajectory is untrustworthy
+    # (it may contain inf/NaN). See lib/LLM/api/diffrax.md for the full code table.
+    failed = jnp.invert(result == RESULTS.successful)
     # ---------------------------------------------------
 
     # Build model observables matching dataset columns.

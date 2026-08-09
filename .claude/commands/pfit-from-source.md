@@ -62,6 +62,12 @@ Present your best-guess defaults (derived below) and ask the user to confirm or 
 - If the paper gives a value `v`, suggest `[v/100, v*100]` (log-scale if range > 2 orders of magnitude)
 - If no value is given, suggest a physically reasonable range and flag it explicitly for the user to review
 
+Before proposing any solver or optimizer setting, read `lib/LLM/api/diffrax.md`
+and `lib/LLM/api/optax.md`. Only propose an `INTEGRATOR` that appears in the
+diffrax solver table with `Adaptive = yes`, and only a `GRADIENT_OPTIMIZER` the
+framework supports (`lbfgs`, `adam`). Never propose a solver or optimizer name
+from memory — the installed versions are pinned and older than upstream docs.
+
 **Optimizer settings (suggest these defaults, adjustable by user):**
 - Population-based: `POPULATION_SIZE = max(50, 10 × N_TRAINABLE)`, `NUM_ITERS = 20`, `PROCESSORS = 4`
 - Gradient: `NUM_ITERS = 10`, `MAX_STEPS = 10000`, `INITIAL_TIMESTEP = 1e-6` (adjust if the problem timescale is very different from 1), `INIT_VALUE_LR = 1e-4`, `END_VALUE_LR = 1e-5`, `TRANSITION_STEPS_LR = 2000`, `DECAY_RATE_LR = 0.9`

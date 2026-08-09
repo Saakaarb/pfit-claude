@@ -5,6 +5,15 @@ Validate and auto-correct the user_model.py and user_input.xml for the current s
 1. Ask the user for the session name if not provided as an argument. The session directory is `sessions/<session_name>/`.
 
 2. Read the following files:
+   - `lib/LLM/api/diffrax.md` — **REQUIRED.** Authoritative list of valid
+     `INTEGRATOR` names (and which are adaptive) for the installed diffrax.
+   - `lib/LLM/api/optax.md` — **REQUIRED.** Valid `GRADIENT_OPTIMIZER` values and
+     the real optimizer defaults, including which XML learning-rate fields each
+     optimizer actually consumes.
+   - `lib/LLM/api/population_optimizers.md` — valid `ALGORITHM` values and the
+     population-optimizer defaults.
+   - `lib/LLM/api/jax.md` — read when judging whether user pseudocode is
+     JAX-convertible (tracing rules, available `jnp` functions).
    - `sessions/<session_name>/inputs/user_input.xml`
    - `sessions/<session_name>/generated/user_model.py`
    - `lib/LLM/user_file_check_instructions.txt` — validation rules
@@ -41,6 +50,13 @@ Validate and auto-correct the user_model.py and user_input.xml for the current s
 - Parameters spanning many orders of magnitude use LOGSCALE = Y
 - All names are valid Python identifiers
 - No duplicate names across trainable, fixed, or integrated variables
+
+**API-validity checks (against `lib/LLM/api/`, not from memory):**
+- `INTEGRATOR` (if set) must appear in the solver table of `lib/LLM/api/diffrax.md` → otherwise critical (`AttributeError` at import)
+- `INTEGRATOR` must have `Adaptive = yes` in that table → otherwise critical (`_integrate_system` always uses `PIDController`, which requires an error estimate)
+- `GRADIENT_OPTIMIZER` (if set) must be one of the values the framework supports (`lbfgs`, `adam` — see `lib/algorithms/NODE/classes.py`) → otherwise critical
+- `ALGORITHM` (if set) must be `PSO` or `DE` → otherwise critical (anything else silently falls through to PSO)
+- If the header versions in any `lib/LLM/api/*.md` do not match the installed packages, the digest is stale — regenerate with `./venv/bin/python3 tools/gen_api_context.py` before relying on it
 
 **Optimizer settings checks (inspect actual values):**
 

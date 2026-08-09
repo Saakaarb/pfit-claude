@@ -103,7 +103,13 @@ def _compute_loss_problem(constants, trainable_variables):
     #---------------------------------------------------
     dataset = constants["dataset"]
     solution_time, solution, result = _integrate_system(constants, trainable_variables)
-    failed = jnp.logical_or(result == RESULTS.max_steps_reached, result==RESULTS.singular)
+    # Any code other than RESULTS.successful means the trajectory is not
+    # trustworthy (it may contain inf/NaN). diffrax defines 14 codes; testing
+    # against `successful` covers all present and future failure modes, whereas
+    # enumerating individual codes silently scores broken solves — e.g.
+    # dt_min_reached and nonlinear_divergence both return an inf trajectory —
+    # as if they were a genuine fit. See lib/LLM/api/diffrax.md for the codes.
+    failed = jnp.invert(result == RESULTS.successful)
     #---------------------------------------------------
     # if required, use sim to get further results
 

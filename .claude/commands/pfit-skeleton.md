@@ -14,6 +14,11 @@ Generate a user_model.py skeleton for the current session from its user_input.xm
    - Non-critical issues do not block generation: report them as warnings and proceed.
 
 4. Read these reference files to understand what to generate:
+   - `lib/LLM/api/jax.md` — the `jnp` functions the pseudocode will later be
+     translated to, and the tracing rules it must respect. The skeleton is
+     numpy pseudocode, but writing it in a shape that has no JAX equivalent
+     (boolean-mask indexing, in-place assignment, Python branching on values)
+     guarantees a failure at `/pfit-jax` time.
    - `lib/LLM/user_model_generation_instructions.txt` — generation rules
    - `lib/utils/user_model_sample_unpopulated.py` — skeleton template
    - `lib/utils/user_model_sample_populated.py` — populated example (Robertson)
