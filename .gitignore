@@ -1,0 +1,22 @@
+# Local scratch / throwaway work (not tracked)
+scratch/
+
+# Paper / documentation working files (not tracked)
+docs/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# personal git auth (never commit)
+git-auth.config
+*.credentials
+.pfit-personal-pat
+*personal-pat*
+
+# generated tool logs
+tools/*.log
+
+# coverage artifacts
+.coverage
+htmlcov/

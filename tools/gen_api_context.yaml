@@ -1,0 +1,136 @@
+# Configuration for gen_api_context.py
+#
+# Generates version-pinned API digests from the *installed* packages in the
+# project venv, so the LLM skills never have to rely on recalled API details.
+# Regenerate after any change to requirements.txt.
+
+# Directory (relative to the repo root) the digests are written to.
+output_dir: lib/LLM/api
+
+# Packages whose versions are recorded in the manifest and in every digest
+# header. A digest whose header versions differ from the installed versions is
+# stale and must be regenerated.
+tracked_packages:
+  - jax
+  - jaxlib
+  - diffrax
+  - equinox
+  - optax
+  - optimistix
+  - lineax
+  - numpy
+  - scipy
+  - pyswarms
+
+# ---------------------------------------------------------------------------
+# diffrax digest
+# ---------------------------------------------------------------------------
+diffrax:
+  # Solvers already exercised by the framework. Marked "validated" in the table;
+  # everything else is listed as available-but-unvalidated.
+  validated_solvers: [Kvaerno3, Kvaerno4, Kvaerno5, Dopri5, Dopri8, Tsit5]
+  # Abstract/base classes are excluded from the solver table.
+  exclude_abstract: true
+  # Only list solvers that provide an error estimate. `_integrate_system` always
+  # drives the solve with diffrax.PIDController, so a non-adaptive solver cannot
+  # be used at all — listing one would only invite an invalid INTEGRATOR.
+  adaptive_only: true
+  # `_integrate_system` builds a deterministic diffrax.ODETerm, so SDE-only
+  # solvers cannot be used with it.
+  exclude_sde_only: true
+  # The generated code substitutes `diffrax.<Name>()` with no arguments, so a
+  # solver that cannot be constructed that way (e.g. HalfSolver, which wraps
+  # another solver) is not a valid INTEGRATOR.
+  require_zero_arg_construction: true
+  notes:
+    - "`_integrate_system` in `lib/utils/output_sample.py` is copied verbatim into
+      every generated script. The ONLY line that may be substituted is
+      `diffrax.SOLVER_CLASS()` and the `max_steps=` literal."
+    - "Use `diffrax.SaveAt(t0=True, ts=t_eval[1:])`. `SaveAt(ts=t_eval)` raises
+      `_EquinoxRuntimeError: saveat.ts must be increasing or decreasing` when
+      `t_eval[0] == t0`, because t0 is implicitly prepended."
+    - "`diffeqsolve(..., throw=False)` is required: it returns a `RESULTS` code
+      instead of raising, so a failed solve can be mapped to `error_loss` inside
+      jit. Never set `throw=True` in generated code."
+    - "`max_steps` must be a Python int literal (it is a static/compile-time
+      argument). Passing a traced value or a dict lookup fails to compile."
+    - "The stiff/non-stiff choice is ASYMMETRIC. An implicit solver on a
+      non-stiff system is merely slower per step (roughly 3-10x) and still
+      converges to the right answer. An explicit solver on a stiff system does
+      not converge at all: it drives the step size to zero, exhausts `max_steps`
+      and returns a failure code, so every candidate scores `error_loss` and the
+      fit cannot progress. When stiffness is uncertain, choose the implicit
+      (stiff) solver — the downside is bounded, the alternative is not."
+    - "The integration-failure mask must be
+      `failed = jnp.invert(result == RESULTS.successful)`. Enumerating
+      individual failure codes lets inf/NaN trajectories (dt_min_reached,
+      nonlinear_divergence, nonfinite, max_steps_rejected) be scored as a
+      genuine fit, which produces NaN gradients in the NODE stage."
+
+# ---------------------------------------------------------------------------
+# optax digest (gradient stage)
+# ---------------------------------------------------------------------------
+optax:
+  optimizers: [lbfgs, adam, adamw, sgd, rmsprop, adagrad, nadam, adabelief]
+  schedules:
+    - exponential_decay
+    - cosine_decay_schedule
+    - linear_schedule
+    - warmup_exponential_decay_schedule
+    - piecewise_constant_schedule
+  utilities: [apply_updates, value_and_grad_from_state]
+  notes:
+    - "`optax.lbfgs()` has a NON-STANDARD update signature. It requires the
+      params, value, grad and value_fn:
+      `optimizer.update(grad, state, params, value=value, grad=grad, value_fn=f)`.
+      Calling `update(grad, state)` as with adam raises a TypeError.
+      See `lib/algorithms/NODE/classes.py:354`."
+    - "`optax.lbfgs()` performs its own line search, so it ignores the
+      INIT_VALUE_LR / END_VALUE_LR / DECAY_RATE_LR settings entirely. Those XML
+      fields only take effect when GRADIENT_OPTIMIZER = adam."
+    - "L-BFGS converges in tens of iterations; adam needs hundreds to ~1000.
+      Setting NUM_ITERS for one optimizer and then switching to the other is a
+      common misconfiguration."
+
+# ---------------------------------------------------------------------------
+# jax / jax.numpy digest (translation rules)
+# ---------------------------------------------------------------------------
+jax:
+  # jnp functions the generated code is allowed to rely on, grouped by purpose.
+  # The digest records the real signature of each from the installed jax.
+  functions:
+    reductions: [mean, sum, max, min, sqrt, square, abs, log, log10, exp]
+    nan_safe: [isnan, nan_to_num, nanmax, nanmean, nansum, where]
+    array: [array, concatenate, stack, clip, zeros, ones, arange, interp]
+  transforms: [jit, grad, value_and_grad, vmap, pmap]
+  notes:
+    - "`jax.config.update('jax_enable_x64', True)` must appear before any array
+      is created. Without it every solve silently runs in float32 and stiff
+      integrations lose accuracy."
+    - "No Python control flow on traced values. `if failed: ...` fails to trace;
+      use `jnp.where(failed, constants['error_loss'], loss_value)`."
+    - "No in-place assignment. Use `arr.at[i].set(v)`, not `arr[i] = v`."
+    - "NaN poisons reverse-mode autodiff even when multiplied by zero: the
+      gradient of `jnp.where(mask, x, 0.0)` is NaN if `x` is NaN. Sanitise the
+      data BEFORE the arithmetic: `safe = jnp.where(mask, dataset, 0.0)`, then
+      divide. See `lib/LLM/staggered_data_instructions.txt`."
+    - "Array shapes are static. Boolean-mask indexing (`x[mask]`) does not
+      compile; multiply by a 0/1 mask and divide by `mask.sum()` instead."
+
+# ---------------------------------------------------------------------------
+# Zero-order (population) optimizer digest — scipy DE + pyswarms
+# ---------------------------------------------------------------------------
+population:
+  notes:
+    - "The framework calls `differential_evolution(..., vectorized=True)`, which
+      passes the whole population as an (n_params, m) array; it is transposed to
+      (m, n_params) before `_compute_all_losses`. See
+      `lib/algorithms/DE/classes.py:114`."
+    - "`polish=False` is deliberate: gradient refinement is the NODE stage's job."
+    - "The signature above shows `rng=`, not `seed=`. scipy renamed this argument;
+      `seed=` (which `lib/algorithms/DE/classes.py:124` still passes) is accepted
+      in 1.15.3 but is deprecated and will be removed. Do not 'fix' it to `rng=`
+      without bumping the scipy pin, and do not introduce new `seed=` uses."
+    - "pyswarms draws its per-iteration r1/r2 terms from NumPy's GLOBAL RNG, so
+      `np.random.seed()` controls it. scipy.stats.qmc (the LHS sampler) uses its
+      own Generator and must be seeded via the `seed=` argument."
