@@ -20,3 +20,8 @@ pyswarms
 python-dotenv
 pytest
 pyyaml
+# Development / test tooling. `coverage` is not needed to run a fit; it backs the
+# coverage measurement of the test suite:
+#   ./venv/bin/python3 -m coverage run --source=lib,fit_parameters,fit_gradient_only,analyze_fit -m pytest tests/ -q
+#   ./venv/bin/python3 -m coverage report --sort=cover
+coverage==7.15.4
