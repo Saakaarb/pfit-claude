@@ -205,3 +205,57 @@ def test_failure_mask_is_exhaustive_everywhere():
             f"{rel}: still enumerates individual failure codes"
         )
     assert checked >= 5, "expected to check the template plus the example scripts"
+
+
+def test_saveat_preserves_data_row_alignment():
+    """Every generated script must save at exactly the data times.
+
+    The saved solution is differenced against `dataset` row for row, so the save
+    grid has to equal the data grid. `SaveAt(ts=t_eval)` guarantees that for any
+    `init_time`; `SaveAt(t0=True, ts=t_eval[1:])` only matches while
+    `INITIAL_TIME == t_eval[0]`, and silently misaligns every residual otherwise
+    (row 0 compares the model at init_time against the data at t_eval[0], and
+    t_eval[0] is never evaluated). That regression shipped in examples/
+    sliding_basepoint, which sets INITIAL_TIME=0.0 against data starting at
+    9.94e-4, and nothing caught it.
+    """
+    targets = [REPO_ROOT / "lib" / "utils" / "output_sample.py"]
+    targets += sorted(REPO_ROOT.glob("examples/*/generated/generated_script.py"))
+    targets += sorted(REPO_ROOT.glob("sessions/*/generated/generated_script.py"))
+    targets += sorted(REPO_ROOT.glob("tests/*/generated/generated_script.py"))
+    targets += sorted(REPO_ROOT.glob("tests/fixtures/*/generated/generated_script.py"))
+
+    checked = 0
+    for path in targets:
+        text = path.read_text()
+        if "SaveAt" not in text:
+            continue
+        checked += 1
+        rel = path.relative_to(REPO_ROOT)
+        assert "diffrax.SaveAt(ts=t_eval)" in text, f"{rel}: SaveAt is not ts=t_eval"
+        # ignore comments — the template deliberately documents the wrong form
+        code = "\n".join(l.split("#")[0] for l in text.splitlines())
+        assert "t0=True" not in code, (
+            f"{rel}: uses SaveAt(t0=True, ...), which misaligns the residuals "
+            f"whenever INITIAL_TIME differs from t_eval[0]"
+        )
+    assert checked >= 8, "expected the template plus every committed generated script"
+
+
+def test_saveat_alignment_holds_when_initial_time_precedes_the_data():
+    """Prove the invariant against diffrax rather than trusting the source text."""
+    import diffrax
+    import jax.numpy as jnp
+    import numpy as np
+
+    t_eval = jnp.array([0.5, 1.0, 1.5, 2.0])
+    sol = diffrax.diffeqsolve(
+        diffrax.ODETerm(lambda t, y, args: -0.5 * y), diffrax.Kvaerno5(),
+        t0=0.0, t1=2.0, dt0=1e-4, y0=jnp.array([1.0]), max_steps=10000, throw=False,
+        saveat=diffrax.SaveAt(ts=t_eval),
+        stepsize_controller=diffrax.PIDController(rtol=1e-8, atol=1e-10),
+    )
+    # init_time (0.0) is deliberately earlier than t_eval[0] (0.5)
+    assert np.allclose(np.asarray(sol.ts), np.asarray(t_eval)), (
+        "SaveAt(ts=t_eval) must save exactly at the data times"
+    )

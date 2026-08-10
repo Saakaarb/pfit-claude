@@ -92,7 +92,8 @@ def _integrate_system(constants, trainable_variables):
     init_cond = constants["init_cond"]
     init_time = constants["init_time"]
     dataset = constants["dataset"]
-    saveat = diffrax.SaveAt(t0=True, ts=t_eval[1:])
+    # save times must equal the data times (rows are differenced against dataset)
+    saveat = diffrax.SaveAt(ts=t_eval)
 
     other_args = {"constants": constants, "trainable_variables": trainable_variables}
     sol = diffrax.diffeqsolve(

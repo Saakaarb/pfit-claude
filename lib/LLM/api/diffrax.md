@@ -99,7 +99,7 @@ diffrax.ODETerm(vector_field)
 ## Gotchas (curated — these are the ones that bite)
 
 - `_integrate_system` in `lib/utils/output_sample.py` is copied verbatim into every generated script. The ONLY line that may be substituted is `diffrax.SOLVER_CLASS()` and the `max_steps=` literal.
-- Use `diffrax.SaveAt(t0=True, ts=t_eval[1:])`. `SaveAt(ts=t_eval)` raises `_EquinoxRuntimeError: saveat.ts must be increasing or decreasing` when `t_eval[0] == t0`, because t0 is implicitly prepended.
+- Use `diffrax.SaveAt(ts=t_eval)` so the saved rows line up with the data rows they are differenced against. `SaveAt(t0=True, ts=t_eval[1:])` saves at `[init_time, t_eval[1:]]`, which silently misaligns every residual when `INITIAL_TIME` differs from `t_eval[0]`. (An earlier note here claimed `ts=t_eval` raises `_EquinoxRuntimeError` because t0 is implicitly prepended — that is NOT true of diffrax 0.7.2: t0 is saved only when `t0=True` is passed.)
 - `diffeqsolve(..., throw=False)` is required: it returns a `RESULTS` code instead of raising, so a failed solve can be mapped to `error_loss` inside jit. Never set `throw=True` in generated code.
 - `max_steps` must be a Python int literal (it is a static/compile-time argument). Passing a traced value or a dict lookup fails to compile.
 - The stiff/non-stiff choice is ASYMMETRIC. An implicit solver on a non-stiff system is merely slower per step (roughly 3-10x) and still converges to the right answer. An explicit solver on a stiff system does not converge at all: it drives the step size to zero, exhausts `max_steps` and returns a failure code, so every candidate scores `error_loss` and the fit cannot progress. When stiffness is uncertain, choose the implicit (stiff) solver — the downside is bounded, the alternative is not.

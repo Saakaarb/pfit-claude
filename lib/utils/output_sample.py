@@ -76,7 +76,13 @@ def _integrate_system(constants, trainable_variables):
     init_cond = constants["init_cond"]
     init_time=constants["init_time"]
     dataset = constants["dataset"]
-    saveat = diffrax.SaveAt(t0=True, ts=t_eval[1:])
+    # The saved rows are differenced against `dataset` row-for-row, so the save
+    # times MUST equal the data times. `ts=t_eval` guarantees that for any
+    # `init_time`. Do NOT use `SaveAt(t0=True, ts=t_eval[1:])`: that saves at
+    # [init_time, t_eval[1:]], which silently misaligns every comparison when
+    # INITIAL_TIME differs from t_eval[0] (row 0 compares the model at
+    # init_time against the data at t_eval[0], and t_eval[0] is never evaluated).
+    saveat = diffrax.SaveAt(ts=t_eval)
 
     # TODO add ability to add more arbitrary inputs here
     other_args = {"constants": constants, "trainable_variables": trainable_variables}

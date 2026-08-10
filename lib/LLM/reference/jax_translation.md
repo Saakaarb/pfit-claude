@@ -104,10 +104,19 @@ code table: `lib/LLM/api/diffrax.md`.
 
 ### SaveAt
 
-Always `diffrax.SaveAt(t0=True, ts=t_eval[1:])` — never `SaveAt(ts=t_eval)`.
-diffrax requires `saveat.ts` to be strictly monotone, and t0 is prepended
-implicitly, so when `t_eval[0] == t0` the latter raises
-`_EquinoxRuntimeError: saveat.ts must be increasing or decreasing`.
+Always `diffrax.SaveAt(ts=t_eval)` — never `SaveAt(t0=True, ts=t_eval[1:])`.
+
+The saved solution is differenced against `dataset` **row for row**, so the
+invariant that matters is: *the save times must equal the data times.*
+`ts=t_eval` guarantees that for any `init_time`.
+
+`SaveAt(t0=True, ts=t_eval[1:])` saves at `[init_time, t_eval[1], ...]`. That is
+equivalent only while `init_time == t_eval[0]`. As soon as the XML sets an
+`INITIAL_TIME` earlier than the first sample — the normal case when the initial
+conditions are defined before measurement starts — row 0 compares the model at
+`init_time` against the data at `t_eval[0]`, and `t_eval[0]` is never evaluated
+at all. Nothing raises; the residual is just silently computed against the wrong
+pairing.
 
 ### NaN-safe arithmetic
 

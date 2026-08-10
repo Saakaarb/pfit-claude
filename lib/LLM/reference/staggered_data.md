@@ -64,22 +64,24 @@ with one data file, handled by one of the two approaches below.
    an observable with many samples dominates one with few. If equal weight per
    observable is wanted, average per-column RMSEs instead.
 
-## Initial conditions earlier than the first measurement (t=0 anchor)
+## Initial conditions earlier than the first measurement
 
-If the model's initial conditions are defined at a time earlier than the first
-data point (very common: ICs at t=0 but the first sample is at t=4), you MUST
-prepend an anchor row so integration starts at the ICs and the saved solution
-stays aligned with the data rows. This follows from the `SaveAt` convention in
-`jax_translation.md`: the solution is saved at `init_time` and then at
-`t_eval[1:]`, so `t_eval[0]` MUST equal the integration start time.
+Very common: the ICs are defined at t=0 but the first sample is at t=4.
 
-Fix: make the FIRST data row `t = 0` (or whatever the IC time is). Two choices
-for that row's observable cells:
-  - leave them BLANK (NaN) -> the anchor contributes nothing to the loss; or
-  - fill them with the KNOWN initial values (often legitimate data, e.g. a
-    measured baseline) -> contributes a zero/near-zero residual.
-Set `INITIAL_TIME = 0.0` in GRADIENT_OPT (or rely on the default
-`init_time = t_eval[0]`, which is now 0).
+Set `INITIAL_TIME = 0.0` in GRADIENT_OPT. Integration then starts at the ICs and
+the solution is still saved at exactly `t_eval` (the `SaveAt` convention in
+`jax_translation.md`), so the saved rows stay aligned with the data rows. No
+anchor row is needed for alignment.
+
+An anchor row at the IC time is still worth adding when it carries information —
+a measured baseline at t=0 is real data and contributes a genuine residual. If
+you add one purely to satisfy the layout, leave its observable cells BLANK (NaN)
+so it contributes nothing to the loss.
+
+> Historical note: an earlier convention saved at `[init_time, t_eval[1:]]`,
+> which made an anchor row mandatory — without it, row 0 compared the model at
+> `init_time` against the data at `t_eval[0]`. That convention has been removed;
+> see the SaveAt section of `jax_translation.md`.
 
 ## Approach 2 (SIMPLER, but use with care): interpolate missing points
 
