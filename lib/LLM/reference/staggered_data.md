@@ -1,3 +1,12 @@
+---
+topic: Fitting when observables are sampled at different time points
+consumed_by: [pfit-skeleton, pfit-from-source, pfit-check, pfit-jax]
+generated: false
+owns: >
+  The union-grid + NaN-masking layout, the t=0 anchor row, the interpolation
+  alternative, and the validator exemptions that follow from them.
+---
+
 # Handling Staggered / Ragged Time-Series Data
 
 ## What this covers
@@ -60,10 +69,9 @@ with one data file, handled by one of the two approaches below.
 If the model's initial conditions are defined at a time earlier than the first
 data point (very common: ICs at t=0 but the first sample is at t=4), you MUST
 prepend an anchor row so integration starts at the ICs and the saved solution
-stays aligned with the data rows. This is because `_integrate_system` uses
-`SaveAt(t0=True, ts=t_eval[1:])`, i.e. it saves the solution at `init_time`
-(the first point) and then at `t_eval[1:]`. So `t_eval[0]` MUST equal the
-integration start time.
+stays aligned with the data rows. This follows from the `SaveAt` convention in
+`jax_translation.md`: the solution is saved at `init_time` and then at
+`t_eval[1:]`, so `t_eval[0]` MUST equal the integration start time.
 
 Fix: make the FIRST data row `t = 0` (or whatever the IC time is). Two choices
 for that row's observable cells:

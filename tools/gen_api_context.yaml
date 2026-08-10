@@ -113,7 +113,7 @@ jax:
     - "NaN poisons reverse-mode autodiff even when multiplied by zero: the
       gradient of `jnp.where(mask, x, 0.0)` is NaN if `x` is NaN. Sanitise the
       data BEFORE the arithmetic: `safe = jnp.where(mask, dataset, 0.0)`, then
-      divide. See `lib/LLM/staggered_data_instructions.txt`."
+      divide. See `lib/LLM/reference/staggered_data.md`."
     - "Array shapes are static. Boolean-mask indexing (`x[mask]`) does not
       compile; multiply by a 0/1 mask and divide by `mask.sum()` instead."
 

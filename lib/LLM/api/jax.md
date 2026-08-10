@@ -64,5 +64,5 @@ The generated code translates numpy pseudocode to these. A numpy function absent
 - `jax.config.update('jax_enable_x64', True)` must appear before any array is created. Without it every solve silently runs in float32 and stiff integrations lose accuracy.
 - No Python control flow on traced values. `if failed: ...` fails to trace; use `jnp.where(failed, constants['error_loss'], loss_value)`.
 - No in-place assignment. Use `arr.at[i].set(v)`, not `arr[i] = v`.
-- NaN poisons reverse-mode autodiff even when multiplied by zero: the gradient of `jnp.where(mask, x, 0.0)` is NaN if `x` is NaN. Sanitise the data BEFORE the arithmetic: `safe = jnp.where(mask, dataset, 0.0)`, then divide. See `lib/LLM/staggered_data_instructions.txt`.
+- NaN poisons reverse-mode autodiff even when multiplied by zero: the gradient of `jnp.where(mask, x, 0.0)` is NaN if `x` is NaN. Sanitise the data BEFORE the arithmetic: `safe = jnp.where(mask, dataset, 0.0)`, then divide. See `lib/LLM/reference/staggered_data.md`.
 - Array shapes are static. Boolean-mask indexing (`x[mask]`) does not compile; multiply by a 0/1 mask and divide by `mask.sum()` instead.
