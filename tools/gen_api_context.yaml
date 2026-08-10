@@ -58,13 +58,20 @@ diffrax:
       jit. Never set `throw=True` in generated code."
     - "`max_steps` must be a Python int literal (it is a static/compile-time
       argument). Passing a traced value or a dict lookup fails to compile."
-    - "The stiff/non-stiff choice is ASYMMETRIC. An implicit solver on a
-      non-stiff system is merely slower per step (roughly 3-10x) and still
-      converges to the right answer. An explicit solver on a stiff system does
-      not converge at all: it drives the step size to zero, exhausts `max_steps`
-      and returns a failure code, so every candidate scores `error_loss` and the
-      fit cannot progress. When stiffness is uncertain, choose the implicit
-      (stiff) solver — the downside is bounded, the alternative is not."
+    - "The stiff/non-stiff choice is ASYMMETRIC *for a smooth RHS*. An implicit
+      solver on a smooth non-stiff system is merely slower per step (roughly
+      3-10x) and still converges. An explicit solver on a stiff system does not
+      converge at all: the step size collapses, `max_steps` is exhausted, and
+      every candidate scores `error_loss`. So when stiffness is uncertain and the
+      RHS is smooth, choose implicit."
+    - "That asymmetry REVERSES for a non-smooth RHS. An implicit method solves a
+      nonlinear system at every step, and across a discontinuity that solve
+      cannot converge — the integration then fails for ANY `max_steps`, so
+      raising it does not help. If the RHS uses `sign`, `abs`, `floor`, `clip`,
+      or a state-dependent `where` (dry friction, contact, saturation,
+      hysteresis, on/off control), choose an explicit solver. Because a failed
+      solve scores `error_loss`, the cost is not just runtime: whole regions of
+      parameter space become invisible to the optimizer."
     - "The integration-failure mask must be
       `failed = jnp.invert(result == RESULTS.successful)`. Enumerating
       individual failure codes lets inf/NaN trajectories (dt_min_reached,

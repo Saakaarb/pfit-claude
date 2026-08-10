@@ -75,6 +75,22 @@ absent from that table does not exist in the pinned diffrax and will raise
 here. If the XML names an invalid solver, stop and report it rather than
 generating the script.
 
+**Check smoothness before stiffness.** Prefer an implicit (stiff) solver when
+stiffness is uncertain — but only for a smooth right-hand side. If
+`user_defined_system` is non-smooth, choose an explicit (non-stiff) solver from
+the table's Kind column.
+
+The RHS is non-smooth if it contains `sign`, `abs`, `floor`, `clip`, a `where`
+that switches on the state, or any piecewise definition — the usual sources are
+dry friction, contact, saturation, hysteresis and on/off control.
+
+Mechanism: an implicit method solves a nonlinear system at every step. Across a
+discontinuity that solve cannot converge, the step size collapses, and the
+integration fails for **any** `MAX_STEPS`. Raising `MAX_STEPS` does not help.
+Because a failed solve scores `error_loss`, this does not merely slow the fit —
+it hides whole regions of parameter space from the optimizer, which then
+converges confidently to a much worse answer elsewhere.
+
 ## Translation rules
 
 - **Trainable parameters:** the pseudocode treats them as a dict; in JAX they are

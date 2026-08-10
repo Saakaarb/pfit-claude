@@ -173,3 +173,31 @@ def test_commands_point_at_reference_files(path):
         f"{path.name} names no reference file — its rules would have to come "
         f"from recall"
     )
+
+
+def test_rules_are_general_not_case_studies():
+    """The instruction layer must state rules, not anecdotes about one session.
+
+    A rule justified by "in examples/foo this happened" couples the guidance to a
+    session that can change or be deleted, and reads as a special case rather
+    than something to apply generally. State the mechanism instead; keep the
+    evidence in the commit message.
+
+    CLAUDE.md is exempt: its code map legitimately names what lives in
+    examples/, which is navigation rather than guidance.
+    """
+    session_names = set()
+    for parent in ("examples", "sessions"):
+        d = REPO_ROOT / parent
+        if d.is_dir():
+            session_names |= {p.name for p in d.iterdir() if p.is_dir()}
+    assert session_names, "expected some committed sessions to check against"
+
+    for path in REFERENCE_FILES + COMMAND_FILES:
+        text = path.read_text()
+        named = sorted(n for n in session_names if n in text)
+        assert not named, (
+            f"{path.name} cites specific sessions {named}. Instructions state "
+            f"general rules; put the supporting measurements in the commit "
+            f"message or a session README instead."
+        )

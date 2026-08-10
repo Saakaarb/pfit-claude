@@ -82,18 +82,20 @@
             <P> NUM_ITERS = 20 </P>
             <P> PROCESSORS = 8 </P>
             <P> ALGORITHM = DE </P>
-            <P> POP_STEPSIZE_RTOL = 1E-1,1E-1,1E0,1E0,1E-3,1E-3 </P>
-            <P> POP_STEPSIZE_ATOL = 1E-3,1E-3,1E-1,1E-1,1E1,1E1 </P>
+            <P> POP_STEPSIZE_RTOL = 1e-4,1e-4,1e-4,1e-4,1e-4,1e-4 </P>
+            <P> POP_STEPSIZE_ATOL = 1e-6,1e-6,1e-4,1e-4,1e0,1e0 </P>
         </SETTINGS>
     </POPULATION_OPT>
     <GRADIENT_OPT>
         <SETTINGS>
             <P> NUM_ITERS = 20 </P>
-            <P> STEPSIZE_RTOL = 1e-1,1e-1,1e-0,1e-0,1e-6,1e-5 </P>
-            <P> STEPSIZE_ATOL = 1e-3,1e-3,1e-1,1e-1,1e1,1e1 </P>
+            <P> STEPSIZE_RTOL = 1e-6,1e-6,1e-6,1e-6,1e-6,1e-6 </P>
+            <P> STEPSIZE_ATOL = 1e-8,1e-8,1e-6,1e-6,1e-2,1e-2 </P>
             <P> INITIAL_TIMESTEP = 1e-5 </P>
             <P> INITIAL_TIME = 0.0 </P>
-            <P> MAX_STEPS = 10000 </P>
+            <P> MAX_STEPS = 200000 </P>
+
+            <P> INTEGRATOR = Dopri8 </P>
             <P> INIT_VALUE_LR = 1e-4 </P>
             <P> END_VALUE_LR = 1e-5 </P>
             <P> TRANSITION_STEPS_LR = 2000 </P>

@@ -60,7 +60,7 @@ def user_defined_system(t, y, other_args):
 @jax.jit
 def _integrate_system(constants, trainable_variables):
     term = diffrax.ODETerm(user_defined_system)
-    solver = diffrax.Kvaerno5()
+    solver = diffrax.Dopri8()
     t_eval = constants["t_eval"]
     init_cond = constants["init_cond"]
     init_time = constants["init_time"]
@@ -73,7 +73,7 @@ def _integrate_system(constants, trainable_variables):
         solver,
         t0=init_time,
         t1=t_eval[-1],
-        max_steps=10000,
+        max_steps=200000,
         dt0=constants['init_timestep'],
         y0=init_cond,
         args=other_args,
