@@ -1,12 +1,19 @@
+# Data-driven end-to-end cases for test_framework.py.
+#
+# `expected` holds the parameters that generated the data, in XML trainable
+# order. When present, the fitted result must match them to within the harness
+# tolerance (|fractional error| <= 0.1) — this is what makes the case an
+# accuracy test rather than a smoke test.
+#
+# van der Pol is NOT listed here: its fixture data has no identifiable ground
+# truth (the residual has no minimum in mu under the fixture's initial
+# conditions), so it gets a ground-truth-free optimality check in
+# test_framework.py instead of a fabricated expected value.
+
 tests:
 
 - name: "run_driver_robertson"
   function: run_driver_wrapper
   input: ["tests/robertson_session"]
-  expected:   # or leave blank if just checking for no error
-
-- name: "run_driver_vanderpol"
-  function: run_driver_wrapper
-  input: ["tests/vanderpol_session"]
-  expected:   # or leave blank if just checking for no error
-
+  # Robertson's canonical rate constants k1, k2, k3
+  expected: [0.04, 3.0e7, 1.0e4]

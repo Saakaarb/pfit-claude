@@ -78,6 +78,12 @@ def run_driver(session_dir: Path, input_reader: XMLReader):
     Args:
         session_dir (Path): Path to the session directory.
         input_reader (XMLReader): Parsed XML configuration.
+
+    Returns:
+        numpy.ndarray: Best parameter set found, in real (unscaled) units and in
+        XML trainable order. This is the same vector written to
+        outputs/final_design_point.csv, returned so callers (and the test suite)
+        can assert on the fitted values without re-reading the file.
     """
     import jax  # imported after XLA_FLAGS has been configured
     from lib.utils.helper_functions import fit_generic_system
@@ -102,7 +108,7 @@ def run_driver(session_dir: Path, input_reader: XMLReader):
     path_to_output_dir.mkdir()
 
     print("Launching fitting process...")
-    fit_generic_system(path_to_input, path_to_output_dir, generated_dir, session_path)
+    return fit_generic_system(path_to_input, path_to_output_dir, generated_dir, session_path)
 
 
 if __name__ == "__main__":

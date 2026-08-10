@@ -280,7 +280,13 @@ class FitParamsNODE:
         
         self.loss_history = []
         self.best_loss=np.inf
-        self.best_result=None
+        # Seed the best-so-far with the starting point rather than None. Every
+        # early exit below (stop_fitting.flag, or a first iteration that returns
+        # error_loss) returns best_result directly; with None the caller crashes
+        # in unscale_design_point with "too many indices for array: array is
+        # 0-dimensional". Starting from the initial guess means an interrupted
+        # run degrades to "no refinement" instead of failing.
+        self.best_result=np.array(self.trainable_params)
         
 
         #self.optimizer = optax.adam(self.learning_rate)

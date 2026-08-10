@@ -50,6 +50,9 @@ def run_driver(session_dir: Path, input_reader: XMLReader):
     Args:
         session_dir (Path): Path to the session directory.
         input_reader (XMLReader): Parsed XML configuration.
+
+    Returns:
+        numpy.ndarray: The refined parameter set in real (unscaled) units.
     """
     import jax  # imported after XLA_FLAGS has been configured
     from lib.utils.helper_functions import fit_gradient_only_system
@@ -77,7 +80,8 @@ def run_driver(session_dir: Path, input_reader: XMLReader):
     path_to_output_dir.mkdir(parents=True, exist_ok=True)
 
     print("Launching gradient-only fitting process...")
-    fit_gradient_only_system(path_to_input, path_to_output_dir, generated_dir, session_path, init_guess)
+    return fit_gradient_only_system(path_to_input, path_to_output_dir, generated_dir,
+                                    session_path, init_guess)
 
 
 if __name__ == "__main__":

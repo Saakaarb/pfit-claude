@@ -1,0 +1,100 @@
+<?xml version="1.0" ?>
+<!--
+  Fast MULTI-EXPERIMENT test fixture: two-step linear decay chain
+      dA/dt = -k1*A
+      dB/dt =  k1*A - k2*B
+  with ground truth k1 = 1.0, k2 = 0.3 and y0 = (1.0, 0.0).
+
+  Run A uses the global ICs (1.0, 0.0); run B overrides them to (2.0, 0.5) via
+  <INITIAL_CONDITIONS>. Both runs share the same true parameters, so a correct
+  multi-experiment fit must recover k1=1.0, k2=0.3 from the averaged loss.
+
+  The data is the exact analytic solution (verified to 1e-13 against an
+  independent stiff integration), so a converged fit must recover the true
+  parameters closely. The system is non-stiff and 2-dimensional, which keeps a
+  full PSO + NODE run to a few seconds — this fixture exists so the suite can
+  exercise every optimizer/solver configuration without paying Robertson's cost.
+-->
+<FIT>
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = decay_run_A.csv </E>
+        </FILENAME>
+    </EXPERIMENT>
+
+    <EXPERIMENT>
+        <FILENAME>
+            <E> FILENAME_DATA = decay_run_B.csv </E>
+        </FILENAME>
+        <INITIAL_CONDITIONS>
+            <VAR>
+                <P> NAME = A </P>
+                <P> INIT_VAL = 2.0 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = B </P>
+                <P> INIT_VAL = 0.5 </P>
+            </VAR>
+        </INITIAL_CONDITIONS>
+    </EXPERIMENT>
+
+    <MODEL>
+        <TRAINABLE_PARAMETERS>
+            <P> N_TRAINABLE_PARAMETERS = 2 </P>
+        </TRAINABLE_PARAMETERS>
+        <TRAINABLE_PARAMETER_DESCRIPTION>
+            <PARAM>
+                <P> PARAMETER_NAME = k1 </P>
+                <P> MIN_VAL = 0.01 </P>
+                <P> MAX_VAL = 10.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+            <PARAM>
+                <P> PARAMETER_NAME = k2 </P>
+                <P> MIN_VAL = 0.01 </P>
+                <P> MAX_VAL = 10.0 </P>
+                <P> LOGSCALE = Y </P>
+            </PARAM>
+        </TRAINABLE_PARAMETER_DESCRIPTION>
+        <INTEGRATED_SYSTEM_DESCRIPTION>
+            <VAR>
+                <P> NAME = A </P>
+                <P> INIT_VAL = 1.0 </P>
+            </VAR>
+            <VAR>
+                <P> NAME = B </P>
+                <P> INIT_VAL = 0.0 </P>
+            </VAR>
+        </INTEGRATED_SYSTEM_DESCRIPTION>
+    </MODEL>
+
+    <POPULATION_OPT>
+        <SETTINGS>
+            <P> POPULATION_SIZE = 20 </P>
+            <P> NUM_ITERS = 5 </P>
+            <P> PROCESSORS = 2 </P>
+            <P> POP_STEPSIZE_RTOL = 1e-5,1e-5 </P>
+            <P> POP_STEPSIZE_ATOL = 1e-7,1e-7 </P>
+        </SETTINGS>
+    </POPULATION_OPT>
+
+    <GRADIENT_OPT>
+        <SETTINGS>
+            <P> NUM_ITERS = 8 </P>
+            <P> STEPSIZE_RTOL = 1e-8,1e-8 </P>
+            <P> STEPSIZE_ATOL = 1e-10,1e-10 </P>
+            <P> INITIAL_TIMESTEP = 1e-4 </P>
+            <P> MAX_STEPS = 4096 </P>
+            <P> INTEGRATOR = Dopri5 </P>
+            <P> GRADIENT_OPTIMIZER = lbfgs </P>
+            <P> INIT_VALUE_LR = 1e-2 </P>
+            <P> END_VALUE_LR = 1e-4 </P>
+            <P> TRANSITION_STEPS_LR = 50 </P>
+            <P> DECAY_RATE_LR = 0.9 </P>
+        </SETTINGS>
+    </GRADIENT_OPT>
+
+    <PLOTTING_INFO>
+        <P> WRITE_RESULTS = Y </P>
+    </PLOTTING_INFO>
+</FIT>
