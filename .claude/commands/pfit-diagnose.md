@@ -38,7 +38,11 @@ there, not from memory.
    - each fitted value from `final_design_point.csv` as a fraction of its
      `MIN_VAL`/`MAX_VAL` range, to detect a pinned parameter;
    - per-column and per-time-region residuals from `result_solution_expN.csv`
-     when it exists.
+     when it exists;
+   - the exit-gradient ratio `|grad|_inf / loss` from `sloppiness_report.txt`
+     (S7). Do this for every session, including one that looks converged — it is
+     the only evidence that separates convergence from an exhausted iteration
+     budget, and no log records it.
    Quote the actual numbers in the report.
 
 5. Apply the symptom rules in `diagnosis_rules.md` **in order**, stopping the

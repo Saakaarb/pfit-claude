@@ -26,7 +26,7 @@ combining two artifacts.
 | `pso_fitting.log` / `de_fitting.log` | header, then `iter, best_cost, seconds` per line | stage-1 trajectory: did the cost move, when did it flatten, seconds per iteration |
 | `NODE_fitting.log` | header, then `iter, best_loss, seconds` per line | stage-2 trajectory. Note it logs *best-so-far*, so it is monotone by construction — flatness means no improvement, not divergence |
 | `final_design_point.csv` | one real-unit value per line, XML trainable order | the answer; compare each value against its `MIN_VAL`/`MAX_VAL` |
-| `sloppiness_report.txt` | see `project_context.md` | loss at best fit, `|grad|_inf`, eigenvalue spectrum, spread in decades, count of non-identifiable directions, stiffest/sloppiest eigenvectors |
+| `sloppiness_report.txt` | see `project_context.md` | loss at best fit and `|grad|_inf` — the **only** evidence of whether the gradient stage converged (S7) — plus the eigenvalue spectrum, spread in decades, count of non-identifiable directions, stiffest/sloppiest eigenvectors |
 | `result_solution_expN.csv` | `time | data columns | solution columns` (written only when `WRITE_RESULTS = Y`) | per-column, per-time residuals — the only way to see *which* observable and *which* time region is being missed |
 | `fit_result*.png` | plot | quick confirmation of what the residuals say |
 
@@ -156,7 +156,71 @@ stage 1's final `best_cost`, over more than a handful of iterations.
 State which one the evidence supports. If the evidence cannot separate them, say
 so and give the cheapest discriminating experiment.
 
-### S7 — Fit is good on one observable, bad on another
+### S7 — Exited on the iteration budget, not on convergence
+
+**Check this on every fitted session, including one that looks good.** It is the
+only rule that distinguishes "converged" from "ran out of iterations", and the
+logs cannot: the gradient stage has no convergence criterion at all — it runs
+exactly `GRADIENT_OPT/NUM_ITERS` iterations and stops — so a monotone
+`NODE_fitting.log` that flattens looks identical either way.
+
+*Evidence:* `|grad|_inf` on the "loss at best fit" line of
+`sloppiness_report.txt`, read against the loss on the same line. That gradient is
+taken in *u*-space (log10-parameter space for `LOGSCALE = Y` axes), so for a
+model whose parameters are all log-scaled the ratio `|grad|_inf / loss` is
+dimensionless and reads directly as **how much of a decade's travel is worth the
+entire remaining loss**:
+
+- ratio ≲ 1 — consistent with a converged interior optimum.
+- ratio ≳ 10 — the optimizer was still descending when the budget ran out. A step
+  of a few percent of a decade would have paid for the whole remaining loss.
+
+For a model with linear (`LOGSCALE = N`) axes the ratio carries units and the
+bands above do not transfer; normalise that axis's gradient by its bound span
+before comparing, and say in the report that you did. If the model mixes
+scalings, treat the ratio as indicative only.
+
+*Cause:* `GRADIENT_OPT/NUM_ITERS` too small — or, less often, the optimizer
+cannot make progress from where it is, which is S6's territory.
+
+*Discriminate before recommending, in this order:*
+
+1. **A parameter at a bound?** Compare `final_design_point.csv` to the bounds. A
+   hard-clipped parameter carries a nonzero gradient forever, so a large
+   `|grad|_inf` is fully explained by pinning — that is S6, and raising
+   `NUM_ITERS` will not move it. Rule this out first.
+2. **Was the loss still moving?** If the last logged NODE iterations were still
+   improving materially, budget is the binding constraint — recommend raising
+   `NUM_ITERS` (×5 is a reasonable first step) and re-running
+   `fit_gradient_only.py`, which reuses the existing seed.
+3. **Flat loss but large gradient?** The optimizer is stuck rather than
+   unfinished: a very ill-conditioned direction, or `adam` with too small a
+   learning rate. Read the sloppiness spectrum before recommending — if the
+   stiffest/sloppiest spread is already large this is S10, not a budget problem.
+
+*Comparing runs.* When several sessions or seeds fit the same model, the exit
+gradients are directly comparable and are the fastest way to rank the runs: a
+seed exiting at several times the best run's `|grad|_inf`, at a similar loss, did
+not find a different basin — it stopped further from the bottom of the same one.
+Say this explicitly, because the losses alone will look comparable and invite the
+opposite conclusion.
+
+*If `sloppiness_report.txt` is absent* (the diagnostic auto-skips above 60
+parameters, and is wrapped in try/except so it can fail silently) then convergence
+is **unverifiable** from the outputs. Say so rather than assuming convergence, and
+recommend `analyze_fit.py <session>`, which recomputes and prints the same
+numbers without re-fitting.
+
+*Why this rule is worth the two lines it costs.* A budget-limited exit is
+invisible in every other artifact: the loss is plausible, the NODE log is monotone
+and flattening, and the fitted parameters look settled. It therefore gets
+misattributed — to the solver, to the data mask, to the choice of basin — and the
+investigation goes wide before it goes deep. Observed in practice: a seed sweep in
+which most seeds exited with gradients several times to tens of times the best
+run's, at losses that looked comparable throughout. Reading `|grad|_inf` first
+collapses that search to one number.
+
+### S8 — Fit is good on one observable, bad on another
 
 *Evidence:* per-column residuals from `result_solution_expN.csv`. Compute them;
 do not judge from the plot alone.
@@ -169,7 +233,7 @@ time.
 A column that is wrong everywhere, including t=0, points at the mapping instead
 — flag that as the more likely cause, since no amount of weighting fixes it.
 
-### S8 — Fit is good early and bad late (or the reverse)
+### S9 — Fit is good early and bad late (or the reverse)
 
 *Evidence:* residuals grouped by time region from `result_solution_expN.csv`.
 
@@ -180,7 +244,7 @@ tail; or a missing/incorrect slow term in the model.
 plainly that a systematic late-time bias is often model structure, not settings
 — more tuning will not fix a missing term.
 
-### S9 — Sloppy or non-identifiable
+### S10 — Sloppy or non-identifiable
 
 *Evidence:* `sloppiness_report.txt` — spread > 6 decades, or a nonzero count of
 non-identifiable directions.
@@ -191,7 +255,7 @@ value, or reparameterising to the combination the data actually constrains.
 Explicitly say that raising either stage's iteration count will not help: the
 direction is flat, so there is nothing to descend.
 
-### S10 — It converged and it is slow
+### S11 — It converged and it is slow
 
 *Evidence:* seconds-per-iteration from either log, against the number of solves.
 
@@ -200,11 +264,17 @@ of the solves); raise `PROCESSORS` toward the core count; consider an explicit
 solver **only** if the RHS is smooth and the timescale evidence says non-stiff.
 Never trade correctness for speed without saying that is the trade.
 
-### S11 — Nothing is wrong
+### S12 — Nothing is wrong
 
-If the loss is small, the residuals are unstructured, no parameter is pinned, and
-the sloppiness verdict is well-determined, say so in one line and stop. Do not
-manufacture recommendations for a converged fit.
+If the loss is small, the residuals are unstructured, no parameter is pinned, the
+sloppiness verdict is well-determined, **and S7's exit-gradient check passes**,
+say so in one line and stop. Do not manufacture recommendations for a converged
+fit.
+
+The exit-gradient condition is not optional. Without it this verdict is a claim
+about convergence supported by no evidence of convergence — which is the exact
+failure S7 exists to prevent. If `|grad|_inf` is unavailable, the verdict is
+"converged as far as the outputs can show", not "nothing is wrong".
 
 ## Report format
 
@@ -215,6 +285,7 @@ Fit diagnosis: <session>
 ================================================================
 Stage 1 : <algorithm>, <N_iters> iters, best cost <x> -> <y>
 Stage 2 : <optimizer>, <N_iters> iters, best loss <x> -> <y>
+Exit    : |grad|_inf <g> at loss <l>  (ratio <g/l>) -> <converged | budget-limited>
 Sloppiness: <verdict>, spread <d> decades, <k> non-identifiable
 Verdict : <one line: converged / limited by X / failing>
 
@@ -229,4 +300,4 @@ Findings
 
 Same rules as `tuning_rules.md`: every finding cites evidence, at most five,
 ordered by impact, and nothing is applied until the user picks. Omit the
-Findings section entirely on an S11 verdict.
+Findings section entirely on an S12 verdict.
