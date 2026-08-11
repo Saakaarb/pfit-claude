@@ -18,6 +18,9 @@ file below. Open the relevant one rather than working from memory.**
 | Converting pseudocode to `generated_script.py` | `lib/LLM/reference/jax_translation.md` |
 | What `/pfit-check` validates, its thresholds, the report format | `lib/LLM/reference/validation_rules.md` |
 | How to auto-correct inputs from a validation report | `lib/LLM/reference/correction_rules.md` |
+| How to recommend settings before a fit, from the model and the data | `lib/LLM/reference/tuning_rules.md` |
+| How to diagnose a completed fit from its outputs | `lib/LLM/reference/diagnosis_rules.md` |
+| The catalogue of every choice that affects solve and fit quality (human-facing) | `docs/tunable_choices.md` |
 | Observables sampled at different time points | `lib/LLM/reference/staggered_data.md` |
 
 **Read `project_context.md` before running any Python command** — it holds the
@@ -44,8 +47,9 @@ a solver from memory.
 |---|---|---|
 | `/pfit-skeleton` | XML -> `user_model.py` skeleton | `.claude/commands/pfit-skeleton.md` |
 | `/pfit-from-source` | paper -> XML + populated `user_model.py` | `.claude/commands/pfit-from-source.md` |
-| `/pfit-check` | validate + auto-correct the inputs | `.claude/commands/pfit-check.md` |
+| `/pfit-check` | validate + auto-correct the inputs, and recommend settings | `.claude/commands/pfit-check.md` |
 | `/pfit-jax` | `user_model.py` -> `generated_script.py` | `.claude/commands/pfit-jax.md` |
+| `/pfit-diagnose` | completed fit -> diagnosis + what to change | `.claude/commands/pfit-diagnose.md` |
 
 Each command file is procedure only and names the reference files it requires.
 

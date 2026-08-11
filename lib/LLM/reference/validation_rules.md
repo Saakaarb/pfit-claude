@@ -145,8 +145,8 @@ Treat the file as pseudocode throughout (see the "do not flag" list below).
 
 The report is the entire output. No boilerplate text around it.
 
-Two sections, **Critical Errors** then **Warnings**, each ordered most to least
-important. End with a line:
+Three sections, **Critical Errors**, then **Warnings**, then
+**Recommendations**, each ordered most to least important. End with a line:
 
 ```
 Number of critical errors: N
@@ -162,3 +162,15 @@ Rules:
   only move it between sections or drop it. A point that is conditional on the
   data belongs in Warnings; a point that neither certainly nor possibly causes a
   failure should be removed entirely.
+
+### The Recommendations section
+
+Everything about this section — which recommendations exist, the evidence rule,
+the entry format, the five-entry cap, and the fact that they are applied only on
+the user's confirmation — is owned by `tuning_rules.md`. Do not restate its rules
+here or work from memory.
+
+The distinction this file owns: a **Warning** says an existing value may break or
+degrade the run; a **Recommendation** proposes a better value based on evidence
+from the model or the data. Never put the same point in both. Omit the section
+entirely when `tuning_rules.md` yields nothing evidence-backed.

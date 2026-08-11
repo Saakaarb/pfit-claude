@@ -10,6 +10,7 @@ from memory.
 |---|---|
 | `lib/LLM/reference/validation_rules.md` | every check, its severity, and the report format |
 | `lib/LLM/reference/correction_rules.md` | how to fix what you find |
+| `lib/LLM/reference/tuning_rules.md` | how to derive the Recommendations section, and the apply-on-confirmation policy |
 | `lib/LLM/reference/input_constraints.md` | the hard input constraints being checked |
 | `lib/LLM/reference/xml_format.md` | field schema, defaults and required fields |
 | `lib/LLM/reference/user_model_contract.md` | what the three user functions must do |
@@ -37,10 +38,20 @@ from memory.
 5. **Re-validate.** Repeat 3-4 until there are no critical errors, or you have
    iterated 3 times.
 
-6. Write the final report to
+6. **Recommend.** Once there are no critical errors, gather the evidence listed
+   in `tuning_rules.md` and apply its rules to produce the Recommendations
+   section. Read the dataset CSVs and the RHS for this — the recommendations come
+   from the model and the data, not from the XML alone. Emit nothing you cannot
+   attach evidence to.
+
+7. Write the final report to
    `sessions/<session_name>/generated/user_input_check.txt`.
 
-7. Tell the user the outcome:
+8. Tell the user the outcome:
    - clean: "Validation passed. Run `/pfit-jax` to generate the JAX optimization code."
    - otherwise: list the unresolved critical errors and ask them to fix those
      manually before re-running `/pfit-check`.
+
+9. If there are recommendations, list them and ask which to apply (by rule id,
+   `all`, or `none`). Apply only what the user names, following the apply policy
+   in `tuning_rules.md`, then re-run step 3 on anything you changed.
