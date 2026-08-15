@@ -1,21 +1,88 @@
-## Critical Errors
+Validation report — sneyd_ipr
 
-None detected.
+Critical Errors
+---------------
+None detected
 
-## Warnings
+Warnings
+--------
+None detected
 
-1. Per-condition inputs via augmented states. IP3 and Ca are held at fixed
-   clamp values that differ per experiment. They are represented as two constant
-   integrated variables (ip3_in, ca_in) with derivative 0, whose initial values
-   are set per experiment through INITIAL_CONDITIONS. This is intentional and is
-   the correct way to inject per-experiment fixed inputs in this framework;
-   do not flag ip3_in/ca_in as spurious states.
+Recommendations
+---------------
+[R1] Integrator family: implicit — the current INTEGRATOR = Kvaerno5 is correct
+     Evidence: the RHS is smooth — all ten fluxes are rational functions of the
+          states and parameters, with no sign(), abs(), clip(), floor() or any
+          where() on a state-dependent condition. Stiffness: all 14 rate
+          constants share the box [1E-3, 1E5], so a single candidate may carry
+          timescales 1/k spanning 8 decades. The data confirms the fast/slow
+          split — in ca04.csv the open probability goes 0.008 -> 0.327 inside
+          the first sample interval (0 -> 0.07 s) and then decays over the
+          remaining 0.91 s, so the rise is entirely unresolved by the 0.07 s
+          sampling.
+     Why: R1 calls for an implicit solver on a smooth RHS with a wide timescale
+          ratio or unknown stiffness. Kvaerno5 appears in the solver table of
+          lib/LLM/api/diffrax.md as implicit (stiff) and is marked validated.
+          The asymmetry matters here: an implicit method on a candidate that
+          happens to be non-stiff costs ~3-10x per step but still converges,
+          whereas an explicit method on a candidate with k = 1E5 would need a
+          step of order 1E-5 across a 0.98 s span — roughly 1E5 steps, well past
+          MAX_STEPS = 10000 — and would score error_loss.
+     Edit: none — no change needed.
 
-2. PROCESSORS = 16. Ensure the host has at least 16 logical cores.
+[R9] Identifiability: expect a sloppy spectrum; this is a property of the model,
+     not something to fix by raising the budget
+     Evidence: 14 trainable parameters against a SINGLE observed column per
+          experiment (open probability), i.e. N = 14 > 3 x 1. The rates are
+          entangled in the RHS by construction: they enter only through the
+          lumped constants L1 = k_1*l2/(k1*l_2), L3 = k_2*l4/(k2*l_4),
+          L5 = k_4*l6/(k4*l_6) — each a ratio, so scaling its numerator and
+          denominator together leaves the flux unchanged — and through the fixed
+          sums and products (k_1 + l_2) in v3 and v7, and (k1*L1 + l2) in v2 and
+          v6.
+     Why: those combinations are the identifiable quantities; the individual
+          rates are not. Expect several parameters to pin against MIN_VAL or
+          MAX_VAL at the optimum and the post-fit sloppiness report to show a
+          wide eigenvalue spread. Neither is evidence of a failed fit, and
+          neither is fixed by more iterations — the remedy would be fewer
+          trainable parameters or a reparameterisation onto (L1, L3, L5) plus
+          the sums, which is a change to the model, not to the settings.
+     Edit: none — no change needed; read the sloppiness report with this in mind.
 
-3. Stiffness / MAX_STEPS. Several rate constants reach ~1e5, so the channel
-   kinetics are stiff; Kvaerno5 is used. The system is conserved (state sum = 1)
-   so it cannot blow up, but if the first DE iteration is very slow, lower
-   MAX_STEPS (see the performance note in CLAUDE.md).
+[R8] Aggregation across the 9 experiments is an unweighted mean, and one clamp
+     condition is represented twice
+     Evidence: the XML declares 9 <EXPERIMENT> blocks. Their clamps are
+          (IP3, Ca) = (10, 0.1), (10, 0.2), (10, 0.4), (10, 1), (10, 3),
+          (10, 10), (3, 0.4), (5, 0.4), (10, 0.4) — ca04.csv and ip10.csv carry
+          the SAME clamp (10 uM IP3, 0.4 uM Ca). Their data differ
+          (peak Po 0.327 vs 0.337, first row 0.008 vs 0.014), so they are two
+          replicates of one condition rather than a duplication error. All nine
+          files are otherwise identical in shape: 15 rows, uniform 0.07 s
+          spacing over [0, 0.98], no blank cells.
+     Why: the framework averages the nine per-experiment losses with no
+          weighting available at the XML level, so (10, 0.4) carries 2/9 of the
+          objective while every other condition carries 1/9. That is a
+          defensible choice — it is the condition with two measurements — but it
+          is a choice, and it is being made implicitly. Per-experiment weighting
+          would require a library change and is out of scope here.
+     Edit: none, unless you want the condition down-weighted, in which case drop
+           one of the two <EXPERIMENT> blocks (ca04.csv or ip10.csv).
+
+Checked and already correct, so not recommended: LOGSCALE (R2 — all 14
+parameters span MAX_VAL/MIN_VAL = 1e8 and all are already Y); bounds (R3 — the
+box [1E-3, 1E5] is the one the source prescribes, and the source states the
+published optimum itself pins several rates against it, so narrowing would
+exclude the known solution); two-tier tolerances (R4 — POP_* are 100x looser
+than the refinement values on every state, and the loose tier's permitted error
+works out ~1e-6 in the gating states, four decades below the ~0.02 residual
+being chased, so the global search is not optimising integration error);
+search budget (R5 — 1000 x 30 = 30,000 candidate evaluations against 10N = 140
+and 20N^2 = 3,920; note each evaluation solves the ODE 9 times, once per
+experiment, so the real cost is 270,000 solves); global algorithm (R6 — DE over
+a 14-dimensional 8-decade box is the robust choice); gradient optimizer (R7 —
+adam with NUM_ITERS = 1000 clears the 200 floor, INIT_VALUE_LR = 1e-3 is at the
+recommended start and under the 1e-2 ceiling, and the schedule anneals
+downward to 1e-5); loss shape (R8 — a single observable already bounded in
+[0, 1], so a plain RMSE is normalised and no per-column scaling applies).
 
 Number of critical errors: 0

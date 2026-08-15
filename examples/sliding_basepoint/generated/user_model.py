@@ -1,23 +1,13 @@
 import numpy as np
 
-# Key: 
-# Nts: number of time steps in dataset
-# Ny: number of state variables defined in the user_input.xml file
-# N_col: number of columns in dataset 
-
-def user_defined_system(t: float, y: np.ndarray, trainable_parameters: dict, fixed_parameters: dict, dataset: np.ndarray, t_eval: np.ndarray):
-
-        # Arguments:
-        # t: time (float)
-        # y: state vector (np.ndarray of size [Ny])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
-        # dataset: dataset (np.ndarray of size [Nts,N_col-1]) (first dimension in dataset is time)
-        # t_eval: evaluation times (np.ndarray of size [Nts])
+# Ordering of parameters in trainable_parameters as provided by the user:
+# ['c2', 'Dk', 'Dc', 'm1', 'm2']
+# Ordering of integrated variables as provided by the user:
+# ['x1', 'x2', 'v1', 'v2', 'k', 'c1']
 
 
-        # this part is to be populated by the model
-        #--------------------------------
+def user_defined_system(t, y, trainable_parameters, fixed_parameters, dataset, t_eval):
+
         c2 = trainable_parameters['c2']
         Dk = trainable_parameters['Dk']
         Dc = trainable_parameters['Dc']
@@ -29,143 +19,79 @@ def user_defined_system(t: float, y: np.ndarray, trainable_parameters: dict, fix
         x2 = y[1]
         v1 = y[2]
         v2 = y[3]
-        k = y[4]
+        k  = y[4]
         c1 = y[5]
-        #--------------------------------
 
-        # this part is to be populated by the user
-        #--------------------------------
-        def F1(Fs,c1,v1):
-                return Fs-c1*np.abs(v1)*np.sign(v1)
-        def F2(Fs,c2,v2):
+        # coupling spring between the impacting mass and the sliding base
+        Fs = k * (x2 - x1)
 
-                if np.abs(Fs) < c2 and np.abs(v2) < vf:
-                        return 0
-                else:
-                        return Fs - c2*np.sign(v2)
-        
-        Fs= k*(x2-x1)
-        dx1dt=v1
-        dx2dt=v2
+        # impacting mass: spring force less velocity-proportional damping
+        dv1dt = (Fs - c1 * np.abs(v1) * np.sign(v1)) / m1
 
-        dv1dt= (1/m1)*F1(Fs,c1,v1)
+        # sliding base: stick-slip Coulomb friction. Stuck while the transmitted
+        # force is below the threshold and the base is essentially at rest;
+        # otherwise it slips against a constant opposing friction.
+        F = -Fs
+        stuck = np.logical_and(np.abs(F) < c2, np.abs(v2) < vf)
+        F2 = np.where(stuck, 0.0, F - c2 * np.sign(v2))
+        dv2dt = F2 / m2
 
-        dv2dt= (1/m2)*F2(-1*Fs,c2,v2)
-        P = np.abs(m1*v1*dv1dt)
-        dkdt= Dk*P
-        dc1dt=Dc*P
-        #--------------------------------
-        derivatives = np.array([dx1dt, dx2dt, dv1dt, dv2dt, dkdt, dc1dt]) 
-        return derivatives # of shape [Ny]. Each derivative term must be user defined
+        # stiffness and damping accumulate with dissipated mechanical power
+        P = np.abs(m1 * v1 * dv1dt)
+        dkdt  = Dk * P
+        dc1dt = Dc * P
 
-def _compute_loss_problem(solution_time: np.ndarray, solution: np.ndarray, dataset: np.ndarray, trainable_parameters: dict, fixed_parameters: dict):
+        return np.array([v1, v2, dv1dt, dv2dt, dkdt, dc1dt])
 
-        # Arguments:
-        # solution_time: time (np.ndarray of size [Nts])
-        # solution: state vector (np.ndarray of size [Nts,Ny])
-        # dataset: dataset (np.ndarray of size [Nts,N_col])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
 
-        loss=0.0
+def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
-        # this part is to be populated by the model
-        #--------------------------------
         c2 = trainable_parameters['c2']
-        Dk = trainable_parameters['Dk']
-        Dc = trainable_parameters['Dc']
         m1 = trainable_parameters['m1']
-        m2 = trainable_parameters['m2']
-        vf = fixed_parameters['vf']
-        #--------------------------------
+
+        x1 = solution[:, 0]
+        x2 = solution[:, 1]
+        v1 = solution[:, 2]
+        k  = solution[:, 4]
+        c1 = solution[:, 5]
+
+        # reconstruct the two measured channels from the trajectory
+        Fs = k * (x2 - x1)
+        F_sim = np.abs(Fs - c1 * np.abs(v1) * np.sign(v1))
+        s_sim = x1
+
+        # column 0 of the data is force in kN; the model works in newtons
+        F_exp = 1000.0 * dataset[:, 0]
+        s_exp = dataset[:, 1]
+
+        # peak-normalised mean absolute error, equal weight on each channel, so
+        # the O(1e5) N force residuals cannot swamp the O(1e-1) displacements
+        loss_F = np.mean(np.abs(F_exp - F_sim)) / np.max(np.abs(F_exp))
+        loss_s = np.mean(np.abs(s_exp - s_sim)) / np.max(np.abs(s_exp))
+
+        return loss_F + loss_s
 
 
-        # this part is to be populated by the user
-        #--------------------------------
-        def F1(Fs,c1,v1):
-                return Fs-c1*np.abs(v1)*np.sign(v1)
-        
-        F_exp=dataset[:,0:1]*1000   # kN -> N
-        s_exp=dataset[:,1:2]
+def writeout_description(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
-        Fm = np.max(np.abs(F_exp))
-        sm = np.max(np.abs(s_exp))
+        x1 = solution[:, 0]
+        x2 = solution[:, 1]
+        v1 = solution[:, 2]
+        k  = solution[:, 4]
+        c1 = solution[:, 5]
 
-        Nts=solution_time.shape[0]
+        Fs = k * (x2 - x1)
+        F_sim = np.abs(Fs - c1 * np.abs(v1) * np.sign(v1))
+        s_sim = x1
 
-        x2=solution[:,1]
-        x1=solution[:,0]
-        k=solution[:,4]
-        c1=solution[:,5]
-        v1=solution[:,2]
-        F_sim=np.zeros(Nts)
-        s_sim=np.zeros(Nts)
-        Fs=np.multiply(k,x2-x1)
-        for i in range(Nts):
-                F_sim[i]=np.abs(F1(Fs[i],c1[i],v1[i]))
-                s_sim[i]=x1[i]
-        # paper loss (eq. 12): mean absolute relative error on F and s, equal weight
-        F_loss = np.mean(np.abs(F_exp[:,0] - F_sim) / Fm)
-        s_loss = np.mean(np.abs(s_exp[:,0] - s_sim) / sm)
-        loss = F_loss + s_loss
-        #--------------------------------
+        F_exp = 1000.0 * dataset[:, 0]
+        s_exp = dataset[:, 1]
 
-        return loss # scalar
-        
-
-def writeout_description(solution_time: np.ndarray, solution: np.ndarray, dataset: np.ndarray, trainable_parameters: dict, fixed_parameters: dict):
-
-        # Arguments:
-        # solution_time: time (np.ndarray of size [Nts])
-        # solution: state vector (np.ndarray of size [Nts,Ny])
-        # dataset: dataset (np.ndarray of size [Nts,N_col])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
-        # Change the size of writeout_array as per your requirement
-
-        # this part is to be populated by the model
-        #--------------------------------
-        c2 = trainable_parameters['c2']
-        Dk = trainable_parameters['Dk']
-        Dc = trainable_parameters['Dc']
-        m1 = trainable_parameters['m1']
-        m2 = trainable_parameters['m2']
-        vf = fixed_parameters['vf']
-        #--------------------------------
-
-        writeout_array = np.zeros([solution_time.shape[0],6]) # DEFINE THIS as required!
-
-        # this part is to be populated by the user
-        #--------------------------------
         Nts = solution_time.shape[0]
         writeout_array = np.zeros([Nts, 5])
-
-        def F1(Fs,c1,v1):
-                return Fs-c1*np.abs(v1)*np.sign(v1)
-        
-        F_exp=dataset[:,0:1]*1000
-        s_exp=dataset[:,1:2]
-                                
-        scale_factor=np.max(np.abs(F_exp))
-        Nts=solution_time.shape[0]
-        
-        x2=solution[:,1]
-        x1=solution[:,0]
-        k=solution[:,4]
-        c1=solution[:,5]
-        v1=solution[:,2]
-        F_sim=np.zeros(Nts)
-        s_sim=np.zeros(Nts)
-        Fs=np.multiply(k,x2-x1)
-        for i in range(Nts):
-                F_sim[i]=np.abs(F1(Fs[i],c1[i],v1[i]))
-                s_sim[i]=x1[i]
-        writeout_array[:,0]=solution_time
-        writeout_array[:,1]=F_exp
-        writeout_array[:,2]=s_exp
-        writeout_array[:,3]=F_sim
-        writeout_array[:,4]=s_sim
-
-        #--------------------------------
-
-        return writeout_array # of custom shape
+        writeout_array[:, 0] = solution_time
+        writeout_array[:, 1] = F_exp     # measured force (N)
+        writeout_array[:, 2] = s_exp     # measured displacement
+        writeout_array[:, 3] = F_sim     # simulated force (N)
+        writeout_array[:, 4] = s_sim     # simulated displacement
+        return writeout_array

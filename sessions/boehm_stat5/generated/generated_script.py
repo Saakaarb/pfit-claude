@@ -21,11 +21,14 @@ def unscale_value(val, min_val, max_val, is_logscale):
 def scale_value(unscaled_val, min_val, max_val, is_logscale):
     # If logscaled, take log10 first
     lin_val = jnp.where(is_logscale, jnp.log10(unscaled_val), unscaled_val)
-    # Linearly map [min_val, max_val] → [-1, 1]
+    # Linearly map [min_val, max_val] -> [-1, 1]
     scaled = 2.0 * (lin_val - min_val) / (max_val - min_val) - 1.0
     return scaled
 
 
+# STAT5A/STAT5B dimerisation model of Boehm et al. (2014): cytoplasmic
+# phosphorylation and dimerisation, nuclear import, and export back as monomers,
+# driven by an exponentially decaying Epo stimulus.
 @jax.jit
 def user_defined_system(t, y, other_args):
 
@@ -41,51 +44,52 @@ def user_defined_system(t, y, other_args):
     is_logscale = constants["is_logscale"]
     # ----------------------
 
-    # Order: ['Epo_degradation_BaF3', 'k_exp_hetero', 'k_exp_homo', 'k_imp_hetero', 'k_imp_homo', 'k_phos']
-    Epo_degradation_BaF3, k_exp_hetero, k_exp_homo, k_imp_hetero, k_imp_homo, k_phos = \
-        unscale_value(trainable_variables, min_val, max_val, is_logscale)
+    # Order: ['k_deg', 'k_exp_hetero', 'k_exp_homo', 'k_imp_hetero', 'k_imp_homo', 'k_phos']
+    k_deg, k_exp_hetero, k_exp_homo, k_imp_hetero, k_imp_homo, k_phos = unscale_value(
+        trainable_variables, min_val, max_val, is_logscale
+    )
 
-    cyt     = fixed_parameters['cyt']
-    nuc     = fixed_parameters['nuc']
-    Epo0    = fixed_parameters['Epo0']
-    specC17 = fixed_parameters['specC17']
+    Epo0 = fixed_parameters['Epo0']
+    cyt = fixed_parameters['cyt']
+    nuc = fixed_parameters['nuc']
 
-    STAT5A  = y[0]
-    STAT5B  = y[1]
-    pApB    = y[2]
-    pApA    = y[3]
-    pBpB    = y[4]
-    nucpApA = y[5]
-    nucpApB = y[6]
-    nucpBpB = y[7]
+    A = y[0]
+    B = y[1]
+    ApB = y[2]
+    ApA = y[3]
+    BpB = y[4]
+    nApA = y[5]
+    nApB = y[6]
+    nBpB = y[7]
 
-    # Time-dependent Epo input (SBML assignment rule).
-    BaF3_Epo = Epo0 * jnp.exp(-Epo_degradation_BaF3 * t)
+    # this part is user entered
+    # ---------------------------------------------------
+    # Epo stimulation decays exponentially from its initial level
+    Epo = Epo0 * jnp.exp(-k_deg * t)
 
-    cyt_over_nuc = cyt / nuc
-    nuc_over_cyt = nuc / cyt
+    # mass-action phosphorylation / dimerisation in the cytoplasm
+    phos_AA = k_phos * Epo * A * A
+    phos_AB = k_phos * Epo * A * B
+    phos_BB = k_phos * Epo * B * B
 
-    phos_AA = BaF3_Epo * k_phos * STAT5A * STAT5A
-    phos_AB = BaF3_Epo * k_phos * STAT5A * STAT5B
-    phos_BB = BaF3_Epo * k_phos * STAT5B * STAT5B
+    # The volume ratios convert the transport fluxes between compartments:
+    # material leaving the cytoplasm is diluted into the smaller nucleus.
+    dAdt = (-2.0 * phos_AA - phos_AB
+            + (nuc / cyt) * (2.0 * k_exp_homo * nApA + k_exp_hetero * nApB))
+    dBdt = (-2.0 * phos_BB - phos_AB
+            + (nuc / cyt) * (2.0 * k_exp_homo * nBpB + k_exp_hetero * nApB))
 
-    dSTAT5A_dt = (-2.0 * phos_AA - phos_AB
-                  + 2.0 * nuc_over_cyt * k_exp_homo * nucpApA
-                  + nuc_over_cyt * k_exp_hetero * nucpApB)
-    dSTAT5B_dt = (-phos_AB - 2.0 * phos_BB
-                  + nuc_over_cyt * k_exp_hetero * nucpApB
-                  + 2.0 * nuc_over_cyt * k_exp_homo * nucpBpB)
+    dApBdt = phos_AB - k_imp_hetero * ApB
+    dApAdt = phos_AA - k_imp_homo * ApA
+    dBpBdt = phos_BB - k_imp_homo * BpB
 
-    dpApB_dt = phos_AB - k_imp_hetero * pApB
-    dpApA_dt = phos_AA - k_imp_homo * pApA
-    dpBpB_dt = phos_BB - k_imp_homo * pBpB
+    dnApAdt = (cyt / nuc) * k_imp_homo * ApA - k_exp_homo * nApA
+    dnApBdt = (cyt / nuc) * k_imp_hetero * ApB - k_exp_hetero * nApB
+    dnBpBdt = (cyt / nuc) * k_imp_homo * BpB - k_exp_homo * nBpB
+    # ---------------------------------------------------
 
-    dnucpApA_dt = cyt_over_nuc * k_imp_homo * pApA - k_exp_homo * nucpApA
-    dnucpApB_dt = cyt_over_nuc * k_imp_hetero * pApB - k_exp_hetero * nucpApB
-    dnucpBpB_dt = cyt_over_nuc * k_imp_homo * pBpB - k_exp_homo * nucpBpB
-
-    return jnp.array([dSTAT5A_dt, dSTAT5B_dt, dpApB_dt, dpApA_dt, dpBpB_dt,
-                      dnucpApA_dt, dnucpApB_dt, dnucpBpB_dt])
+    return jnp.array([dAdt, dBdt, dApBdt, dApAdt, dBpBdt,
+                      dnApAdt, dnApBdt, dnBpBdt])
 
 
 # fixed
@@ -98,7 +102,9 @@ def _integrate_system(constants, trainable_variables):
     init_cond = constants["init_cond"]
     init_time = constants["init_time"]
     dataset = constants["dataset"]
-    # save times must equal the data times (rows are differenced against dataset)
+    # The saved rows are differenced against `dataset` row-for-row, so the save
+    # times MUST equal the data times. `ts=t_eval` guarantees that for any
+    # `init_time`. Do NOT use `SaveAt(t0=True, ts=t_eval[1:])`.
     saveat = diffrax.SaveAt(ts=t_eval)
 
     other_args = {"constants": constants, "trainable_variables": trainable_variables}
@@ -107,7 +113,7 @@ def _integrate_system(constants, trainable_variables):
         solver,
         t0=init_time,
         t1=t_eval[-1],
-        max_steps=100000,
+        max_steps=10000,
         dt0=constants['init_timestep'],
         y0=init_cond,
         args=other_args,
@@ -125,74 +131,88 @@ def _compute_loss_problem(constants, trainable_variables):
     # ---------------------------------------------------
     dataset = constants["dataset"]
     solution_time, solution, result = _integrate_system(constants, trainable_variables)
-    # Any code other than RESULTS.successful means the trajectory is untrustworthy
-    # (it may contain inf/NaN). See lib/LLM/api/diffrax.md for the full code table.
+    # Any code other than RESULTS.successful means the trajectory is not
+    # trustworthy (it may contain inf/NaN). See lib/LLM/api/diffrax.md.
     failed = jnp.invert(result == RESULTS.successful)
     # ---------------------------------------------------
 
-    specC17 = constants["fixed_parameters"]["specC17"]
+    # this part is user entered
+    # ---------------------------------------------------
+    fixed_parameters = constants["fixed_parameters"]
+    s = fixed_parameters['specC17']
 
-    STAT5A = solution[:, 0]
-    STAT5B = solution[:, 1]
-    pApB   = solution[:, 2]
-    pApA   = solution[:, 3]
-    pBpB   = solution[:, 4]
+    A = solution[:, 0]
+    B = solution[:, 1]
+    ApB = solution[:, 2]
+    ApA = solution[:, 3]
+    BpB = solution[:, 4]
 
-    pSTAT5A_rel = (100.0 * pApB + 200.0 * pApA * specC17) / \
-                  (pApB + STAT5A * specC17 + 2.0 * pApA * specC17)
-    pSTAT5B_rel = -(100.0 * pApB - 200.0 * pBpB * (specC17 - 1.0)) / \
-                  ((STAT5B * (specC17 - 1.0) - pApB) + 2.0 * pBpB * (specC17 - 1.0))
-    rSTAT5A_rel = (100.0 * pApB + 100.0 * STAT5A * specC17 + 200.0 * pApA * specC17) / \
-                  (2.0 * pApB + STAT5A * specC17 + 2.0 * pApA * specC17
-                   - STAT5B * (specC17 - 1.0) - 2.0 * pBpB * (specC17 - 1.0))
+    # the three measured relative percentages, from cytoplasmic species only
+    pSTAT5A = (100.0 * ApB + 200.0 * ApA * s) / (ApB + A * s + 2.0 * ApA * s)
+    pSTAT5B = (-(100.0 * ApB - 200.0 * BpB * (s - 1.0))
+               / ((B * (s - 1.0) - ApB) + 2.0 * BpB * (s - 1.0)))
+    rSTAT5A = ((100.0 * ApB + 100.0 * A * s + 200.0 * ApA * s)
+               / (2.0 * ApB + A * s + 2.0 * ApA * s
+                  - B * (s - 1.0) - 2.0 * BpB * (s - 1.0)))
 
-    model_obs = jnp.stack([pSTAT5A_rel, pSTAT5B_rel, rSTAT5A_rel], axis=1)
+    sim = jnp.stack([pSTAT5A, pSTAT5B, rSTAT5A], axis=1)
 
-    scale_factor = jnp.maximum(jnp.max(dataset, axis=0), 1e-12)
-    loss_value = jnp.sqrt(jnp.mean(jnp.square((model_obs - dataset) / scale_factor)))
+    # column-wise scale-normalised RMSE, so the three percentage channels
+    # contribute comparably regardless of their individual ranges
+    scale_factor = jnp.max(jnp.abs(dataset), axis=0)
+    scale_factor = jnp.where(scale_factor == 0, 1.0, scale_factor)
+
+    loss_value = jnp.sqrt(jnp.mean(jnp.square((sim - dataset) / scale_factor)))
+    # ---------------------------------------------------
 
     # fixed
     # --------------------------------------
     loss = jnp.where(failed,
-        constants["error_loss"],
-        loss_value
+    constants["error_loss"],
+    loss_value
     )
 
     return loss
 
 
+# the purpose of this function is to write out a CSV containing info
+# that is to be plotted
 def _write_problem_result(constants, trainable_variables):
 
     # fixed
     # ---------------------------------------------------
     dataset = constants["dataset"]
+
     solution_time, solution, result = _integrate_system(constants, trainable_variables)
     # ---------------------------------------------------
 
-    specC17 = constants["fixed_parameters"]["specC17"]
+    # the rest is user entered
+    # ---------------------------------------------------
+    fixed_parameters = constants["fixed_parameters"]
+    s = fixed_parameters['specC17']
 
-    STAT5A = solution[:, 0]
-    STAT5B = solution[:, 1]
-    pApB   = solution[:, 2]
-    pApA   = solution[:, 3]
-    pBpB   = solution[:, 4]
+    A = solution[:, 0]
+    B = solution[:, 1]
+    ApB = solution[:, 2]
+    ApA = solution[:, 3]
+    BpB = solution[:, 4]
 
-    pSTAT5A_rel = (100.0 * pApB + 200.0 * pApA * specC17) / \
-                  (pApB + STAT5A * specC17 + 2.0 * pApA * specC17)
-    pSTAT5B_rel = -(100.0 * pApB - 200.0 * pBpB * (specC17 - 1.0)) / \
-                  ((STAT5B * (specC17 - 1.0) - pApB) + 2.0 * pBpB * (specC17 - 1.0))
-    rSTAT5A_rel = (100.0 * pApB + 100.0 * STAT5A * specC17 + 200.0 * pApA * specC17) / \
-                  (2.0 * pApB + STAT5A * specC17 + 2.0 * pApA * specC17
-                   - STAT5B * (specC17 - 1.0) - 2.0 * pBpB * (specC17 - 1.0))
+    pSTAT5A = (100.0 * ApB + 200.0 * ApA * s) / (ApB + A * s + 2.0 * ApA * s)
+    pSTAT5B = (-(100.0 * ApB - 200.0 * BpB * (s - 1.0))
+               / ((B * (s - 1.0) - ApB) + 2.0 * BpB * (s - 1.0)))
+    rSTAT5A = ((100.0 * ApB + 100.0 * A * s + 200.0 * ApA * s)
+               / (2.0 * ApB + A * s + 2.0 * ApA * s
+                  - B * (s - 1.0) - 2.0 * BpB * (s - 1.0)))
 
     Nts = solution_time.shape[0]
     writeout_array = jnp.zeros([Nts, 7])
     writeout_array = writeout_array.at[:, 0].set(solution_time)
-    writeout_array = writeout_array.at[:, 1].set(dataset[:, 0])
-    writeout_array = writeout_array.at[:, 2].set(pSTAT5A_rel)
-    writeout_array = writeout_array.at[:, 3].set(dataset[:, 1])
-    writeout_array = writeout_array.at[:, 4].set(pSTAT5B_rel)
-    writeout_array = writeout_array.at[:, 5].set(dataset[:, 2])
-    writeout_array = writeout_array.at[:, 6].set(rSTAT5A_rel)
+    writeout_array = writeout_array.at[:, 1].set(dataset[:, 0])   # measured pSTAT5A_rel
+    writeout_array = writeout_array.at[:, 2].set(dataset[:, 1])   # measured pSTAT5B_rel
+    writeout_array = writeout_array.at[:, 3].set(dataset[:, 2])   # measured rSTAT5A_rel
+    writeout_array = writeout_array.at[:, 4].set(pSTAT5A)         # simulated pSTAT5A_rel
+    writeout_array = writeout_array.at[:, 5].set(pSTAT5B)         # simulated pSTAT5B_rel
+    writeout_array = writeout_array.at[:, 6].set(rSTAT5A)         # simulated rSTAT5A_rel
+    # ---------------------------------------------------
 
     return writeout_array

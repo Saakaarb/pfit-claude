@@ -1,20 +1,62 @@
-Issues
+Validation report — piezo_bouc_wen
 
-1. The parameter "kp" search range is from 2.5E7 to 3.0E7 and "de" is from 1E-7 to 1.5E-7, both have MAX_VAL/MIN_VAL reasonably close (a factor of 1.2 for kp, 1.5 for de), so NOT using LOGSCALE is justified. However, if "de" were to ever span below 1E-7, consider using LOGSCALE in the future.
-2. In the function `writeout_description`, the trainable parameter dictionary keys are written as `trainable_parameters[&amp;amp;amp;#39;alpha&amp;amp;amp;#39;]`, etc. This should be `trainable_parameters['alpha']` for all parameters to avoid syntax errors during code translation.
-3. Indentation in the `writeout_description` function is inconsistent (e.g., the V_func is not aligned). While this does not impact the check, it might confuse the code conversion process. Ensure consistent indentation for accurate translation.
-4. In `writeout_description`, the `writeout_array` is hardcoded to shape [Nts, 5]—ensure this matches your intended number of writeout columns as requirements change.
-5. There are small tabs before some variable assignments and function definitions in the script (e.g., under `user_defined_system` and `writeout_description`), which may cause trouble during translation. While this is not a blocking issue for pseudocode, please check for consistent formatting.
-6. No fixed parameters are defined or used, which is consistent between your XML and code.
-7. No variables are present in both trainable parameters, fixed parameters, and integrated variables—no naming collisions.
+Critical Errors
+---------------
+None detected
 
-Checked
+Warnings
+--------
+None detected
 
-- All trainable parameters ['alpha', 'beta', 'gamma', 'mp', 'cp', 'kp', 'de'] are present in the XML and properly used in the pseudocode.
-- All integrable variables ['xp', 'vp', 'h'] are present in the XML, given as solution indices, and their time derivatives correctly defined and returned in `user_defined_system`.
-- There are no missing or mismatched variable names across the XML and pseudocode.
-- The loss function returns a scalar and is scaled according to the maximum absolute value of the experimental displacement, likely ensuring the loss is between 0 and 1.
-- All optimization settings in the XML (population and gradient) are within reasonable ranges for a typical population-based and gradient-based fit.
-- Writeout Instructions: Writeout Instructions not ignored (WRITE_RESULTS = Y), function properly returns an array for output.
-- All fixed/trainable/integrated parameter names are pythonic and reasonable.
-- No logical or mathematical inconsistencies found in the ODE system or loss definition.
+Recommendations
+---------------
+[R4] STEPSIZE_RTOL: 1E-0,1E-0,1E-0 -> 1E-6,1E-6,1E-6
+     (and POP_STEPSIZE_RTOL: 1E0,1E0,1E0 -> 1E-4,1E-4,1E-4)
+     Evidence: rtol is currently 1.0 on every state. PIDController bounds the
+          local error by |y|*rtol + atol, so rtol = 1.0 permits a relative error
+          equal to the state itself — 100%. The only thing constraining the
+          solve is atol (1E-8, 1E-5, 1E-10). Against the data that leaves xp,
+          whose measured range is 1.471e-06 to 4.908e-06, controlled to 1e-8
+          absolute — 0.2% of the signal — while vp and h have no meaningful
+          bound at all.
+     Why: the loss normalises by max|xp| = 4.9e-06, so integration error enters
+          the residual at the same scale as model error. Any fit quality better
+          than the integration tolerance is not measurable, and the gradient
+          stage differentiates a solve whose accuracy is set by atol alone.
+     Edit: <P> STEPSIZE_RTOL = 1E-6,1E-6,1E-6 </P>   (GRADIENT_OPT/SETTINGS)
+           <P> POP_STEPSIZE_RTOL = 1E-4,1E-4,1E-4 </P>   (POPULATION_OPT/SETTINGS)
+
+[R1] Integrator family: implicit — the current default is already correct
+     Evidence: kp/mp = 1.25e7/0.1 = 1.25e8 gives a natural frequency of
+          1.118e4 rad/s (1779 Hz, period 0.56 ms), against a forcing term
+          24+24*sin(16*pi*t) at 8 Hz and a data spacing of 5.12 ms. The fast
+          mode is ~220x faster than the forcing and is not resolved by the
+          sampling at all, which is the stiff case.
+     Why: stiff systems need an implicit solver; an explicit one drives the step
+          size down to the fast period and exhausts MAX_STEPS. INTEGRATOR is
+          absent, so the framework defaults to Kvaerno5 — implicit and marked
+          validated in lib/LLM/api/diffrax.md.
+     Edit: none — no change needed.
+     Caveat: the RHS does contain non-smooth terms — np.abs(V_dot) and
+          np.abs(h) in dh_dt — which R1's indicator list treats as grounds for
+          an explicit solver. They are C0 kinks in the derivative rather than
+          state-dependent switches (no sign(), no where()), and the stiffness
+          evidence above is far stronger, so implicit stands. If the fit shows
+          widespread solve failures, this is the first thing to revisit.
+
+[R3] Bounds on cp, kp and de are extremely narrow — consider widening
+     Evidence: cp = [20, 30] (ratio 1.5), kp = [1.0E7, 1.5E7] (1.5),
+          de = [1E-7, 1.5E-7] (1.5). Three of the six parameters are confined to
+          a 1.5x box, while alpha, beta and gamma each span their full range
+          from 0.
+     Why: if an optimum lies outside one of those boxes the optimizer will sit
+          on the bound, and a bound-pinned parameter is indistinguishable from a
+          converged one in the fit logs — it keeps a nonzero gradient forever
+          because the refinement stage hard-clips to the box. Widening costs
+          only search budget; leaving it narrow risks a silent constraint.
+     Edit: e.g. <P> MIN_VAL=5 </P> / <P> MAX_VAL=100 </P>   (cp block)
+          Only widen where the source does not pin the value physically — if
+          these came from a datasheet, leave them and treat a pinned result as
+          evidence the model, not the box, is wrong.
+
+Number of critical errors: 0

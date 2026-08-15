@@ -1,51 +1,38 @@
-Sloppiness / identifiability report  -  session 'sneyd_ipr'
-================================================================
+Sloppiness / identifiability report
+============================================================
 trainable parameters : 14  (k1, k2, k3, k4, k_1, k_2, k_3, k_4, l2, l4, l6, l_2, l_4, l_6)
 experiments          : 9
-loss at best fit     : 0.0211668   (|grad|_inf = 8.6e-05)
-Hessian method       : finite-difference of gradient   (log10-parameter space)
+loss at best fit     : 0.0213828   (|grad|_inf = 0.00037)
+Hessian method       : finite-difference   (log10-parameter space)
 
-Eigenvalue spectrum of the loss Hessian (Fisher/sloppiness spectrum):
-  lambda_1  = +2.2212e+00   (normalised +1.00e+00)
-  lambda_2  = +9.6307e-01   (normalised +4.34e-01)
-  lambda_3  = +4.6754e-01   (normalised +2.10e-01)
-  lambda_4  = +7.5439e-02   (normalised +3.40e-02)
-  lambda_5  = +2.0078e-02   (normalised +9.04e-03)
-  lambda_6  = +1.4201e-02   (normalised +6.39e-03)
-  lambda_7  = +6.6198e-03   (normalised +2.98e-03)
-  lambda_8  = +2.4376e-03   (normalised +1.10e-03)
-  lambda_9  = +3.9615e-04   (normalised +1.78e-04)
-  lambda_10 = +7.3265e-05   (normalised +3.30e-05)
-  lambda_11 = +1.4907e-05   (normalised +6.71e-06)
-  lambda_12 = -3.3888e-09   (normalised -1.53e-09)
-  lambda_13 = -3.1210e-08   (normalised -1.41e-08)
-  lambda_14 = -9.8961e-08   (normalised -4.46e-08)
+Eigenvalue spectrum of the loss Hessian (Fisher / sloppiness spectrum):
+  lambda_1  = +2.0652e+00   (normalised +1.00e+00)
+  lambda_2  = +1.3110e+00   (normalised +6.35e-01)
+  lambda_3  = +3.9006e-01   (normalised +1.89e-01)
+  lambda_4  = +6.1983e-02   (normalised +3.00e-02)
+  lambda_5  = +3.7866e-02   (normalised +1.83e-02)
+  lambda_6  = +1.7378e-02   (normalised +8.41e-03)
+  lambda_7  = +7.0552e-03   (normalised +3.42e-03)
+  lambda_8  = +2.2244e-03   (normalised +1.08e-03)
+  lambda_9  = +2.4286e-04   (normalised +1.18e-04)
+  lambda_10 = +9.7806e-05   (normalised +4.74e-05)
+  lambda_11 = +1.4119e-05   (normalised +6.84e-06)
+  lambda_12 = +5.7574e-06   (normalised +2.79e-06)
+  lambda_13 = -4.6719e-08   (normalised -2.26e-08)
+  lambda_14 = -2.3803e-06   (normalised -1.15e-06)
 
-spread over identifiable modes : 5.17 orders of magnitude
-non-identifiable (flat) directions (normalised < 1e-06) : 3  <- effectively lambda=0, so the full spectrum spans >6 decades
-VERDICT              : SLOPPY / NON-IDENTIFIABLE  (3 flat direction(s) despite 5.2-decade identifiable spread)
+spread over identifiable modes : 5.55 orders of magnitude
+non-identifiable (flat) directions (normalised < 1e-06) : 1  <- effectively lambda=0 (spectrum spans >6 decades)
+VERDICT              : SLOPPY / NON-IDENTIFIABLE  (1 flat direction(s) despite 5.6-decade identifiable spread)
 
-STIFFEST direction (lambda_max, best-constrained combination):
-   l2(-0.48), l_2(+0.48), k4(+0.39), k_4(-0.38)
-SLOPPIEST direction (lambda_min, least-constrained combination):
-   k2(+1.00), l_4(+0.00), k_2(-0.00), k1(+0.00)
+STIFFEST direction (best-constrained combination):
+   k4(+0.43), k_4(-0.41), k2(+0.34), k1(-0.34)
+SLOPPIEST direction (least-constrained combination):
+   k1(+0.71), k_1(+0.71), l_2(-0.00), l2(-0.00)
 
-per-parameter sloppiness participation (fraction of weight in sloppy modes):
-   k2                           1.000
-   l_6                          1.000
-   l6                           1.000
-   k_2                          0.980
-   l_4                          0.980
-   k_3                          0.881
-   k3                           0.780
-   l_2                          0.619
-   l2                           0.615
-   k_4                          0.579
-   k4                           0.571
-   k_1                          0.486
-   k1                           0.470
-   l4                           0.039
+Note: the stiffest/sloppiest directions are combinations of parameters
+(eigenvectors); they are NOT a per-parameter identifiability verdict.
 
-Caveats: local quadratic measure at the optimum; Hessian of the
-framework RMSE loss (spread & eigenvectors match the Gauss-Newton FIM,
-absolute scale is noise-model dependent); valid only at a converged fit.
+Caveats: local quadratic measure at the optimum; Hessian of the framework
+RMSE loss (spread & eigenvectors match the Gauss-Newton FIM; absolute scale
+is noise-model dependent); valid only at a converged fit.

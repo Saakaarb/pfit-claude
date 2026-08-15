@@ -21,11 +21,12 @@ def unscale_value(val, min_val, max_val, is_logscale):
 def scale_value(unscaled_val, min_val, max_val, is_logscale):
     # If logscaled, take log10 first
     lin_val = jnp.where(is_logscale, jnp.log10(unscaled_val), unscaled_val)
-    # Linearly map [min_val, max_val] → [-1, 1]
+    # Linearly map [min_val, max_val] -> [-1, 1]
     scaled = 2.0 * (lin_val - min_val) / (max_val - min_val) - 1.0
     return scaled
 
 
+# Robertson stiff system
 @jax.jit
 def user_defined_system(t, y, other_args):
 
@@ -48,9 +49,12 @@ def user_defined_system(t, y, other_args):
     y2 = y[1]
     y3 = y[2]
 
+    # this part is user entered
+    # ---------------------------------------------------
     dy1dt = -k1 * y1 + k3 * y3 * y2
     dy2dt = k1 * y1 - k2 * y2**2 - k3 * y2 * y3
     dy3dt = k2 * y2**2
+    # ---------------------------------------------------
 
     return jnp.array([dy1dt, dy2dt, dy3dt])
 
@@ -65,6 +69,8 @@ def _integrate_system(constants, trainable_variables):
     init_cond = constants["init_cond"]
     init_time = constants["init_time"]
     dataset = constants["dataset"]
+    # The saved rows are differenced against `dataset` row-for-row, so the save
+    # times MUST equal the data times.
     saveat = diffrax.SaveAt(ts=t_eval)
 
     other_args = {"constants": constants, "trainable_variables": trainable_variables}
@@ -91,36 +97,43 @@ def _compute_loss_problem(constants, trainable_variables):
     # ---------------------------------------------------
     dataset = constants["dataset"]
     solution_time, solution, result = _integrate_system(constants, trainable_variables)
-    # Any code other than RESULTS.successful means the trajectory is untrustworthy
-    # (it may contain inf/NaN). See lib/LLM/api/diffrax.md for the full code table.
     failed = jnp.invert(result == RESULTS.successful)
     # ---------------------------------------------------
 
+    # this part is user entered
+    # ---------------------------------------------------
     scale_factor = jnp.max(dataset, axis=0)
     loss_value = jnp.sqrt(jnp.mean(jnp.square(jnp.divide(solution - dataset, scale_factor))))
+    # ---------------------------------------------------
 
     # fixed
     # --------------------------------------
     loss = jnp.where(failed,
-        constants["error_loss"],
-        loss_value
+    constants["error_loss"],
+    loss_value
     )
 
     return loss
 
 
+# the purpose of this function is to write out a CSV containing info
+# that is to be plotted
 def _write_problem_result(constants, trainable_variables):
 
     # fixed
     # ---------------------------------------------------
     dataset = constants["dataset"]
+
     solution_time, solution, result = _integrate_system(constants, trainable_variables)
     # ---------------------------------------------------
 
+    # the rest is user entered
+    # ---------------------------------------------------
     Nts = solution_time.shape[0]
     writeout_array = jnp.zeros([Nts, 7])
     writeout_array = writeout_array.at[:, 0].set(solution_time)
     writeout_array = writeout_array.at[:, 1:4].set(dataset)
     writeout_array = writeout_array.at[:, 4:7].set(solution)
+    # ---------------------------------------------------
 
     return writeout_array

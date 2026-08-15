@@ -31,20 +31,20 @@
             
             <PARAM>
                 <P> PARAMETER_NAME= cp </P>
-                <P> MIN_VAL=20 </P>
-                <P> MAX_VAL=30 </P>
+                <P> MIN_VAL=5 </P>
+                <P> MAX_VAL=100 </P>
                 <P> LOGSCALE= N </P>
             </PARAM>
             <PARAM>
                 <P> PARAMETER_NAME= kp </P>
-                <P> MIN_VAL=1.0E7 </P>
-                <P> MAX_VAL=1.5E7 </P>
+                <P> MIN_VAL=1.0E6 </P>
+                <P> MAX_VAL=1.0E8 </P>
                 <P> LOGSCALE= Y </P>
             </PARAM>
             <PARAM>
                 <P> PARAMETER_NAME= de </P>
-                <P> MIN_VAL=1E-7 </P>
-                <P> MAX_VAL=1.5E-7 </P>
+                <P> MIN_VAL=1E-8 </P>
+                <P> MAX_VAL=1E-6 </P>
                 <P> LOGSCALE= Y </P>
             </PARAM>
         </TRAINABLE_PARAMETER_DESCRIPTION>
@@ -75,14 +75,14 @@
             <P> POPULATION_SIZE = 200 </P>
             <P> NUM_ITERS = 50 </P>
             <P> PROCESSORS = 8 </P>
-            <P> POP_STEPSIZE_RTOL = 1E0,1E0,1E0 </P>
+            <P> POP_STEPSIZE_RTOL = 1E-4,1E-4,1E-4 </P>
             <P> POP_STEPSIZE_ATOL = 1E-3,1E-3,1E-3 </P>
         </SETTINGS>
     </POPULATION_OPT>
     <GRADIENT_OPT>
         <SETTINGS>
             <P> NUM_ITERS = 10 </P>
-            <P> STEPSIZE_RTOL = 1E-0,1E-0,1E-0 </P>
+            <P> STEPSIZE_RTOL = 1E-6,1E-6,1E-6 </P>
             <P> STEPSIZE_ATOL = 1E-8,1E-5,1E-10 </P>
             <P> INITIAL_TIMESTEP = 1e-2 </P>
             <P> INITIAL_TIME = 0 </P>

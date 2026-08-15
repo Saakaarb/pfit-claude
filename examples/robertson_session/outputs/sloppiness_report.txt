@@ -2,20 +2,20 @@ Sloppiness / identifiability report
 ============================================================
 trainable parameters : 3  (k1, k2, k3)
 experiments          : 1
-loss at best fit     : 0.000473317   (|grad|_inf = 0.0097)
+loss at best fit     : 0.000474589   (|grad|_inf = 0.03)
 Hessian method       : finite-difference   (log10-parameter space)
 
 Eigenvalue spectrum of the loss Hessian (Fisher / sloppiness spectrum):
-  lambda_1  = +8.8454e+02   (normalised +1.00e+00)
-  lambda_2  = +3.4206e+02   (normalised +3.87e-01)
-  lambda_3  = +2.4177e+01   (normalised +2.73e-02)
+  lambda_1  = +8.8101e+02   (normalised +1.00e+00)
+  lambda_2  = +3.3986e+02   (normalised +3.86e-01)
+  lambda_3  = +2.4111e+01   (normalised +2.74e-02)
 
 spread over identifiable modes : 1.56 orders of magnitude
 non-identifiable (flat) directions (normalised < 1e-06) : 0
 VERDICT              : well-determined (not sloppy)
 
 STIFFEST direction (best-constrained combination):
-   k1(-0.86), k2(+0.44), k3(+0.26)
+   k1(-0.86), k2(+0.44), k3(+0.25)
 SLOPPIEST direction (least-constrained combination):
    k3(+0.78), k1(+0.45), k2(+0.43)
 

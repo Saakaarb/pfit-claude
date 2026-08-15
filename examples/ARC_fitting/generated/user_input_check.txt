@@ -1,21 +1,302 @@
-## Critical Errors
+Validation report — ARC_fitting
 
-None detected.
+Critical Errors
+---------------
+None detected
+
+Warnings
+--------
+[W1] GRADIENT_OPT/NUM_ITERS = 20 with GRADIENT_OPTIMIZER = adam is far below the
+     floor. adam takes a normalised step of about INIT_VALUE_LR per iteration in
+     the [-1, 1] scaled parameter space, so the floor is 1/INIT_VALUE_LR =
+     1/1e-3 = 1000. At 20 iterations adam can travel about 20 * 1e-3 = 0.02 in a
+     coordinate whose full range is 2 — one percent of one axis. The gradient
+     stage would be very nearly a no-op.
+     Remedy: raise NUM_ITERS to at least 1000, or switch to lbfgs, which is
+     quasi-Newton and converges in tens of iterations. See R7 below: the
+     evidence here favours keeping adam and raising the count.
+
+Recommendations
+---------------
+[R1] Integrator family: implicit — the current INTEGRATOR = Kvaerno5 is correct
+     Evidence: stiffness bounded by the Bendixson matrix measure over the box
+          (autodiff J = df/dy at sampled states and parameters; no trajectory
+          integrated):
+              max |Re lambda|  <=  1.51e21 / s
+          giving N_explicit = 5.59e4 s x 1.51e21 = 8.5e25 steps for stability,
+          against MAX_STEPS = 100,000. An explicit method cannot complete a
+          single solve anywhere near that corner.
+          Smoothness: the RHS has exactly ONE discontinuity, the where() gating
+          the second exotherm on T > T_ignite. It is one-way — T is
+          non-decreasing, since dT/dt is a sum of absolute values and therefore
+          >= 0 — so the trajectory crosses the threshold once and never returns
+          through it.
+     Why: R1 sends a stiff system with few one-way discontinuities to an
+          implicit solver despite the non-smoothness. The Newton solve fails
+          only at the single crossing, a bounded and survivable cost, whereas
+          the stiffness would pin an explicit method's step over the entire
+          5.59e4 s record. Kvaerno5 appears in lib/LLM/api/diffrax.md as
+          implicit (stiff), is marked validated, and is high order — which R1
+          prefers under severe stiffness, since the step is accuracy-limited and
+          the per-step Newton cost is amortised over far fewer steps.
+     Honest scope of this claim: the 8.5e25 figure is dominated by the extreme
+          corner of the A1/A2 box, and those candidates are singular (see R3) —
+          they would fail under any solver. The bound therefore establishes that
+          the box ADMITS catastrophic stiffness, not that the physically
+          relevant region is stiff. Note also that a diagonal-only reading is
+          not sufficient here: the temperature row's off-diagonal entries carry
+          factors of h1 and h2, which range to 1.2e3, so the coupling can exceed
+          the diagonal by three decades and the full matrix measure is the
+          appropriate tool.
+     Edit: none — no change needed.
+
+[R3] Bounds: narrow A1 and A2, currently 20 and 17 decades wide
+     Evidence: A1 spans [1E5, 1E25] and A2 spans [1E8, 1E25] — 20 and 17 orders
+          of magnitude. R3 flags anything beyond ~8 decades. The consequence is
+          measurable rather than theoretical: the Bendixson bound above reaches
+          1.5e21 /s, i.e. a characteristic time of 7e-22 s, at parameter sets
+          whose reaction completes ~26 orders of magnitude faster than the
+          5.59e4 s record. Such candidates are not slow, they are singular: the
+          reaction goes to completion instantaneously and the temperature
+          diverges in finite time.
+     Why: a candidate in that region scores error_loss whatever the solver, so
+          those decades are not being searched — they are being spent. With
+          POPULATION_SIZE x NUM_ITERS = 18,000 evaluations over an 8-parameter
+          box, decades that can only produce singular trajectories consume
+          budget that never returns information. Narrowing on physical grounds —
+          an Arrhenius pre-exponential for a condensed-phase decomposition is
+          far from 1e25 — would concentrate the same budget on the reachable
+          region. This is a judgement about the chemistry, so the exact bound is
+          the user's call; the evidence only says the current upper decades
+          cannot contain a solution.
+     Edit: <P> MAX_VAL = ... </P> in the A1 and A2 blocks
+           (MODEL/TRAINABLE_PARAMETER_DESCRIPTION), lowered to whatever the
+           chemistry supports. Applying this is a full re-fit.
+
+[R7] GRADIENT_OPTIMIZER: keep adam, raise NUM_ITERS 20 -> 1000
+     Evidence: adam is the right family here — the RHS is non-smooth at the
+          ignition threshold, and the loss compounds it: L1 and L2 are both mean
+          ABSOLUTE errors, whose derivative flips sign wherever a residual
+          crosses zero, and L3 is a sum of max(0, .) hinges that are
+          non-differentiable at their kinks. Gradients are therefore noisy, which
+          is exactly R7's condition for adam over lbfgs.
+     Why: the count is the problem, not the optimizer. See W1: 20 iterations at
+          INIT_VALUE_LR = 1e-3 moves adam about 0.02 of one scaled axis, so the
+          gradient stage cannot refine anything. The floor 1/INIT_VALUE_LR is
+          1000, and the existing LR schedule (1e-3 annealing to 1e-5 over
+          TRANSITION_STEPS_LR = 200 at DECAY_RATE_LR = 0.9) is already sized for
+          a run of that length — at 20 iterations the schedule never even
+          begins to decay.
+     Edit: <P> NUM_ITERS = 1000 </P>   (GRADIENT_OPT/SETTINGS)
+
+Checked and already correct, so not recommended: LOGSCALE (R2 — Ea1, A1, h1,
+Ea2, A2 and h2 all span >= 3 decades and are Y; n1 spans 6x and m2 spans 8x, both
+correctly linear); two-tier tolerances (R4 — POP_* are 100x looser per state);
+search budget (R5 — 600 x 30 = 18,000 against 10N = 80 and 20N^2 = 1,280);
+global algorithm (R6 — DE is already selected, which is what a non-smooth RHS
+calls for); MAX_STEPS (R10 — tau_min from the equations is the thermal-feedback
+timescale (Ea/kT^2)*Tdot evaluated at the measured peak heat rate and peak
+temperature, ~0.073 s, well below the data's apparent 3 s which is floored by the
+142-point sampling grid; span/tau_min = 7.7e5, less the usual order-of-magnitude
+conservatism gives the current 100,000); loss shape (R8 — the heat rate spans six
+decades and is already matched in log space, and the temperature channel is
+peak-normalised).
+
+Applied
+-------
+[R3] Bounds on the enthalpy scales: h1 MAX_VAL 1E3 -> 3.2E2, h2 1.2E3 -> 3.3E2.
+    Evidence, from the data alone: the measured temperature rise is
+        665 - 354 = 312 K. L3 already forces near-complete conversion
+        (c1_end < 0.1, c2_end > 0.9), so the heat the model deposits is
+        h1*dc1 + h2*dc2 ~ h1 + 0.96*h2, and that sum must equal the measured
+        312 K. Neither enthalpy can therefore exceed ~312/0.96 individually
+        without contradicting a directly measured quantity, whatever the other
+        one does. The previous box allowed 1E3 and 1.2E3, and the resulting fit
+        sat at h1 + 0.96*h2 = 1268 K -- 4.1x the measurement.
+    Why this and not a loss term: an endpoint penalty was tried first and
+        reverted (see below). Constraining the box is the better instrument
+        here because the constraint is a bound, not a residual: it removes the
+        overshoot from the search space instead of pricing it against other
+        terms, so it cannot be traded away for a better rate match.
+    Sweep evidence that enthalpy alone cannot be tuned post hoc: holding the
+        fitted kinetics and scaling h1, h2 down by 30% does not lower the peak
+        temperature, it EXTINGUISHES ignition -- T_end 1251 -> 368 K with
+        c1_end 0.0001 -> 0.978, i.e. the reactant left unreacted, and L3 jumping
+        to 130. In those rows h2 has no effect at all, confirming the second
+        exotherm never fires. Reaction 1 self-heats, which raises k1
+        exponentially, which produces more heat; below a critical h1 that
+        feedback dies within the record and above it the system runs away, so
+        scaling the enthalpies moves the system across an ignition bifurcation
+        rather than sliding the peak temperature. The enthalpies and the
+        kinetics are coupled through that threshold and must move together,
+        which is why the box is narrowed and the whole fit re-run rather than
+        the enthalpies adjusted.
+
+[R8] Loss shape: an endpoint term was added to _compute_loss_problem and then
+    REVERTED. The session ships the source's original loss. Recorded here
+    because the experiment is informative and should not be repeated blind.
+    Evidence, from the first completed fit: it scored L1+L2 = 0.2052 against the
+        source's ~0.30 while ending at 1251 K where the data plateaus at 665 K.
+        A better number on a worse answer. The measured total rise is
+        665 - 354 = 311 K; the fit's was 897 K, ~2.9x too much heat.
+    Why the existing terms cannot see it: L2 is an unweighted mean over 142
+        samples of which ~91% lie in the flat pre-runaway phase, so the two or
+        three points carrying the runaway barely register; and L3 bounds the
+        endpoint only from below (T_end > 600), leaving the overshoot free. The
+        model deposits h1*dc1 + h2*dc2 kelvin in total, so the enthalpy scales
+        can inflate several-fold while the kinetics — and hence the six-decade
+        heat-rate curve, L1 = 0.0743 — remain well matched. The rate-vs-temperature
+        plot shows exactly this: an excellent fit over the measured range and an
+        unconstrained tail beyond the last data point.
+    Edit trialled: loss_endpoint = |T_sim[-1] - T_exp[-1]| / (max(T_exp) - min(T_exp)),
+        added to the returned sum. It uses only the data's own final value, so
+        it presumes no solution (cold_start.md).
+    Outcome, and why it was reverted: the term did what it was designed to do
+        and the fit still got worse. The endpoint came in at 638 K against the
+        measured 665 K, and the enthalpies fell as intended (h1 889 -> 226,
+        h2 394 -> 63), so the total heat budget balanced. But the optimum moved
+        to a slow ramp: peak self-heating rate 0.043 K/s against a measured
+        208.6 K/s, ignition ~3000 s early, and the log-rate term degraded from
+        0.0743 to 0.2147. Pinning the endpoint constrains the total heat
+        RELEASED; it does not constrain the SHARPNESS of the release, and the
+        objective happily bought the former by selling the latter.
+    The finding underneath, which no endpoint term can fix: L1 and L2 are both
+        means over the DATA TIMES, and ~91% of the 142 samples lie in the flat
+        pre-runaway phase. The runaway occupies two or three of them. Plotted as
+        rate against temperature — the conventional ARC presentation — the
+        measured points are spread evenly from 350 K to 665 K, which is where
+        the information distinguishing a sharp runaway from a slow ramp
+        actually lives. A loss evaluated at data times cannot see it. The
+        principled fix is to evaluate the residual against temperature rather
+        than time, interpolating the simulated rate onto the measured
+        temperatures; that is a substantial modelling change and is left open.
+
+W1: NUM_ITERS 20 -> 1000 (GRADIENT_OPT), meeting the adam floor
+    1/INIT_VALUE_LR = 1000.
+
+R3, partially: A2 MAX_VAL 1E25 -> 1E18. Transition-state theory puts a
+    unimolecular pre-exponential near k_B*T/h ~ 1e13-1e14 /s, with
+    condensed-phase entropy effects allowing a few decades either side, so 1e18
+    is a defensible ceiling that uses no fitted value. Measured effect on the
+    reachable set: the fraction of sampled A2 values that neither ignite
+    instantaneously nor stay inert rises from 50.9% to 78.4%.
+    A1 was left alone deliberately. Its bound is not the binding constraint —
+    Ea1 spans [1E-19, 3E-19], which at the measured peak temperature moves
+    exp(-Ea/kT) over ~10 decades, so A1 and Ea1 trade off and narrowing A1 alone
+    buys little (plausible fraction only 36.7% -> 44.7%). That correlation is an
+    identifiability property, not a bounds defect; see the note below.
+
+MAX_STEPS 100000 -> 10000, correcting an error in the original R10 application.
+    The 100,000 figure came from span/tau_min with tau_min taken from the
+    thermal-feedback timescale — a STABILITY quantity, and therefore the wrong
+    one for the implicit solver actually selected, whose step is
+    accuracy-limited. The observed cost of the mistake was severe: with the
+    larger ceiling, a single DE generation did not complete in 15 minutes on 15
+    cores, because candidates near the singular corners drive the Newton solve
+    to retry repeatedly before failing. Both the XML and the literal in
+    generated_script.py were changed, as jax_translation.md requires.
+
+Note for the post-fit diagnosis: A1 and Ea1 enter only through
+A1*exp(-Ea1/(kb*T)), so over the measured temperature range they are strongly
+correlated and only their combination is likely to be identifiable. Expect that
+pair to appear as a sloppy direction, and do not read either value alone as an
+estimate. The same applies to A2 and Ea2.
+
+Two assumptions recorded rather than derived, per cold_start.md: T_ignite is held
+at 485 K and appears in the equation system as part of the model structure, and
+the initial extents (c1, c2) = (1, 0.04) are taken from the source. Both are
+inputs to the problem rather than results of a fit. Should the fit prove
+insensitive to T_ignite, or should it sit at a physically implausible value, the
+assumption is the first thing to revisit.
 
 Number of critical errors: 0
 
----
 
-## Warnings
+================================================================================
+HAND-TUNED FINAL STATE — READ BEFORE USING THIS SESSION'S PARAMETERS
+================================================================================
 
-1. **_compute_loss_problem and writeout_description — incomplete call signature for user_defined_system**: Both functions call `user_defined_system(t, y, trainable_parameters, fixed_parameters)` with 4 arguments, missing `dataset` and `t_eval`. Since `user_defined_system` does not use those arguments internally, this is unlikely to cause a problem during JAX translation, but confirm this is intentional.
+`outputs/final_design_point.csv` is NOT the optimiser's output. Two parameters
+were adjusted by hand afterwards:
 
-2. **loss3 penalty (500) is not normalized**: When the penalty condition fires, `loss3 = 500` will dominate `loss1 + loss2` (~O(1)) by ~500x, making gradient information from the physical loss irrelevant during L-BFGS refinement. Consider scaling the penalty to O(1) if gradient-based refinement is important for your use case.
+    m2:  4.599  ->  1.5
+    h2:  3.599  ->  143.0
 
----
+The optimiser's own result is preserved verbatim in
+`outputs/final_design_point_fitted.csv`. Everything else — Ea1, A1, n1, h1,
+Ea2, A2 — is unchanged from the fit. Both tuned values lie inside the declared
+search box (m2 in [1, 8], h2 in [1, 330]), so this is a legitimate point in the
+problem's own parameter space; it is simply not the one the objective prefers.
 
-## Auto-corrections applied
-- `_compute_loss_problem`: `return loss` → `return loss1 + loss2 + loss3`
-- `writeout_description`: `T` → `solution[:,2]`
-- `writeout_description`: Added `Nts = solution_time.shape[0]`
-- `user_defined_system`: `np.array([dc1dt, dc2dt, dTdt])` → `np.array([dc1_dt, dc2_dt, dT_dt])`
+Why: the fitted point scores better on the configured loss (0.1939 vs 0.3960)
+and yet reproduces the runaway far worse. Measured in TEMPERATURE space — the
+simulated rate interpolated onto the measured temperatures, which is the
+conventional ARC comparison and the one that characterises the kinetics
+independent of induction timing — the hand-tuned point is better:
+
+    mean |dlog10(rate)|, all points        0.3271  ->  0.2640   (-19%)
+    mean |dlog10(rate)|, T > 480 K         0.9683  ->  0.4781   (-51%)
+    final temperature                       622 K  ->   752 K   (measured 665 K)
+
+The transition region error is halved. At the fitted point the second exotherm
+contributed 1.2% of the heat and the 485 K trigger was invisible in the rate
+curve; at the tuned point it fires and recovers about two decades of rate
+between 500 and 600 K.
+
+Consequences to be aware of:
+  - Re-running the fit will discard these values and return to m2 ~ 4.6,
+    h2 ~ 3.6, because the objective prefers them. The tuning does not survive a
+    re-fit and is not meant to.
+  - `outputs/sloppiness_report.txt` and `sloppiness_spectrum.png` were produced
+    at the FITTED point and have not been regenerated.
+  - `result_solution_exp1.csv` and the plots in `outputs/fit_plots/` HAVE been
+    regenerated at the tuned point.
+
+Making this stick would require changing the objective, not the values — see
+the note below.
+
+================================================================================
+WHAT THIS SESSION DEMONSTRATES ABOUT LOSS FORMULATION AND DATA DISTRIBUTION
+================================================================================
+
+This session is the clearest case in the repository of a fit being limited by
+the objective rather than by the optimiser, the solver, or the search budget.
+Three separate times a better loss number corresponded to a worse answer:
+
+  1. The unbounded fit scored 0.2052 — better than the source's 0.30 — while
+     overshooting to 1251 K and releasing 4.1x the measured heat.
+  2. Adding an endpoint penalty fixed the overshoot and the optimiser paid for
+     it by selling the rate match, because a penalty is a residual and residuals
+     can be traded against each other. A BOUND could not be traded, and fixed
+     the same problem cleanly. Where a quantity is measured and enters the model
+     as a hard budget, constrain the box rather than adding a loss term.
+  3. Tuning h2 and m2 by hand improved the transition-region rate error by 51%
+     while making the configured loss twice as bad.
+
+The root cause in every case is the same, and it is about where the data lives:
+
+  **A residual averaged over sample points weights the fit by the DENSITY of
+  those samples, not by where the information is.**
+
+Here 91% of the 142 samples sit in the flat induction phase and only ~18% lie
+above 480 K, so the runaway — the entire phenomenon the experiment exists to
+measure — occupies a handful of terms in a 142-term mean. An objective built
+that way cannot distinguish a sharp runaway from a slow ramp, and will trade
+away decades of error in the transition to gain thousandths in the plateau.
+
+The same data plotted against TEMPERATURE rather than time is distributed
+evenly from 350 K to 665 K. That is why the conventional ARC presentation is
+rate-vs-temperature, and it is the practical fix here: interpolate the
+simulated rate onto the measured temperatures and take the residual there. The
+data is not badly distributed in itself — it is badly distributed *with respect
+to the independent variable the loss happens to use*.
+
+Generalising, and worth carrying to other sessions:
+  - Check how the samples are distributed over the feature the model must
+    reproduce, not merely how many there are. Dense sampling in a region where
+    nothing happens actively suppresses the region where everything happens.
+  - Prefer the independent variable in which the information is spread evenly.
+  - Prefer a bound to a penalty for anything directly measured.
+  - A loss number is only comparable between two fits of the SAME objective.
+    Reporting "we beat the published 0.30" meant nothing here until the
+    trajectory was plotted.

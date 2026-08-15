@@ -1,12 +1,46 @@
-Critical Errors
+Validation report — robertson_session
 
+Critical Errors
+---------------
 None detected
 
 Warnings
+--------
+None detected
 
-- All three trainable parameters ('k1', 'k2', 'k3') have the LOGSCALE attribute set to 'Y' in the XML. This makes sense for 'k2' (min=5E3, max=5E10) and 'k3' (min=1E0, max=1E8), but for 'k1' (min=0.001, max=10.0), the total range is only four orders of magnitude. While it’s not critical, using logscale for 'k1' is borderline and might not be necessary unless the parameter is known to vary exponentially.
-- In _compute_loss_problem, the loss function is normalized by dividing by the maximum found in the dataset (scale_factor), which should generally keep the loss between 0 and 1 as intended. However, if the maximum value in the dataset is zero for any variable/column, this could lead to divide-by-zero errors or NaNs. To be safe, add a small constant to the denominator or use np.maximum with a small floor value.
-- In writeout_description, the code assumes that 'dataset' and 'solution' will always have exactly three columns. If this is not the case in the provided data, the assignment will broadcast incorrectly or raise errors. Double-check that your 'dataset' and 'solution' will always have three columns.
-- Be sure your integrated variables ('y1', 'y2', 'y3') stay well-scaled and numerically stable with the current initial conditions and stiff dynamics. Robertson problems are known to be stiff and may benefit from tight tolerances—the current tolerances look appropriate, but it’s something to watch during runs.
+Recommendations
+---------------
+[R4] POP_STEPSIZE_ATOL: 1E-3,1E-3,1E-3 -> 1E-3,1E-8,1E-4
+     Evidence: across the whole dataset y2 spans 4.0e-08 to 3.642e-05, so the
+          global-search absolute tolerance of 1E-3 is 27x larger than y2's
+          largest value. y3 peaks at 0.3828, y1 at 1.0.
+     Why: PIDController bounds the local error by |y|*rtol + atol, so an atol
+          above the entire range of a state leaves that state effectively
+          unconstrained. During the global search the integrator is free to
+          return almost anything for y2, yet the loss scales each column by its
+          own maximum — so y2 carries a full third of the residual while being
+          the least resolved. The gradient stage is unaffected (its atol is
+          1e-9); this only degrades the point PSO hands over.
+     Edit: <P> POP_STEPSIZE_ATOL = 1E-3,1E-8,1E-4 </P>   (POPULATION_OPT/SETTINGS)
+
+[R1] Integrator family: implicit — the current default is already correct
+     Evidence: user_defined_system is polynomial (-k1*y1 + k3*y3*y2, etc.) with
+          no sign/abs/floor/clip/where, so the RHS is smooth. The search box
+          spans k1 in [1e-3, 10] against k2 in [5e3, 5e10] — 13 decades of rate
+          constant — and the RHS couples a fast y2 (k2*y2**2, k2 up to 5e10) to
+          a slow y1.
+     Why: smooth plus a wide timescale ratio is the stiff case, which needs an
+          implicit solver; an explicit one drives the step size to zero and
+          exhausts MAX_STEPS. INTEGRATOR is absent, so the framework defaults to
+          Kvaerno5 — implicit, and marked validated in lib/LLM/api/diffrax.md.
+     Edit: none — no change needed.
+
+Applied
+-------
+R4 applied: POP_STEPSIZE_ATOL is now 1E-3,1E-8,1E-4. Re-validated — one value
+per state, population tolerances still looser than the gradient ones, nothing
+below 1e-12.
+R1 required no change (INTEGRATOR absent, so the default Kvaerno5 already
+provides the recommended implicit family).
 
 Number of critical errors: 0

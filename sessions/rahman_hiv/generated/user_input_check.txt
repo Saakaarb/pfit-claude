@@ -1,15 +1,108 @@
-## Critical Errors
+Validation report — rahman_hiv
 
-None detected.
+Critical Errors
+---------------
+None detected
 
-## Warnings
+Warnings
+--------
+None detected
 
-1. PROCESSORS = 16. Ensure the host has at least 16 logical cores; oversubscribing
-   beyond os.cpu_count() will not speed up the run.
+Recommendations
+---------------
+[R1] Integrator family: implicit — the current INTEGRATOR = Kvaerno5 is correct
+     Evidence: the RHS is smooth — sums, products, one division by the total
+          population and one np.exp() for the behavioural-change damping; no
+          sign(), abs(), clip() or state-dependent where(). Stiffness is bounded
+          numerically rather than guessed, by the Bendixson matrix measure over
+          the box (autodiff J = df/dy at sampled states and parameters; no
+          trajectory is integrated):
+              max |Re lambda|  <=  596.8 / year
+          attained at rel_n = 819, beta_m = 0.75. Against the 22-year record,
+              N_explicit = 22 x 596.8 = 13,130 steps needed for STABILITY,
+          while accuracy needs only t_span / tau_min = 22 / 1.0 = 22 steps
+          (tau_min = 1 year, the smallest local timescale in the prevalence
+          column).
+     Why: the gap between the stability requirement and the accuracy
+          requirement is ~600x, and that gap is the definition of stiffness. An
+          explicit method would be pinned at ~13,130 steps for the whole solve —
+          above the current MAX_STEPS of 10,000 — so it is not merely slower, it
+          would fail outright on that part of the box and score error_loss,
+          hiding the region from the optimizer. Explicit is therefore NOT
+          demonstrably safe here and R1's tie-break does not apply.
+     Correcting a reading that a ratio of rate constants would have produced:
+          the bare bounds suggest every rate is capped at 1.0/year, which would
+          give only ~22 characteristic times and imply a non-stiff system. That
+          is wrong, because the transmission rates are products —
+          beta_n = rel_n * beta_m with rel_n up to 1000 — so the effective rate
+          reaches ~600/year. A rate-constant ratio under-estimates whenever a
+          rate reaches the Jacobian multiplied by another fitted parameter,
+          which is the unsafe direction; the matrix measure catches it.
+     Edit: none — no change needed.
 
-2. Loss weighting. The PEtab problem specifies constant measurement noise
-   (sigma = 1) for the single prevalence observable, so the peak-normalised RMSE
-   used here has the same minimiser as the Gaussian objective and stays ~[0,1].
-   No action needed; noted for transparency.
+[R9] Identifiability: nine rates against one aggregate observable, and three of
+     them are close to invisible by construction
+     Evidence: the lone observable is prevalence = (1 - S/N) * 100, which
+          depends on the state ONLY through the susceptible fraction. Every
+          individual who is not susceptible counts identically towards it,
+          whatever compartment they occupy. So the transitions that merely move
+          people between non-susceptible compartments — tau_w (Iw -> Tw), g_m
+          (Tm -> Tn) and g_w (Tw -> Tm) — leave prevalence unchanged except
+          through the difference in stage mortality (mu_Iw = 0.3108 versus
+          mu_Tw = 0.1752, and so on), which is a second-order effect on the
+          quantity being fitted. The remaining six enter prevalence directly
+          through the force of infection, so they are better constrained.
+     Why: N = 9 trainable against a single observed column is already three
+          times the count R9 flags on, but the structural argument is the
+          stronger one and it holds no matter how much data is collected on this
+          observable: only stage-resolved measurements can separate the treated
+          compartments. Expect a wide sloppiness spectrum and expect tau_w, g_m
+          and g_w in particular to be poorly determined. Neither is a fit
+          failure, and neither is fixed by a larger budget or a tighter box.
+     Edit: none — no change needed; read those three fitted values as "not
+           determined by this data".
+
+[R7] GRADIENT_OPTIMIZER: adam -> lbfgs, with NUM_ITERS 1000 -> ~50
+     Evidence: none of the three conditions that call for adam is present. The
+          RHS is smooth (see R1); the loss is a peak-normalised RMSE built from
+          squares and a square root, with no absolute values and no NaN masking;
+          and the refinement tolerances are tight (STEPSIZE_RTOL = 1E-8,
+          STEPSIZE_ATOL = 1E-3 against states of order 1E7, i.e. ~1e-10
+          relative).
+     Why: R7 assigns lbfgs to a smooth, well-normalised loss and reserves adam
+          for noisy gradients. Note also that the current NUM_ITERS = 1000 sits
+          exactly ON the adam floor of 1/INIT_VALUE_LR = 1/1e-3, not
+          comfortably above it: adam takes a normalised step of about
+          INIT_VALUE_LR per iteration in the [-1, 1] scaled space, so 1000
+          iterations at 1e-3 can traverse a distance of about 1.0 in a
+          coordinate whose full range is 2, and the annealing schedule reduces
+          the real figure below that. If adam is kept, that is the minimum
+          acceptable count rather than a generous one.
+     Caveat: the source document specifies adam for this problem. If the intent
+          is a like-for-like comparison with its published number, leave it.
+     Edit: <P> GRADIENT_OPTIMIZER = lbfgs </P>   (GRADIENT_OPT/SETTINGS)
+           <P> NUM_ITERS = 50 </P>               (GRADIENT_OPT/SETTINGS)
+
+Checked and already correct, so not recommended: LOGSCALE (R2 — all nine
+parameters span MAX_VAL/MIN_VAL = 1e4 and all are already Y); bounds (R3 — four
+decades each, well inside the ~8-decade limit); two-tier tolerances (R4 —
+POP_* are 100x looser per state, and the loose tier's permitted error works out
+at ~10 individuals out of 1.8e7, i.e. ~6e-5 percentage points of prevalence,
+which is three decades below the residual being chased, so the global search is
+not ranking candidates on integration noise); search budget (R5 — 600 x 30 =
+18,000 candidate evaluations against 10N = 90 and 20N^2 = 1,620); global
+algorithm (R6 — DE is already selected); MAX_STEPS (R10 — with the implicit
+solver the step is accuracy-limited, so the estimate is span/tau_min = 22 steps
+and the system has no singular corner, every compartment being bounded and every
+rate positive and finite; the current 10,000 therefore cannot bind and costs
+nothing. Note it WOULD bind at 13,130 under an explicit solver, which is part of
+why R1 keeps the implicit one); loss shape (R8 — a single observable, already
+peak-normalised).
+
+One observed property, not actionable: the initial conditions give a t = 0
+prevalence of 0.2019%, while the data's first row reports 0.3000%. That 0.098
+percentage-point gap is a residual no parameter set can remove, since the
+initial compartment populations are inputs rather than fitted quantities. It is
+a fixed floor on the achievable loss, not an input error.
 
 Number of critical errors: 0

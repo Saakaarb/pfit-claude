@@ -21,11 +21,14 @@ def unscale_value(val, min_val, max_val, is_logscale):
 def scale_value(unscaled_val, min_val, max_val, is_logscale):
     # If logscaled, take log10 first
     lin_val = jnp.where(is_logscale, jnp.log10(unscaled_val), unscaled_val)
-    # Linearly map [min_val, max_val] → [-1, 1]
+    # Linearly map [min_val, max_val] -> [-1, 1]
     scaled = 2.0 * (lin_val - min_val) / (max_val - min_val) - 1.0
     return scaled
 
 
+# Immunity-based HIV transmission model of Rahman, Vaidya & Zou (2016): seven
+# compartments across an infected and a treated arm, coupled through a force of
+# infection damped by a behavioural-change response. Time in years.
 @jax.jit
 def user_defined_system(t, y, other_args):
 
@@ -41,63 +44,60 @@ def user_defined_system(t, y, other_args):
     is_logscale = constants["is_logscale"]
     # ----------------------
 
-    # Order: [rel_n, beta_m, rel_w, treat_w, worsen_n, worsen_m, improve_m, improve_w, bcr]
-    (rel_n, beta_m, rel_w, treat_w, worsen_n, worsen_m,
-     improve_m, improve_w, bcr) = unscale_value(trainable_variables, min_val, max_val, is_logscale)
+    # Order: ['rel_n', 'beta_m', 'rel_w', 'tau_w', 'w_n', 'w_m', 'g_m', 'g_w', 'bcr']
+    rel_n, beta_m, rel_w, tau_w, w_n, w_m, g_m, g_w, bcr = unscale_value(
+        trainable_variables, min_val, max_val, is_logscale
+    )
 
-    recruitment = fixed_parameters['recruitment_rate']
-    S_death     = fixed_parameters['susceptible_death_rate']
-    In_death    = fixed_parameters['infected_normal_death_rate']
-    Im_death    = fixed_parameters['infected_moderate_death_rate']
-    Iw_death    = fixed_parameters['infected_weak_death_rate']
-    Tn_death    = fixed_parameters['treated_normal_death_rate']
-    Tm_death    = fixed_parameters['treated_moderate_death_rate']
-    Tw_death    = fixed_parameters['treated_weak_death_rate']
-    treat_n     = fixed_parameters['infected_normal_treatment_rate']
-    treat_m     = fixed_parameters['infected_moderate_treatment_rate']
-    t_factor    = fixed_parameters['treated_transmission_factor']
+    Lambda = fixed_parameters['Lambda']
+    f_t = fixed_parameters['f_t']
+    tau_n = fixed_parameters['tau_n']
+    tau_m = fixed_parameters['tau_m']
+    mu_S = fixed_parameters['mu_S']
+    mu_In = fixed_parameters['mu_In']
+    mu_Im = fixed_parameters['mu_Im']
+    mu_Iw = fixed_parameters['mu_Iw']
+    mu_Tn = fixed_parameters['mu_Tn']
+    mu_Tm = fixed_parameters['mu_Tm']
+    mu_Tw = fixed_parameters['mu_Tw']
 
-    susceptible       = y[0]
-    infected_normal   = y[1]
-    infected_moderate = y[2]
-    infected_weak     = y[3]
-    treated_normal    = y[4]
-    treated_moderate  = y[5]
-    treated_weak      = y[6]
+    S = y[0]
+    In = y[1]
+    Im = y[2]
+    Iw = y[3]
+    Tn = y[4]
+    Tm = y[5]
+    Tw = y[6]
 
+    # this part is user entered
+    # ---------------------------------------------------
+    # the stage transmission rates are all tied to the single reference rate
     beta_n = rel_n * beta_m
     beta_w = rel_w * beta_m
-    beta_t = t_factor * beta_m
+    beta_t = f_t * beta_m
 
-    total_pop = (susceptible + infected_normal + infected_moderate + infected_weak
-                 + treated_normal + treated_moderate + treated_weak)
-    total_infected = (infected_normal + infected_moderate + infected_weak
-                      + treated_normal + treated_moderate + treated_weak)
+    N = S + In + Im + Iw + Tn + Tm + Tw
+    infected_total = In + Im + Iw + Tn + Tm + Tw
 
-    force_of_infection = ((beta_n * infected_normal + beta_m * infected_moderate
-                           + beta_w * infected_weak
-                           + beta_t * (treated_normal + treated_moderate + treated_weak))
-                          / total_pop) * jnp.exp(-bcr * total_infected)
+    # force of infection, damped by a behavioural-change response that
+    # weakens transmission as the infected population grows
+    lam = ((beta_n * In + beta_m * Im + beta_w * Iw
+            + beta_t * (Tn + Tm + Tw)) / N) * jnp.exp(-bcr * infected_total)
 
-    dsusceptible_dt      = recruitment - force_of_infection * susceptible - S_death * susceptible
-    dinfected_normal_dt  = (force_of_infection * susceptible
-                            - worsen_n * infected_normal - treat_n * infected_normal
-                            - In_death * infected_normal)
-    dinfected_moderate_dt = (worsen_n * infected_normal
-                             - worsen_m * infected_moderate - treat_m * infected_moderate
-                             - Im_death * infected_moderate)
-    dinfected_weak_dt    = (worsen_m * infected_moderate
-                            - treat_w * infected_weak - Iw_death * infected_weak)
-    dtreated_normal_dt   = (improve_m * treated_moderate + treat_n * infected_normal
-                            - Tn_death * treated_normal)
-    dtreated_moderate_dt = (improve_w * treated_weak - improve_m * treated_moderate
-                            + treat_m * infected_moderate - Tm_death * treated_moderate)
-    dtreated_weak_dt     = (treat_w * infected_weak - improve_w * treated_weak
-                            - Tw_death * treated_weak)
+    dSdt = Lambda - lam * S - mu_S * S
 
-    return jnp.array([dsusceptible_dt, dinfected_normal_dt, dinfected_moderate_dt,
-                      dinfected_weak_dt, dtreated_normal_dt, dtreated_moderate_dt,
-                      dtreated_weak_dt])
+    dIndt = lam * S - w_n * In - tau_n * In - mu_In * In
+    dImdt = w_n * In - w_m * Im - tau_m * Im - mu_Im * Im
+    dIwdt = w_m * Im - tau_w * Iw - mu_Iw * Iw
+
+    # the treated arm mirrors the infected arm with the arrows reversed:
+    # individuals enter at tau and then improve back up the stages at g
+    dTndt = tau_n * In + g_m * Tm - mu_Tn * Tn
+    dTmdt = tau_m * Im + g_w * Tw - g_m * Tm - mu_Tm * Tm
+    dTwdt = tau_w * Iw - g_w * Tw - mu_Tw * Tw
+    # ---------------------------------------------------
+
+    return jnp.array([dSdt, dIndt, dImdt, dIwdt, dTndt, dTmdt, dTwdt])
 
 
 # fixed
@@ -110,7 +110,9 @@ def _integrate_system(constants, trainable_variables):
     init_cond = constants["init_cond"]
     init_time = constants["init_time"]
     dataset = constants["dataset"]
-    # save times must equal the data times (rows are differenced against dataset)
+    # The saved rows are differenced against `dataset` row-for-row, so the save
+    # times MUST equal the data times. `ts=t_eval` guarantees that for any
+    # `init_time`. Do NOT use `SaveAt(t0=True, ts=t_eval[1:])`.
     saveat = diffrax.SaveAt(ts=t_eval)
 
     other_args = {"constants": constants, "trainable_variables": trainable_variables}
@@ -137,44 +139,64 @@ def _compute_loss_problem(constants, trainable_variables):
     # ---------------------------------------------------
     dataset = constants["dataset"]
     solution_time, solution, result = _integrate_system(constants, trainable_variables)
-    # Any code other than RESULTS.successful means the trajectory is untrustworthy
-    # (it may contain inf/NaN). See lib/LLM/api/diffrax.md for the full code table.
+    # Any code other than RESULTS.successful means the trajectory is not
+    # trustworthy (it may contain inf/NaN). See lib/LLM/api/diffrax.md.
     failed = jnp.invert(result == RESULTS.successful)
     # ---------------------------------------------------
 
-    # Observable: prevalence (%) = (1 - susceptible / total_population) * 100
-    total_pop = jnp.sum(solution, axis=1)
-    prevalence = (1.0 - solution[:, 0] / total_pop) * 100.0
+    # this part is user entered
+    # ---------------------------------------------------
+    S = solution[:, 0]
+    N = (solution[:, 0] + solution[:, 1] + solution[:, 2] + solution[:, 3]
+         + solution[:, 4] + solution[:, 5] + solution[:, 6])
 
-    prev_data = dataset[:, 0]
-    scale = jnp.maximum(jnp.max(jnp.abs(prev_data)), 1e-12)
-    loss_value = jnp.sqrt(jnp.mean(jnp.square((prevalence - prev_data) / scale)))
+    # the lone observable: the percentage of the population not susceptible
+    prevalence_sim = (1.0 - S / N) * 100.0
+    prevalence_exp = dataset[:, 0]
+
+    # peak-normalised RMSE, which keeps the loss on a [0, 1] scale
+    scale_factor = jnp.max(jnp.abs(prevalence_exp))
+    scale_factor = jnp.where(scale_factor == 0, 1.0, scale_factor)
+
+    loss_value = jnp.sqrt(jnp.mean(jnp.square(
+        (prevalence_sim - prevalence_exp) / scale_factor)))
+    # ---------------------------------------------------
 
     # fixed
     # --------------------------------------
     loss = jnp.where(failed,
-        constants["error_loss"],
-        loss_value
+    constants["error_loss"],
+    loss_value
     )
 
     return loss
 
 
+# the purpose of this function is to write out a CSV containing info
+# that is to be plotted
 def _write_problem_result(constants, trainable_variables):
 
     # fixed
     # ---------------------------------------------------
     dataset = constants["dataset"]
+
     solution_time, solution, result = _integrate_system(constants, trainable_variables)
     # ---------------------------------------------------
 
-    total_pop = jnp.sum(solution, axis=1)
-    prevalence = (1.0 - solution[:, 0] / total_pop) * 100.0
+    # the rest is user entered
+    # ---------------------------------------------------
+    S = solution[:, 0]
+    N = (solution[:, 0] + solution[:, 1] + solution[:, 2] + solution[:, 3]
+         + solution[:, 4] + solution[:, 5] + solution[:, 6])
+
+    prevalence_sim = (1.0 - S / N) * 100.0
+    prevalence_exp = dataset[:, 0]
 
     Nts = solution_time.shape[0]
     writeout_array = jnp.zeros([Nts, 3])
     writeout_array = writeout_array.at[:, 0].set(solution_time)
-    writeout_array = writeout_array.at[:, 1].set(dataset[:, 0])
-    writeout_array = writeout_array.at[:, 2].set(prevalence)
+    writeout_array = writeout_array.at[:, 1].set(prevalence_exp)   # measured prevalence (%)
+    writeout_array = writeout_array.at[:, 2].set(prevalence_sim)   # simulated prevalence (%)
+    # ---------------------------------------------------
 
     return writeout_array

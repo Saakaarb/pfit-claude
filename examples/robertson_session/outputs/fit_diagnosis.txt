@@ -1,0 +1,51 @@
+Fit diagnosis: robertson_session
+================================================================
+Stage 1 : PSO, 20 iters, best cost 1.5624E-01 -> 4.8815E-03
+Stage 2 : lbfgs, 10 iters, best loss 2.6558E-03 -> 4.7459E-04
+Exit    : |grad|_inf 0.03 at loss 4.7459E-04  (ratio 63.2) -> budget-limited
+Sloppiness: well-determined, spread 1.56 decades, 0 non-identifiable
+Verdict : good fit, but both stages stopped on their iteration budget rather
+          than on convergence. All three parameters are recovered to better than
+          0.35% and every residual is under 0.1%, so this is a question of
+          whether the remaining margin is worth ~30 s, not a broken fit.
+
+Rules checked and not fired: S1, S2 (no solve returned error_loss = 5000 on any
+line); S3 (stage-1 final 4.8815E-03 vs first NODE loss 2.6558E-03 is a 1.84x
+handoff gap, below the 2x observation band, and in the benign direction — the
+loose stage found the right basin, which is all it is asked to do); S4 (stage 1
+did not flatten); S6 (the gradient stage cut the loss 82%); S8 (per-column nRMSE
+y1 0.004%, y2 0.082%, y3 0.009% — no column is being starved); S9 (by time
+region 0.043% / 0.007% / 0.020% — no systematic early or late bias); S10 (not
+sloppy); S11 (63 s total). S12 does not apply because S7 fired.
+
+Findings
+--------
+[S7] GRADIENT_OPT/NUM_ITERS: 10 -> 50
+     Evidence: sloppiness_report.txt gives |grad|_inf = 0.03 at loss 4.7459E-04,
+          a ratio of 63. All three axes are LOGSCALE = Y, so that ratio is
+          dimensionless: a step of ~1.6% of a decade was worth the entire
+          remaining loss. The last three NODE iterations were still improving
+          materially — 5.93E-04, 5.12E-04, 4.75E-04, roughly 8-13% per
+          iteration — and no parameter is pinned (k1 40.1%, k2 54.0%, k3 50.0%
+          of their log-boxes), which rules out the S6 clipping explanation.
+     Cause: the gradient stage has no convergence criterion; it ran exactly the
+          10 iterations it was given and stopped mid-descent.
+     Edit: <P> NUM_ITERS = 50 </P>   (GRADIENT_OPT/SETTINGS)
+     Re-run: fit_gradient_only.py examples/robertson_session — the seed point is
+          reused, so stage 1 is not repeated.
+
+[S5] POPULATION_OPT/NUM_ITERS: 20 -> 40
+     Evidence: pso_fitting.log best_cost was 1.3094E-02 at iteration 15 and
+          4.8815E-03 at iteration 20 — a 2.7x improvement across the final
+          quarter of the run, so the search was still descending when it hit its
+          budget.
+     Cause: NUM_ITERS, not population size, was the binding constraint —
+          POPULATION_SIZE = 100 already clears both 10*N = 30 and the 20*N^2
+          budget check.
+     Edit: <P> NUM_ITERS = 40 </P>   (POPULATION_OPT/SETTINGS)
+     Re-run: fit_parameters.py examples/robertson_session (full re-fit; a
+          different stage-1 endpoint invalidates the current seed).
+
+Note on impact: applying S7 alone is the cheap half — it reuses the existing
+seed and costs about 30 s. S5 requires a full re-fit for a stage whose output is
+already good enough that the gradient stage reaches 0.3% accuracy from it.

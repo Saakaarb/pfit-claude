@@ -1,20 +1,93 @@
-## Critical Errors
+Validation report — boehm_stat5
 
-None detected.
+Critical Errors
+---------------
+None detected
 
-## Warnings
+Warnings
+--------
+None detected
 
-1. Very wide search ranges. All six trainable rate constants are searched over
-   [1e-5, 1e5] (ten orders of magnitude) on a log scale. This is the range
-   specified by the PEtab benchmark and is correctly log-scaled, but it is a
-   large space and the published optimum sits near the box edges (k_imp_homo and
-   k_phos are O(1e5), near the upper bound; k_exp_hetero is O(1e-5), near the
-   lower bound). The global search must therefore reach the corners of the box;
-   the DE budget (300 x 30 = 9000 evaluations) is adequate, but a poor fit would
-   most likely mean a parameter pinned at a bound and worth re-examining.
+Recommendations
+---------------
+[R1] Integrator family: implicit — the current INTEGRATOR = Kvaerno5 is correct
+     Evidence: the RHS is smooth — products of states, one np.exp() for the Epo
+          decay, and nothing else; no sign(), abs(), clip(), floor() or any
+          where() on a state-dependent condition. Stiffness is extreme and is
+          visible directly in the search box: k_imp_homo is searched over
+          [9.77E2, 9.77E6] while k_exp_hetero is searched over [1E-7, 1E-3], so
+          a single candidate carries rate constants spanning up to 13 decades,
+          and the fast dimer-import and slow nuclear-export processes are
+          coupled in the same 8-state system.
+     Why: R1 calls for an implicit solver on a smooth RHS with a wide timescale
+          ratio. Kvaerno5 appears in the solver table of lib/LLM/api/diffrax.md
+          as implicit (stiff) and is marked validated. An explicit method would
+          be limited to a step of order 1/k_imp_homo ~ 1E-7 across a 240-unit
+          span, which is ~1E9 steps — unreachable at any MAX_STEPS.
+     Edit: none — no change needed.
 
-2. specC17 is unpacked inside user_defined_system but only used in the
-   observables (loss / writeout), not in the ODE right-hand side. This is
-   harmless and needs no change.
+[R7] GRADIENT_OPTIMIZER: adam -> lbfgs, with NUM_ITERS 1000 -> ~50
+     Evidence: none of the three conditions that call for adam is present here.
+          The RHS is smooth (see R1); the loss in _compute_loss_problem is a
+          plain column-scaled RMSE with no NaN masking and no absolute values;
+          and the refinement tolerances are tight (STEPSIZE_RTOL = 1E-7,
+          STEPSIZE_ATOL = 1E-9), so the gradient is not being computed through a
+          loosely-integrated trajectory.
+     Why: R7 assigns lbfgs to a smooth, well-normalised loss and reserves adam
+          for noisy gradients. L-BFGS is quasi-Newton — it builds a curvature
+          model and line-searches, so it converges in tens of iterations rather
+          than a thousand, which here would also cut the gradient stage's cost
+          by more than an order of magnitude.
+     Caveat, stated because it cuts the other way: the source document
+          specifies adam for this problem, and the model is known to be sloppy
+          (see R9). A sloppy optimum has a near-singular Hessian, which is
+          exactly the regime where a curvature model is least reliable. This is
+          the one recommendation here that is a genuine judgement call rather
+          than a rule application — if the intent is to reproduce the source's
+          published number, leave adam alone.
+     Edit: <P> GRADIENT_OPTIMIZER = lbfgs </P>   (GRADIENT_OPT/SETTINGS)
+           <P> NUM_ITERS = 50 </P>               (GRADIENT_OPT/SETTINGS)
+
+[R9] Identifiability: expect k_imp_homo and k_exp_hetero to be unidentifiable,
+     and do not read their fitted values as estimates
+     Evidence: this is structural and visible in the RHS, not merely a
+          data-scarcity count. k_imp_homo enters only as
+          dApA/dt = phos_AA - k_imp_homo*ApA together with
+          dnApA/dt = (cyt/nuc)*k_imp_homo*ApA - k_exp_homo*nApA. Once
+          k_imp_homo is large the cytoplasmic dimer is in quasi-steady state,
+          ApA ~ phos_AA/k_imp_homo, so the nuclear influx (cyt/nuc)*k_imp_homo*ApA
+          tends to (cyt/nuc)*phos_AA — with k_imp_homo cancelling out entirely.
+          Above that threshold the observables cannot see it at all. The same
+          argument applies to k_imp_homo through BpB. Separately, k_exp_hetero
+          multiplies nApB, and the three measured observables depend only on
+          cytoplasmic species, so k_exp_hetero acts on the fit solely through
+          the small material it returns to the cytoplasm.
+     Why: both parameters therefore have a direction along which the loss is
+          nearly flat, and a global search will settle them arbitrarily — most
+          likely against a bound. Expect the sloppiness report to show a wide
+          eigenvalue spread. This is not fixed by more iterations or a tighter
+          box; only a measurement of a nuclear species would fix it.
+     Edit: none — no change needed; read the fitted values of those two
+           parameters as "not determined", not as estimates.
+
+Checked and already correct, so not recommended: LOGSCALE (R2 — all six
+parameters have MAX_VAL/MIN_VAL = 1e4 and all are already Y); bounds (R3 —
+four decades each, well inside the ~8-decade limit, and centred on the source's
+published values as its own recipe prescribes); two-tier tolerances (R4 —
+POP_* are 100x looser than the refinement values on every state; the loose
+tier's permitted error is ~1e-3 on states of order 1e2, three decades below the
+~6-percentage-point residual being chased, so the global search is not
+optimising integration error); search budget (R5 — 600 x 30 = 18,000 candidate
+evaluations against 10N = 60 and 20N^2 = 720); global algorithm (R6 — DE is
+already selected and is the right call for a 13-decade, known-sloppy box);
+loss shape (R8 — the three data columns peak at 95.1, 82.0 and 49.7, a spread
+of only ~2x, and the loss already divides each residual by its own column
+maximum).
+
+One observed property, not actionable: the model starts with all dimers at
+zero, so pSTAT5A_rel and pSTAT5B_rel are identically 0 at t = 0, while the data
+report 7.90 and 4.60. That row contributes a residual no parameter set can
+remove — it is assay background, and the source's own published-parameter loss
+carries it too. It is a fixed floor on the achievable loss, not an input error.
 
 Number of critical errors: 0

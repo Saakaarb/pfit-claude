@@ -1,148 +1,142 @@
 import numpy as np
 
-# Key:
-# Nts: number of time steps in dataset
-# Ny: number of state variables defined in the user_input.xml file
-# N_col: number of columns in dataset provided (including the first column as time)
-
 # Ordering of parameters in trainable_parameters as provided by the user:
-# ['Ea1', 'h1', 'A1', 'A2', 'Ea2', 'h2', 'm2']
+# ['Ea1', 'A1', 'n1', 'h1', 'Ea2', 'A2', 'm2', 'h2']
 # Ordering of integrated variables as provided by the user:
 # ['c1', 'c2', 'T']
+#
+# Two-reaction Arrhenius model of lithium-ion battery thermal runaway, fitted to
+# accelerating-rate calorimetry. Reaction 1 consumes reactant c1; reaction 2
+# produces c2 and only ignites above T_ignite, which is what makes the RHS
+# non-smooth.
 
-def user_defined_system(t: float, y: np.ndarray, trainable_parameters: dict, fixed_parameters: dict, dataset: np.ndarray, t_eval: np.ndarray):
 
-        # Arguments:
-        # t: time (float)
-        # y: state vector (np.ndarray of size [Ny])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
-        # dataset: dataset (np.ndarray of size [Nts,N_col-1]) (first dimension in dataset is time)
-        # t_eval: evaluation times (np.ndarray of size [Nts])
+def _heat_rate(c1, c2, T, Ea1, A1, n1, h1, Ea2, A2, m2, h2, T_ignite, kb):
+        """Both reaction rates and the resulting dT/dt, shared by the RHS and
+        the loss (which must reconstruct dT/dt from the saved states)."""
 
-        # this part is to be populated by the model
-        #--------------------------------
+        # Arrhenius kinetics; c1 is consumed, c2 is produced towards 1
+        dc1dt = -A1 * np.exp(-Ea1 / (kb * T)) * c1**n1
+        dc2dt = A2 * np.exp(-Ea2 / (kb * T)) * (1.0 - c2)**m2
+
+        # the second exotherm contributes only once the cell is hot enough
+        second = np.where(T > T_ignite, np.abs(h2 * dc2dt), 0.0)
+        dTdt = np.abs(h1 * dc1dt) + second
+
+        return dc1dt, dc2dt, dTdt
+
+
+def user_defined_system(t, y, trainable_parameters, fixed_parameters, dataset, t_eval):
+
         Ea1 = trainable_parameters['Ea1']
-        h1  = trainable_parameters['h1']
         A1  = trainable_parameters['A1']
-        A2  = trainable_parameters['A2']
-        Ea2 = trainable_parameters['Ea2']
-        h2  = trainable_parameters['h2']
-        m2  = trainable_parameters['m2']
         n1  = trainable_parameters['n1']
+        h1  = trainable_parameters['h1']
+        Ea2 = trainable_parameters['Ea2']
+        A2  = trainable_parameters['A2']
+        m2  = trainable_parameters['m2']
+        h2  = trainable_parameters['h2']
 
-        kb = fixed_parameters['kb']
+        T_ignite = fixed_parameters['T_ignite']
+        kb       = fixed_parameters['kb']
 
         c1 = y[0]
         c2 = y[1]
         T  = y[2]
 
-        #--------------------------------
+        dc1dt, dc2dt, dTdt = _heat_rate(c1, c2, T, Ea1, A1, n1, h1,
+                                        Ea2, A2, m2, h2, T_ignite, kb)
 
-        # this part is to be populated by the user
-        #--------------------------------
-        dc1_dt= - A1*np.exp(-Ea1/(kb*T))*c1**n1
-        dc2_dt= A2*np.exp(-Ea2/(kb*T)) * (1-c2)**m2
-        dT_dt=np.abs(h1*dc1_dt)
+        return np.array([dc1dt, dc2dt, dTdt])
 
-        if T > 485:
-                dT_dt+=np.abs(h2*dc2_dt)
-        
-        #--------------------------------
-        derivatives = np.array([dc1_dt, dc2_dt, dT_dt]) #
-        return derivatives # of shape [Ny]. Each derivative term must be user defined
 
-def _compute_loss_problem(solution_time: np.ndarray, solution: np.ndarray, dataset: np.ndarray, trainable_parameters: dict, fixed_parameters: dict):
+def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
-        # Arguments:
-        # solution_time: time (np.ndarray of size [Nts])
-        # solution: state vector (np.ndarray of size [Nts,Ny])
-        # dataset: dataset (np.ndarray of size [Nts,N_col-1])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
-
-        loss = 0.0
-
-        # this part is to be populated by the model
-        #--------------------------------
         Ea1 = trainable_parameters['Ea1']
-        h1  = trainable_parameters['h1']
         A1  = trainable_parameters['A1']
-        A2  = trainable_parameters['A2']
-        Ea2 = trainable_parameters['Ea2']
-        h2  = trainable_parameters['h2']
-        m2  = trainable_parameters['m2']
         n1  = trainable_parameters['n1']
+        h1  = trainable_parameters['h1']
+        Ea2 = trainable_parameters['Ea2']
+        A2  = trainable_parameters['A2']
+        m2  = trainable_parameters['m2']
+        h2  = trainable_parameters['h2']
 
-        kb = fixed_parameters['kb']
-        #--------------------------------
+        T_ignite = fixed_parameters['T_ignite']
+        kb       = fixed_parameters['kb']
 
-        # this part is to be populated by the user
-        #--------------------------------
-        Nts=solution_time.shape[0]
-        heat_rate_pred=np.zeros(Nts)
-        for i in range(Nts):
-                derivs=user_defined_system(solution_time[i],solution[i,:],
-                                                trainable_parameters,fixed_parameters)
-                heat_rate_pred[i]=derivs[-1]
-        eps = 1e-12
-        log_range = np.log10(np.max(dataset[:,-1]+eps)) - np.log10(np.min(dataset[:,-1]+eps))
-        loss1 = np.mean(np.abs(np.log10(heat_rate_pred+eps) - np.log10(dataset[:,-1]+eps))) / log_range
-        loss2 = np.mean(np.abs((dataset[:,0]-solution[:,2])/np.max(np.abs(dataset[:,0]))))
+        c1 = solution[:, 0]
+        c2 = solution[:, 1]
+        T  = solution[:, 2]
 
-        c1_end = solution[-1, 0]
-        c2_end = solution[-1, 1]
-        T_end  = solution[-1, 2]
+        T_exp    = dataset[:, 0]
+        rate_exp = dataset[:, 1]
 
-        loss3 = 100.0 * (np.maximum(0.0, c1_end - 0.1) +
-                         np.maximum(0.0, 0.9 - c2_end) +
-                         np.maximum(0.0, 600.0 - T_end) / 600.0)
-        #--------------------------------
+        # the model heating rate, reconstructed from the saved states
+        _, _, rate_sim = _heat_rate(c1, c2, T, Ea1, A1, n1, h1,
+                                    Ea2, A2, m2, h2, T_ignite, kb)
 
-        return loss1 + loss2 + loss3 # scalar
+        # L1: the heating rate spans six decades, so it is matched in log space.
+        # A linear residual would let the runaway endpoint own the objective and
+        # ignore the low-temperature kinetics that fix the activation energies.
+        floor = 1e-12
+        log_sim = np.log10(np.maximum(rate_sim, floor))
+        log_exp = np.log10(np.maximum(rate_exp, floor))
+        log_span = np.max(log_exp) - np.min(log_exp)
+        loss_rate = np.mean(np.abs(log_sim - log_exp)) / log_span
+
+        # L2: the temperature trajectory, normalised by its peak
+        loss_temp = np.mean(np.abs(T_exp - T)) / np.max(np.abs(T_exp))
+
+        # L3: one-sided physical priors the under-determined data cannot
+        # enforce. Vanishes once the fit reaches a valid runaway, so it is
+        # inactive at the optimum and only steers the search away from
+        # non-igniting solutions.
+        c1_end = c1[-1]
+        c2_end = c2[-1]
+        T_end  = T[-1]
+        loss_prior = 100.0 * (
+            np.maximum(0.0, c1_end - 0.1)
+            + np.maximum(0.0, 0.9 - c2_end)
+            + (1.0 / 600.0) * np.maximum(0.0, 600.0 - T_end)
+        )
+
+        # An endpoint term |T[-1] - T_exp[-1]| was trialled here to stop the
+        # temperature overshooting, and was reverted. It did pin the endpoint
+        # (1251 K -> 638 K) and the enthalpies fell ~4x as intended, but the
+        # optimum moved to a slow ramp: the transition became ~3 decades too
+        # slow in rate and ignited ~3000 s early, so the log-rate term degraded
+        # from 0.074 to 0.215. Constraining the endpoint does not constrain the
+        # SHARPNESS, and trading the runaway away is the worse failure for this
+        # experiment. See the note in generated/user_input_check.txt.
+        return loss_rate + loss_temp + loss_prior
 
 
-def writeout_description(solution_time: np.ndarray, solution: np.ndarray, dataset: np.ndarray, trainable_parameters: dict, fixed_parameters: dict):
+def writeout_description(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
-        # Arguments:
-        # solution_time: time (np.ndarray of size [Nts])
-        # solution: state vector (np.ndarray of size [Nts,Ny])
-        # dataset: dataset (np.ndarray of size [Nts,N_col-1])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
-        # Change the size of writeout_array as per your requirement
-
-        # this part is to be populated by the model
-        #--------------------------------
         Ea1 = trainable_parameters['Ea1']
-        h1  = trainable_parameters['h1']
         A1  = trainable_parameters['A1']
-        A2  = trainable_parameters['A2']
-        Ea2 = trainable_parameters['Ea2']
-        h2  = trainable_parameters['h2']
-        m2  = trainable_parameters['m2']
         n1  = trainable_parameters['n1']
+        h1  = trainable_parameters['h1']
+        Ea2 = trainable_parameters['Ea2']
+        A2  = trainable_parameters['A2']
+        m2  = trainable_parameters['m2']
+        h2  = trainable_parameters['h2']
 
-        kb = fixed_parameters['kb']
-        #--------------------------------
+        T_ignite = fixed_parameters['T_ignite']
+        kb       = fixed_parameters['kb']
 
-        writeout_array = np.zeros([solution_time.shape[0], 5]) # DEFINE THIS as required!
+        c1 = solution[:, 0]
+        c2 = solution[:, 1]
+        T  = solution[:, 2]
 
-        # this part is to be populated by the user
-        #--------------------------------
-        writeout_array[:,0]=solution_time
-        writeout_array[:,1]=dataset[:,0]
-        writeout_array[:,2]=dataset[:,1]
-        writeout_array[:,3]=solution[:,2]
+        _, _, rate_sim = _heat_rate(c1, c2, T, Ea1, A1, n1, h1,
+                                    Ea2, A2, m2, h2, T_ignite, kb)
 
         Nts = solution_time.shape[0]
-        heat_rate_pred=np.zeros(Nts)
-        for i in range(Nts):
-                derivs=user_defined_system(solution_time[i],solution[i,:],
-                                                trainable_parameters,fixed_parameters)
-                heat_rate_pred[i]=derivs[-1]
-
-        writeout_array[:,4]=heat_rate_pred
-        #--------------------------------
-
-        return writeout_array # of custom shape
+        writeout_array = np.zeros([Nts, 5])
+        writeout_array[:, 0] = solution_time
+        writeout_array[:, 1] = dataset[:, 0]   # measured temperature (K)
+        writeout_array[:, 2] = dataset[:, 1]   # measured heat rate (K/s)
+        writeout_array[:, 3] = T               # simulated temperature (K)
+        writeout_array[:, 4] = rate_sim        # simulated heat rate (K/s)
+        return writeout_array

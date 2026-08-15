@@ -1,181 +1,108 @@
 import numpy as np
 
-# Key:
-# Nts: number of time steps in dataset
-# Ny: number of state variables defined in the user_input.xml file
-# N_col: number of columns in dataset provided (including the first column as time)
-
-# Boehm et al. (2014) STAT5A/B dimerisation model (PEtab benchmark).
-# 8 species, 9 reactions, two compartments (cyt = 1.4, nuc = 0.45).
-# Time is in minutes; Epo input decays as BaF3_Epo(t) = Epo0 * exp(-Epo_degradation_BaF3 * t).
+# Ordering of parameters in trainable_parameters as provided by the user:
+# ['k_deg', 'k_exp_hetero', 'k_exp_homo', 'k_imp_hetero', 'k_imp_homo', 'k_phos']
+# Ordering of integrated variables as provided by the user:
+# ['A', 'B', 'ApB', 'ApA', 'BpB', 'nApA', 'nApB', 'nBpB']
 #
-# Trainable parameter ordering in the parameter vector:
-#   0: Epo_degradation_BaF3   (Epo input decay rate, 1/min)
-#   1: k_exp_hetero           (nuclear export of pApB,       1/min)
-#   2: k_exp_homo             (nuclear export of pApA/pBpB,  1/min)
-#   3: k_imp_hetero           (nuclear import of pApB,       1/min)
-#   4: k_imp_homo             (nuclear import of pApA/pBpB,  1/min)
-#   5: k_phos                 (phosphorylation/dimerisation rate)
-#
-# Integrated variable ordering (matches user_input.xml):
-#   0: STAT5A  1: STAT5B  2: pApB  3: pApA  4: pBpB  5: nucpApA  6: nucpApB  7: nucpBpB
+# STAT5A/STAT5B dimerisation model of Boehm et al. (2014). Monomers A and B are
+# phosphorylated and dimerise in the cytoplasm, are imported into the nucleus,
+# and are exported back as monomers. Epo stimulation decays exponentially.
 
 
-def user_defined_system(t: float, y: np.ndarray, trainable_parameters: dict, fixed_parameters: dict, dataset: np.ndarray, t_eval: np.ndarray):
+def user_defined_system(t, y, trainable_parameters, fixed_parameters, dataset, t_eval):
 
-        # Arguments:
-        # t: time (float)
-        # y: state vector (np.ndarray of size [Ny])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
-        # dataset: dataset (np.ndarray of size [Nts,N_col-1]) (first dimension in dataset is time)
-        # t_eval: evaluation times (np.ndarray of size [Nts])
+        k_deg        = trainable_parameters['k_deg']
+        k_exp_hetero = trainable_parameters['k_exp_hetero']
+        k_exp_homo   = trainable_parameters['k_exp_homo']
+        k_imp_hetero = trainable_parameters['k_imp_hetero']
+        k_imp_homo   = trainable_parameters['k_imp_homo']
+        k_phos       = trainable_parameters['k_phos']
 
-        # this part is to be populated by the model
-        #--------------------------------
-        Epo_degradation_BaF3 = trainable_parameters['Epo_degradation_BaF3']
-        k_exp_hetero         = trainable_parameters['k_exp_hetero']
-        k_exp_homo           = trainable_parameters['k_exp_homo']
-        k_imp_hetero         = trainable_parameters['k_imp_hetero']
-        k_imp_homo           = trainable_parameters['k_imp_homo']
-        k_phos               = trainable_parameters['k_phos']
+        Epo0 = fixed_parameters['Epo0']
+        cyt  = fixed_parameters['cyt']
+        nuc  = fixed_parameters['nuc']
 
-        cyt     = fixed_parameters['cyt']
-        nuc     = fixed_parameters['nuc']
-        Epo0    = fixed_parameters['Epo0']
-        specC17 = fixed_parameters['specC17']
+        A    = y[0]
+        B    = y[1]
+        ApB  = y[2]
+        ApA  = y[3]
+        BpB  = y[4]
+        nApA = y[5]
+        nApB = y[6]
+        nBpB = y[7]
 
-        STAT5A  = y[0]
-        STAT5B  = y[1]
-        pApB    = y[2]
-        pApA    = y[3]
-        pBpB    = y[4]
-        nucpApA = y[5]
-        nucpApB = y[6]
-        nucpBpB = y[7]
-        #--------------------------------
+        # Epo stimulation decays exponentially from its initial level
+        Epo = Epo0 * np.exp(-k_deg * t)
 
-        # this part is to be populated by the user
-        #--------------------------------
-        # Time-dependent Epo input (SBML assignment rule).
-        BaF3_Epo = Epo0 * np.exp(-Epo_degradation_BaF3 * t)
+        # mass-action phosphorylation / dimerisation in the cytoplasm
+        phos_AA = k_phos * Epo * A * A
+        phos_AB = k_phos * Epo * A * B
+        phos_BB = k_phos * Epo * B * B
 
-        # Compartment ratios (species are concentrations; fluxes carry a compartment factor).
-        cyt_over_nuc = cyt / nuc
-        nuc_over_cyt = nuc / cyt
+        # The volume ratios convert the transport fluxes between compartments:
+        # material leaving the cytoplasm is diluted into the smaller nucleus.
+        dAdt = (-2.0 * phos_AA - phos_AB
+                + (nuc / cyt) * (2.0 * k_exp_homo * nApA + k_exp_hetero * nApB))
+        dBdt = (-2.0 * phos_BB - phos_AB
+                + (nuc / cyt) * (2.0 * k_exp_homo * nBpB + k_exp_hetero * nApB))
 
-        # Phosphorylation / dimerisation in the cytoplasm
-        phos_AA = BaF3_Epo * k_phos * STAT5A * STAT5A
-        phos_AB = BaF3_Epo * k_phos * STAT5A * STAT5B
-        phos_BB = BaF3_Epo * k_phos * STAT5B * STAT5B
+        dApBdt = phos_AB - k_imp_hetero * ApB
+        dApAdt = phos_AA - k_imp_homo * ApA
+        dBpBdt = phos_BB - k_imp_homo * BpB
 
-        dSTAT5A_dt = (-2.0 * phos_AA - phos_AB
-                      + 2.0 * nuc_over_cyt * k_exp_homo * nucpApA
-                      + nuc_over_cyt * k_exp_hetero * nucpApB)
-        dSTAT5B_dt = (-phos_AB - 2.0 * phos_BB
-                      + nuc_over_cyt * k_exp_hetero * nucpApB
-                      + 2.0 * nuc_over_cyt * k_exp_homo * nucpBpB)
+        dnApAdt = (cyt / nuc) * k_imp_homo * ApA - k_exp_homo * nApA
+        dnApBdt = (cyt / nuc) * k_imp_hetero * ApB - k_exp_hetero * nApB
+        dnBpBdt = (cyt / nuc) * k_imp_homo * BpB - k_exp_homo * nBpB
 
-        dpApB_dt = phos_AB - k_imp_hetero * pApB
-        dpApA_dt = phos_AA - k_imp_homo * pApA
-        dpBpB_dt = phos_BB - k_imp_homo * pBpB
-
-        dnucpApA_dt = cyt_over_nuc * k_imp_homo * pApA - k_exp_homo * nucpApA
-        dnucpApB_dt = cyt_over_nuc * k_imp_hetero * pApB - k_exp_hetero * nucpApB
-        dnucpBpB_dt = cyt_over_nuc * k_imp_homo * pBpB - k_exp_homo * nucpBpB
-        #--------------------------------
-
-        derivatives = np.array([dSTAT5A_dt, dSTAT5B_dt, dpApB_dt, dpApA_dt, dpBpB_dt,
-                                dnucpApA_dt, dnucpApB_dt, dnucpBpB_dt])
-        return derivatives  # of shape [Ny]. Each derivative term must be user defined
+        return np.array([dAdt, dBdt, dApBdt, dApAdt, dBpBdt,
+                         dnApAdt, dnApBdt, dnBpBdt])
 
 
-def _compute_loss_problem(solution_time: np.ndarray, solution: np.ndarray, dataset: np.ndarray, trainable_parameters: dict, fixed_parameters: dict):
+def _observables(solution, fixed_parameters):
+        """The three measured relative percentages, from cytoplasmic species."""
+        s = fixed_parameters['specC17']
 
-        # Arguments:
-        # solution_time: time (np.ndarray of size [Nts])
-        # solution: state vector (np.ndarray of size [Nts,Ny])
-        # dataset: dataset (np.ndarray of size [Nts,N_col-1])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
+        A   = solution[:, 0]
+        B   = solution[:, 1]
+        ApB = solution[:, 2]
+        ApA = solution[:, 3]
+        BpB = solution[:, 4]
 
-        loss = 0.0
+        pSTAT5A = (100.0 * ApB + 200.0 * ApA * s) / (ApB + A * s + 2.0 * ApA * s)
+        pSTAT5B = (-(100.0 * ApB - 200.0 * BpB * (s - 1.0))
+                   / ((B * (s - 1.0) - ApB) + 2.0 * BpB * (s - 1.0)))
+        rSTAT5A = ((100.0 * ApB + 100.0 * A * s + 200.0 * ApA * s)
+                   / (2.0 * ApB + A * s + 2.0 * ApA * s
+                      - B * (s - 1.0) - 2.0 * BpB * (s - 1.0)))
 
-        # this part is to be populated by the model
-        #--------------------------------
-        specC17 = fixed_parameters['specC17']
-        #--------------------------------
-
-        # this part is to be populated by the user
-        #--------------------------------
-        # Cytoplasmic species needed for the observables.
-        STAT5A = solution[:, 0]
-        STAT5B = solution[:, 1]
-        pApB   = solution[:, 2]
-        pApA   = solution[:, 3]
-        pBpB   = solution[:, 4]
-
-        # Relative-phosphorylation observables (PEtab observable formulas).
-        pSTAT5A_rel = (100.0 * pApB + 200.0 * pApA * specC17) / \
-                      (pApB + STAT5A * specC17 + 2.0 * pApA * specC17)
-        pSTAT5B_rel = -(100.0 * pApB - 200.0 * pBpB * (specC17 - 1.0)) / \
-                      ((STAT5B * (specC17 - 1.0) - pApB) + 2.0 * pBpB * (specC17 - 1.0))
-        rSTAT5A_rel = (100.0 * pApB + 100.0 * STAT5A * specC17 + 200.0 * pApA * specC17) / \
-                      (2.0 * pApB + STAT5A * specC17 + 2.0 * pApA * specC17
-                       - STAT5B * (specC17 - 1.0) - 2.0 * pBpB * (specC17 - 1.0))
-
-        model_obs = np.column_stack([pSTAT5A_rel, pSTAT5B_rel, rSTAT5A_rel])
-
-        # dataset columns: 0 = pSTAT5A_rel, 1 = pSTAT5B_rel, 2 = rSTAT5A_rel.
-        # Per-column scale-normalised RMSE so the three percentage channels
-        # (peaks ~95, ~82, ~50) contribute on a comparable footing.
-        scale_factor = np.maximum(np.max(dataset, axis=0), 1e-12)
-        loss = np.sqrt(np.mean(np.square(np.divide(model_obs - dataset, scale_factor))))
-        #--------------------------------
-
-        return loss  # scalar
+        return pSTAT5A, pSTAT5B, rSTAT5A
 
 
-def writeout_description(solution_time: np.ndarray, solution: np.ndarray, dataset: np.ndarray, trainable_parameters: dict, fixed_parameters: dict):
+def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
-        # Arguments:
-        # solution_time: time (np.ndarray of size [Nts])
-        # solution: state vector (np.ndarray of size [Nts,Ny])
-        # dataset: dataset (np.ndarray of size [Nts,N_col-1])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
-        # Change the size of writeout_array as per your requirement
+        pSTAT5A, pSTAT5B, rSTAT5A = _observables(solution, fixed_parameters)
+        sim = np.stack([pSTAT5A, pSTAT5B, rSTAT5A], axis=1)
 
-        # this part is to be populated by the model
-        #--------------------------------
-        specC17 = fixed_parameters['specC17']
-        #--------------------------------
+        # column-wise scale-normalised RMSE, so the three percentage channels
+        # contribute comparably regardless of their individual ranges
+        scale_factor = np.max(np.abs(dataset), axis=0)
+        scale_factor = np.where(scale_factor == 0, 1.0, scale_factor)
 
-        writeout_array = np.zeros([solution_time.shape[0], 7])
+        return np.sqrt(np.mean(np.square((sim - dataset) / scale_factor)))
 
-        # this part is to be populated by the user
-        #--------------------------------
-        STAT5A = solution[:, 0]
-        STAT5B = solution[:, 1]
-        pApB   = solution[:, 2]
-        pApA   = solution[:, 3]
-        pBpB   = solution[:, 4]
 
-        pSTAT5A_rel = (100.0 * pApB + 200.0 * pApA * specC17) / \
-                      (pApB + STAT5A * specC17 + 2.0 * pApA * specC17)
-        pSTAT5B_rel = -(100.0 * pApB - 200.0 * pBpB * (specC17 - 1.0)) / \
-                      ((STAT5B * (specC17 - 1.0) - pApB) + 2.0 * pBpB * (specC17 - 1.0))
-        rSTAT5A_rel = (100.0 * pApB + 100.0 * STAT5A * specC17 + 200.0 * pApA * specC17) / \
-                      (2.0 * pApB + STAT5A * specC17 + 2.0 * pApA * specC17
-                       - STAT5B * (specC17 - 1.0) - 2.0 * pBpB * (specC17 - 1.0))
+def writeout_description(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
+        pSTAT5A, pSTAT5B, rSTAT5A = _observables(solution, fixed_parameters)
+
+        Nts = solution_time.shape[0]
+        writeout_array = np.zeros([Nts, 7])
         writeout_array[:, 0] = solution_time
-        writeout_array[:, 1] = dataset[:, 0]    # data pSTAT5A_rel
-        writeout_array[:, 2] = pSTAT5A_rel       # model pSTAT5A_rel
-        writeout_array[:, 3] = dataset[:, 1]    # data pSTAT5B_rel
-        writeout_array[:, 4] = pSTAT5B_rel       # model pSTAT5B_rel
-        writeout_array[:, 5] = dataset[:, 2]    # data rSTAT5A_rel
-        writeout_array[:, 6] = rSTAT5A_rel       # model rSTAT5A_rel
-        #--------------------------------
-
-        return writeout_array  # of custom shape
+        writeout_array[:, 1] = dataset[:, 0]   # measured pSTAT5A_rel
+        writeout_array[:, 2] = dataset[:, 1]   # measured pSTAT5B_rel
+        writeout_array[:, 3] = dataset[:, 2]   # measured rSTAT5A_rel
+        writeout_array[:, 4] = pSTAT5A         # simulated pSTAT5A_rel
+        writeout_array[:, 5] = pSTAT5B         # simulated pSTAT5B_rel
+        writeout_array[:, 6] = rSTAT5A         # simulated rSTAT5A_rel
+        return writeout_array

@@ -1,26 +1,70 @@
-Critical Errors
+Validation report — sliding_basepoint
 
+Critical Errors
+---------------
 None detected
 
 Warnings
+--------
+None detected
 
-1. Parameter Scaling and Logscale for 'Dc':
-   - The trainable parameter 'Dc' is specified with a range MIN_VAL=0.1, MAX_VAL=1, and LOGSCALE=N. This is a one order of magnitude difference, and using logscale is not strictly necessary, but it is on the edge. If the parameter is suspected to span more than an order of magnitude in reality, 'LOGSCALE=Y' would be preferable. Otherwise, this is acceptable as is.
+Recommendations
+---------------
+[R7] GRADIENT_OPTIMIZER: lbfgs -> adam, with NUM_ITERS 20 -> 300 and an LR schedule
+     Evidence: the RHS is non-smooth in three separate places —
+          np.sign(v1) in dv1dt, np.sign(v2) in the slip branch, and
+          np.where(|F| < c2 and |v2| < vf, ...) switching the base between stuck
+          and slipping. The loss compounds it: it is a mean ABSOLUTE error,
+          |F_exp - F_sim| and |s_exp - s_sim|, whose derivative flips sign at
+          every point where a residual crosses zero.
+     Why: R7 calls for adam whenever gradients are expected to be noisy, and a
+          discontinuous RHS under an L1 loss is that case. L-BFGS builds a
+          curvature model and runs a line search, both of which assume a locally
+          smooth objective; where the stick-slip switch moves under the
+          parameters, that model is wrong and the line search wastes solves.
+          adam takes small fixed steps and tolerates the kinks — but only with a
+          first-order iteration count, so the three edits go together.
+     Edit: <P> GRADIENT_OPTIMIZER = adam </P>   (GRADIENT_OPT/SETTINGS)
+           <P> NUM_ITERS = 300 </P>             (GRADIENT_OPT/SETTINGS)
+           <P> INIT_VALUE_LR = 1e-3 </P>
+           <P> END_VALUE_LR = 1e-5 </P>
+           <P> TRANSITION_STEPS_LR = 100 </P>
+           <P> DECAY_RATE_LR = 0.9 </P>
 
-2. Loss Function Scaling:
-   - In `_compute_loss_problem`, the force term `F_exp` is scaled using `np.max(np.log10(np.abs(F_exp)) + eps)`, which could lead to loss scaling being dependent on the largest observed force only. Ensure this appropriately scales your loss and adequately balances contributions from force and displacement.
-   - The loss function adds two RMSE-like terms, which seems reasonable, but be cautious of cases where the ranges of force and displacement errors differ by orders of magnitude, possibly unbalancing the loss components. Consider normalizing by standard deviation instead if loss balancing is a concern.
+[R1] Integrator family: explicit — the current INTEGRATOR = Dopri8 is correct
+     Evidence: the same three discontinuities listed above. Dopri8 appears in
+          the solver table of lib/LLM/api/diffrax.md as explicit RK (non-stiff)
+          and is marked validated.
+     Why: an implicit method solves a nonlinear system at every step, and across
+          the stick-slip switch that solve cannot converge — the step size
+          collapses and the integration fails for ANY MAX_STEPS. Note this
+          contradicts the source document, which specifies Kvaerno5; the
+          smoothness evidence in its own equations overrides its solver choice.
+     Edit: none — no change needed.
+     Related: dk/dt = Dk*P with P = |m1*v1*dv1dt| >= 0 and Dk > 0, so k is
+          monotonically non-decreasing over the solve — the system stiffens as
+          it integrates, and an explicit method's stable step shrinks roughly as
+          1/sqrt(k/m1). MAX_STEPS = 10000 may prove tight for the upper end of
+          the Dk box; if the fit shows solves failing, raise it before
+          questioning the solver family.
 
-3. Use of `np.abs(F1(...))` for Simulated Force:
-   - When constructing `F_sim`, the absolute value of the output of `F1` is used. Ensure this is physically meaningful for your dataset, as it may hide sign differences between simulated and experimental force.
+Checked and already correct, so not recommended: LOGSCALE per parameter (R2 —
+c2 1e3, Dk 1e4, m1 100, m2 100 are all Y; Dc spans 10 and is correctly linear);
+two-tier tolerances (R4 — POP_* are 100x looser than the refinement values, per
+state); search budget (R5 — 2000 x 20 = 40,000 solves against 10N = 50 and
+20N^2 = 500); global algorithm (R6 — DE is already selected, which is what a
+non-smooth RHS calls for); loss shape (R8 — the force channel spans 2.7e3 to
+4.0e5 N and displacement 0.015 to 0.481, a ratio of ~1e6, and the loss already
+divides each channel by its own peak).
 
-4. Use of Branching with `if` in `F2` (user_defined_system):
-   - The function `F2` uses a Python `if` statement for control flow. JAX cannot JIT-compile arbitrary Python control flow; when converting to JAX, this will need to be replaced with `np.where` or equivalent. Be prepared to rewrite this expression for compatibility.
-
-5. Population Opt and Gradient Opt Parameters:
-   - The number of particles (300), iterations (20), and processors (8) for the population optimizer, and 10 iterations for the gradient optimizer, may or may not be sufficient for convergence depending on the problem's complexity. These are more user-dependent, but consider increasing if optimization stalls.
-
-6. Fixed Parameter 'vf' and Initial Values:
-   - The value assigned to the fixed parameter 'vf' (0.1) and the initial values in the integrated system seem reasonable for now, but you should confirm these based on the physical context of your problem.
+Applied
+-------
+R7 applied, with the user raising NUM_ITERS from the recommended 300 to 1000:
+GRADIENT_OPTIMIZER = adam, NUM_ITERS = 1000, INIT_VALUE_LR = 1e-3,
+END_VALUE_LR = 1e-5, TRANSITION_STEPS_LR = 100, DECAY_RATE_LR = 0.9.
+Re-validated: adam's >=200 iteration floor is met, the LR schedule is not
+inverted, INIT_VALUE_LR is within the 1e-2 ceiling, tolerances remain one per
+state.
+R1 required no change (INTEGRATOR = Dopri8 already explicit and validated).
 
 Number of critical errors: 0

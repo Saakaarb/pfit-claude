@@ -1,29 +1,29 @@
 Sloppiness / identifiability report
 ============================================================
-trainable parameters : 9  (infected_normal_transmission_rate_relative, infected_moderate_transmission_rate, infected_weak_transmission_rate_relative, infected_weak_treatment_rate, infected_normal_worsen_rate, infected_moderate_worsen_rate, treated_moderate_improve_rate, treated_weak_improve_rate, behavioural_change_rate)
+trainable parameters : 9  (rel_n, beta_m, rel_w, tau_w, w_n, w_m, g_m, g_w, bcr)
 experiments          : 1
-loss at best fit     : 0.00431847   (|grad|_inf = 0.0069)
+loss at best fit     : 0.00483651   (|grad|_inf = 0.0078)
 Hessian method       : finite-difference   (log10-parameter space)
 
 Eigenvalue spectrum of the loss Hessian (Fisher / sloppiness spectrum):
-  lambda_1  = +1.8678e+03   (normalised +1.00e+00)
-  lambda_2  = +1.0483e+02   (normalised +5.61e-02)
-  lambda_3  = +5.0409e-01   (normalised +2.70e-04)
-  lambda_4  = +4.3038e-02   (normalised +2.30e-05)
-  lambda_5  = +7.0156e-03   (normalised +3.76e-06)
-  lambda_6  = +3.2840e-04   (normalised +1.76e-07)
-  lambda_7  = +1.9986e-06   (normalised +1.07e-09)
-  lambda_8  = +4.4625e-10   (normalised +2.39e-13)
-  lambda_9  = -1.7959e-05   (normalised -9.61e-09)
+  lambda_1  = +2.4467e+03   (normalised +1.00e+00)
+  lambda_2  = +9.5307e+01   (normalised +3.90e-02)
+  lambda_3  = +6.2371e-01   (normalised +2.55e-04)
+  lambda_4  = +5.4070e-02   (normalised +2.21e-05)
+  lambda_5  = +1.0704e-03   (normalised +4.37e-07)
+  lambda_6  = +1.6932e-04   (normalised +6.92e-08)
+  lambda_7  = +3.1616e-08   (normalised +1.29e-11)
+  lambda_8  = +4.6264e-11   (normalised +1.89e-14)
+  lambda_9  = -1.9411e-04   (normalised -7.93e-08)
 
-spread over identifiable modes : 5.43 orders of magnitude
-non-identifiable (flat) directions (normalised < 1e-06) : 4  <- effectively lambda=0 (spectrum spans >6 decades)
-VERDICT              : SLOPPY / NON-IDENTIFIABLE  (4 flat direction(s) despite 5.4-decade identifiable spread)
+spread over identifiable modes : 4.66 orders of magnitude
+non-identifiable (flat) directions (normalised < 1e-06) : 5  <- effectively lambda=0 (spectrum spans >6 decades)
+VERDICT              : SLOPPY / NON-IDENTIFIABLE  (5 flat direction(s) despite 4.7-decade identifiable spread)
 
 STIFFEST direction (best-constrained combination):
-   infected_moderate_transmission_rate(-0.68), behavioural_change_rate(+0.53), infected_normal_transmission_rate_relative(-0.40), infected_weak_transmission_rate_relative(-0.27)
+   beta_m(-0.66), rel_n(-0.61), bcr(+0.41), w_n(+0.17)
 SLOPPIEST direction (least-constrained combination):
-   infected_normal_transmission_rate_relative(+0.58), infected_weak_transmission_rate_relative(+0.57), infected_moderate_transmission_rate(-0.55), infected_moderate_worsen_rate(-0.18)
+   tau_w(+1.00), w_m(+0.05), rel_w(+0.02), beta_m(+0.01)
 
 Note: the stiffest/sloppiest directions are combinations of parameters
 (eigenvectors); they are NOT a per-parameter identifiability verdict.
