@@ -75,21 +75,33 @@ absent from that table does not exist in the pinned diffrax and will raise
 here. If the XML names an invalid solver, stop and report it rather than
 generating the script.
 
-**Check smoothness before stiffness.** Prefer an implicit (stiff) solver when
-stiffness is uncertain — but only for a smooth right-hand side. If
-`user_defined_system` is non-smooth, choose an explicit (non-stiff) solver from
-the table's Kind column.
+**Weigh smoothness and stiffness together — neither one decides alone.** The
+XML's `INTEGRATOR` is normally the answer `/pfit-check` already reached under R1
+in `tuning_rules.md`, which owns that decision; do not re-derive it here from
+smoothness alone. Translate what the XML names, and only stop to question it if
+the XML names a solver absent from the table.
+
+Both failure modes are real, and they are not symmetric:
 
 The RHS is non-smooth if it contains `sign`, `abs`, `floor`, `clip`, a `where`
 that switches on the state, or any piecewise definition — the usual sources are
-dry friction, contact, saturation, hysteresis and on/off control.
+dry friction, contact, saturation, hysteresis and on/off control. An implicit
+method solves a nonlinear system at every step; across a discontinuity that
+solve cannot converge, the step collapses, and the integration fails for **any**
+`MAX_STEPS`. Raising `MAX_STEPS` does not help. But this bites only *at* the
+switching instants, so its total cost scales with how often the trajectory
+crosses one — rare one-way crossings are survivable, chattering ones are not.
 
-Mechanism: an implicit method solves a nonlinear system at every step. Across a
-discontinuity that solve cannot converge, the step size collapses, and the
-integration fails for **any** `MAX_STEPS`. Raising `MAX_STEPS` does not help.
-Because a failed solve scores `error_loss`, this does not merely slow the fit —
-it hides whole regions of parameter space from the optimizer, which then
-converges confidently to a much worse answer elsewhere.
+Stiffness is the opposite shape. An explicit method's step is capped by the
+fastest eigenvalue in the system for the *whole* interval, even where that mode
+has saturated and stopped contributing to the solution. There is no adaptive
+escape, so on a genuinely stiff system an explicit solver does not merely run
+slowly — it cannot complete a single solve within any reachable `MAX_STEPS`.
+
+Either failure scores `error_loss`, which does not merely slow the fit: it hides
+whole regions of parameter space from the optimizer, which then converges
+confidently to a much worse answer elsewhere. That is the reason to get the
+family right rather than compensating with `MAX_STEPS`.
 
 ## Translation rules
 

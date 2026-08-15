@@ -50,10 +50,13 @@ every line, or `NODE_fitting.log` shows the run exiting after one iteration.
 `MAX_STEPS` too small; bounds admitting parameter values that make the system
 unintegrable; an `INITIAL_TIMESTEP` far too large for the initial transient.
 
-*Fix:* re-apply `tuning_rules.md` R1 against the RHS. Then raise `MAX_STEPS`
-(×10) — **but only if the RHS is smooth**; for a non-smooth RHS raising it
-cannot help, and the integrator must change instead. Report which of the two
-cases this session is in; do not offer both as equal options.
+*Fix:* re-apply `tuning_rules.md` R1 against the RHS, on **both** of its axes —
+a family chosen from smoothness alone is exactly what produces this symptom when
+the system is also stiff. Then raise `MAX_STEPS` (×10), but only once R1 says
+the family is right: raising it cannot rescue an implicit solver stuck at a
+discontinuity, nor an explicit solver pinned by a slaved fast mode. Report which
+case this session is in — wrong family, or right family and too few steps — and
+do not offer them as equal options.
 
 ### S2 — Some solves are failing
 

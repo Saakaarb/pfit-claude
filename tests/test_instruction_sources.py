@@ -201,3 +201,161 @@ def test_rules_are_general_not_case_studies():
             f"general rules; put the supporting measurements in the commit "
             f"message or a session README instead."
         )
+
+
+# ---------------------------------------------------------------------------
+# the solver-family rule weighs two axes, not one
+# ---------------------------------------------------------------------------
+
+# Phrasings that make smoothness a gate which short-circuits the stiffness
+# question. Each of these was in the instruction layer at some point and each
+# produces the same failure: on a system that is BOTH non-smooth and stiff, the
+# rule confidently recommends an explicit solver, whose step is then pinned by
+# the fastest eigenvalue for the whole interval so that no solve completes at
+# any MAX_STEPS.
+GATING_PHRASES = [
+    "check smoothness before stiffness",
+    "smoothness before stiffness",
+    "but only for a smooth right-hand side",
+    "the rule reverses for a non-smooth rhs",
+    "asymmetry reverses for a non-smooth",
+]
+
+# The generated digests and the config they are generated FROM are checked too.
+# The first version of this test scanned only hand-written prose, and a stale
+# copy of the gated rule survived in lib/LLM/api/diffrax.md for exactly that
+# reason -- an agent reading the digest would have got the superseded rule with
+# no indication it was superseded.
+GENERATED_AND_SOURCES = (
+    sorted(API.glob("*.md")) + [REPO_ROOT / "tools" / "gen_api_context.yaml"]
+)
+
+
+@pytest.mark.parametrize("path", PROSE_FILES + GENERATED_AND_SOURCES,
+                         ids=lambda p: p.name)
+def test_solver_choice_is_not_gated_on_smoothness_alone(path):
+    """Smoothness must not be stated as a gate on the stiffness question.
+
+    Stiffness and smoothness fail in different shapes: stiffness constrains
+    every step over the whole interval with no adaptive escape, whereas a
+    discontinuity only breaks the implicit inner solve AT the switching
+    instants. They are therefore weighed by magnitude, and a rule that checks
+    only smoothness inverts the correct answer for a stiff, non-smooth system.
+    """
+    text = path.read_text().lower()
+    found = [p for p in GATING_PHRASES if p in text]
+    assert not found, (
+        f"{path.name} states smoothness as a gate on solver choice ({found}). "
+        f"R1 in tuning_rules.md weighs stiffness and smoothness together; see "
+        f"its slaved-vs-active distinction. If this is a generated digest, fix "
+        f"the text in tools/gen_api_context.yaml and regenerate — editing the "
+        f"digest by hand will be overwritten."
+    )
+
+
+def test_r1_covers_both_axes_and_the_slaved_mode_distinction():
+    """tuning_rules.md owns the solver decision and must state both axes.
+
+    The slaved/active distinction is the load-bearing part: only a fast mode
+    that has saturated is stiffness an implicit method can convert into larger
+    steps. A fast mode that is still active is genuine fast dynamics that every
+    method must resolve, so measuring the raw ratio of rate constants conflates
+    the two and overstates the case for an implicit solver.
+    """
+    text = (REFERENCE / "tuning_rules.md").read_text().lower()
+    for concept in ("slaved", "chattering", "one-way", "stability limit",
+                    "accuracy limit"):
+        assert concept in text, (
+            f"tuning_rules.md no longer mentions '{concept}' — R1 needs both "
+            f"axes and the mechanism that makes them weighable."
+        )
+
+
+# ---------------------------------------------------------------------------
+# the cold-start invariant
+# ---------------------------------------------------------------------------
+
+# Artifacts that only exist because a fit already ran. Naming one as an input to
+# a SETUP skill means that skill's guidance was written for a problem somebody
+# has already solved, which is the one case that never occurs in deployment.
+SOLUTION_ARTIFACTS = [
+    "final_design_point.csv",
+    "result_solution_exp",
+    "sloppiness_report.txt",
+    "fit_diagnosis.txt",
+    "NODE_fitting.log",
+    "de_fitting.log",
+    "pso_fitting.log",
+]
+
+# The skills that make setup choices. /pfit-diagnose is deliberately absent: it
+# runs after a fit and reads that fit's own record, which is evidence about the
+# optimizer's behaviour rather than a reference answer.
+SETUP_COMMANDS = [
+    "pfit-skeleton.md",
+    "pfit-from-source.md",
+    "pfit-check.md",
+    "pfit-jax.md",
+]
+
+
+@pytest.mark.parametrize("name", SETUP_COMMANDS)
+def test_setup_skills_never_read_solution_artifacts(name):
+    """Setup happens without the answer, so setup procedures cannot read one.
+
+    The failure this prevents is quiet. Guidance derived from a stored solution
+    still reads as sound and still passes on any session that has one; it breaks
+    only on a genuinely new problem, where there is nothing to derive it from
+    and no way to notice that it was.
+    """
+    text = (COMMANDS / name).read_text()
+    found = [a for a in SOLUTION_ARTIFACTS if a in text]
+    assert not found, (
+        f"{name} is a setup skill but names solution artifacts {found}. "
+        f"See lib/LLM/reference/cold_start.md: setup may read the equations, "
+        f"the dataset and the bounds only."
+    )
+
+
+def test_every_skill_loads_the_cold_start_invariant():
+    """The invariant binds all five skills, so all five must reference it."""
+    for name in SETUP_COMMANDS + ["pfit-diagnose.md"]:
+        text = (COMMANDS / name).read_text()
+        assert "cold_start.md" in text, (
+            f"{name} does not reference cold_start.md. The invariant applies to "
+            f"every skill, including diagnosis."
+        )
+
+
+def test_cold_start_is_owned_by_one_file():
+    """The invariant has a single home; others point at it rather than restate."""
+    owner = REFERENCE / "cold_start.md"
+    assert owner.exists(), "cold_start.md is the canonical home of the invariant"
+    text = owner.read_text().lower()
+    for concept in ("worst case over the bounds", "reachab", "setup", "diagnosis"):
+        assert concept in text, f"cold_start.md no longer covers '{concept}'"
+
+    # the substitutes are defined once, in the owner
+    others = [p for p in REFERENCE_FILES if p.name != "cold_start.md"]
+    restating = [
+        p.name for p in others
+        if "reachability check" in p.read_text().lower()
+    ]
+    assert not restating, (
+        f"{restating} restate the reachability check; cold_start.md owns it."
+    )
+
+
+def test_tuning_rules_defers_to_the_cold_start_owner():
+    """tuning_rules.md applies the invariant but must not restate it.
+
+    Recommendations are the place the invariant bites hardest, so the file has
+    to bind itself to it — while leaving the definition, the artifact list and
+    the substitutes in cold_start.md, so there is one place to change them.
+    """
+    text = (REFERENCE / "tuning_rules.md").read_text()
+    assert "cold_start.md" in text, (
+        "tuning_rules.md must bind its recommendations to the cold-start "
+        "invariant; every rule in it is meant to be computable without a "
+        "reference solution."
+    )

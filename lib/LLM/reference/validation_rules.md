@@ -99,10 +99,25 @@ warning so the user can decide.
 - `lbfgs` (default) is quasi-Newton: it takes large curvature-informed steps, so
   a small `NUM_ITERS` (tens, even <10) is fine, and it performs its own line
   search, so the LR fields are irrelevant to it.
-- `adam` is first-order: it needs many small steps. Warn if `NUM_ITERS` < ~200
-  (too few to converge) or `INIT_VALUE_LR` > ~1e-2 (Adam oscillates or diverges
-  on the stiff ODE loss surface). Suggest starting near 1e-3 and annealing to
-  ~1e-5.
+- `adam` is first-order and takes a **normalized** step: its update is
+  `lr * m/(sqrt(v)+eps)`, and where the gradient sign is consistent that factor
+  tends to ±1, so each step moves about `lr` in the scaled parameter space
+  **regardless of the gradient's magnitude**. Since the framework scales every
+  parameter to `[-1, 1]`, the distance adam can travel is about
+  `NUM_ITERS * INIT_VALUE_LR`.
+
+  Warn if `NUM_ITERS < 1 / INIT_VALUE_LR`, and state the implied travel
+  distance. At the recommended `INIT_VALUE_LR = 1e-3` that floor is **1000**;
+  `NUM_ITERS = 200` would move only 0.2 in a coordinate whose full range is 2,
+  which cannot cross a basin. An annealing schedule lowers the real total below
+  `NUM_ITERS * INIT_VALUE_LR`, so treat the floor as optimistic.
+
+  Also warn if `INIT_VALUE_LR` > ~1e-2 (adam oscillates or diverges on the stiff
+  ODE loss surface). Suggest starting near 1e-3 and annealing to ~1e-5.
+
+  Clearing the floor is necessary, not sufficient: it bounds how far adam
+  *could* move, not whether it converged. The exit-gradient ratio is the only
+  evidence of that, and it is a post-fit check (S7 in `diagnosis_rules.md`).
 
 ## user_model.py checks
 
