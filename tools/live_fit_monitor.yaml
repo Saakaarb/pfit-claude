@@ -1,0 +1,69 @@
+# Configuration for the live convergence view.
+#
+# Used both by tools/live_fit_monitor.py (watching a fit running elsewhere) and
+# by the view that fit_parameters.py / fit_gradient_only.py raise for
+# themselves. The view only reads the iteration logs a fit already writes; it
+# never writes into a session and never touches the fitting process.
+
+# Whether a fit started with fit_parameters.py or fit_gradient_only.py shows the
+# view by itself. It applies only on a real terminal, so piped runs, cron jobs
+# and the pytest suite keep their plain output whatever this says. Set
+# PFIT_LIVE=0 in the environment to disable it for a single run.
+auto_attach: true
+
+# How many lines of the fit's captured console output (outputs/run_stdout.log)
+# to echo once the view comes down, so the final answer lands in the terminal
+# where you ran the fit. 0 prints none.
+console_tail_lines: 12
+
+# Which session to follow.
+#   auto            attach to whichever session's iteration logs were written
+#                   most recently (start the monitor, then start the fit)
+#   <session name>  pin one, e.g. sneyd_ipr, or a path like examples/robertson_session
+session: auto
+
+# Where `session: auto` looks for sessions. Each entry is a directory of
+# session directories, relative to the repo root.
+search_roots:
+  - sessions
+  - examples
+
+# Seconds between redraws. The logs gain a line per optimizer iteration, which
+# on a real fit is seconds to minutes apart, so there is nothing to gain below
+# ~0.5 s.
+refresh_seconds: 1.0
+
+# How long to wait for a fit to start before giving up, when no session has
+# logs yet. Set to 0 to fail immediately.
+wait_for_session_seconds: 60
+
+# log10 puts a multi-decade descent on a readable axis; use `linear` for a loss
+# that only moves within one decade.
+y_scale: log10
+
+# Layout. The view adapts to the terminal but will not exceed max_width.
+max_width: 100
+min_height: 24
+
+# Renderer. `terminal` redraws in place; anything else (or a piped stdout)
+# falls back to one log line per new iteration, which is what you want when
+# capturing the monitor's output to a file.
+renderer: terminal
+
+# Stop once final_design_point.csv has been written, or once the fit writes
+# outputs/fitting_error.txt.
+exit_when_complete: true
+exit_on_error: true
+
+# How long the answer must sit there, with no new iteration logged, before the
+# fit counts as finished. Two windows, because a fit that starts while the
+# monitor is already attached leaves no trace in outputs/ until its stage log is
+# truncated -- which is on the far side of the JAX import.
+#   complete_quiet_seconds  applies once the monitor has seen an iteration
+#                           arrive, i.e. it watched this fit finish
+#   startup_grace_seconds   applies when the session already looked finished on
+#                           attach: how long to wait for a new run to announce
+#                           itself. Raise it if you routinely start the monitor
+#                           and fit_gradient_only.py together on a slow import.
+complete_quiet_seconds: 5.0
+startup_grace_seconds: 20.0

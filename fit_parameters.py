@@ -6,7 +6,9 @@ from pathlib import Path
 
 # NOTE: jax is imported lazily (inside run_driver / __main__) so that the XLA
 # device count can be configured from the session's PROCESSORS setting *before*
-# the JAX backend initializes. XMLReader is import-safe (no jax dependency).
+# the JAX backend initializes. XMLReader and live_view are import-safe (no jax
+# dependency).
+from lib.utils.live_view import attach as attach_live_view
 from lib.utils.xmlread import XMLReader
 
 
@@ -108,7 +110,14 @@ def run_driver(session_dir: Path, input_reader: XMLReader):
     path_to_output_dir.mkdir()
 
     print("Launching fitting process...")
-    return fit_generic_system(path_to_input, path_to_output_dir, generated_dir, session_path)
+
+    # On a terminal this raises the live convergence view and captures the
+    # pipeline's own console output to outputs/run_stdout.log, echoing the tail
+    # back on the way out. Off a terminal (piped, cron, pytest) it is a no-op
+    # and the output below prints exactly as it always has. PFIT_LIVE=0 or
+    # `auto_attach: false` in tools/live_fit_monitor.yaml disables it.
+    with attach_live_view(session_path, path_to_output_dir):
+        return fit_generic_system(path_to_input, path_to_output_dir, generated_dir, session_path)
 
 
 if __name__ == "__main__":

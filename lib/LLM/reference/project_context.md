@@ -64,11 +64,28 @@ sessions/<session_name>/
     ├── result_solution_exp1.csv   <- one file per experiment
     ├── pso_fitting.log  (or de_fitting.log)
     ├── NODE_fitting.log
+    ├── run_stdout.log            <- only when the live view runs; see below
     ├── sloppiness_report.txt
     └── sloppiness_spectrum.png
 ```
 
 The directory names are overridable via the XML `PATH` section.
+
+## The live view
+
+Run on a terminal, `fit_parameters.py` and `fit_gradient_only.py` raise a live
+plot of best-so-far loss against iteration for both stages, reading the
+iteration logs as they are written. While it is up the pipeline's own console
+output is captured to `outputs/run_stdout.log` — it would otherwise fight the
+in-place redraw — and the last lines are echoed back when the view comes down,
+so the fitted parameters still land in the terminal.
+
+It is display only: it never writes into a session and cannot affect a fit.
+Off a terminal (piped, `nohup`, cron, the pytest suite) it does not engage at
+all and the output is exactly what it always was. `PFIT_LIVE=0` disables it for
+one run; `auto_attach: false` in `tools/live_fit_monitor.yaml` disables it for
+good. That same file configures it, and `tools/live_fit_monitor.py` shows the
+same view for a fit already running in another terminal.
 
 ## Multi-experiment execution model
 

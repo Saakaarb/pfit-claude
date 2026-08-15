@@ -7,6 +7,7 @@ import numpy as np
 # Reuse the session/device resolution logic from the full two-stage entry point.
 # jax is imported lazily (inside run_driver) so XLA device count can be set first.
 from fit_parameters import resolve_session_dir, resolve_device_count
+from lib.utils.live_view import attach as attach_live_view
 from lib.utils.xmlread import XMLReader
 
 
@@ -80,8 +81,12 @@ def run_driver(session_dir: Path, input_reader: XMLReader):
     path_to_output_dir.mkdir(parents=True, exist_ok=True)
 
     print("Launching gradient-only fitting process...")
-    return fit_gradient_only_system(path_to_input, path_to_output_dir, generated_dir,
-                                    session_path, init_guess)
+
+    # See the note in fit_parameters.run_driver: a no-op unless stdout is a
+    # terminal and the live view is enabled.
+    with attach_live_view(session_path, path_to_output_dir):
+        return fit_gradient_only_system(path_to_input, path_to_output_dir, generated_dir,
+                                        session_path, init_guess)
 
 
 if __name__ == "__main__":
