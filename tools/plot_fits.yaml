@@ -1,0 +1,133 @@
+# Configuration for tools/plot_fits.py
+#
+# Each entry under `sessions` describes one fitted session and how to read its
+# outputs/result_solution_expN.csv files. Column indices are 0-based into that
+# CSV, whose column 0 is always time.
+#
+# A session with no outputs/ directory is skipped with a warning, so this file
+# can list sessions that have not been fitted yet.
+
+output_dir: outputs/fit_plots
+dpi: 140
+
+# Validated two-series palette (dataviz skill, all-pairs light mode:
+# CVD dE 24.7 protan, normal-vision dE 33.6, both >= 3:1 on the surface).
+style:
+  color_data: "#eb6834"      # measured
+  color_fit: "#2a78d6"       # simulated
+  color_ink: "#0b0b0b"
+  color_ink_muted: "#52514e"
+  surface: "#fcfcfb"
+
+sessions:
+
+  - name: sneyd_ipr
+    root: sessions/sneyd_ipr
+    title: "IP3-receptor gating - open-probability dose response"
+    xlabel: "time (s)"
+    experiment_labels:
+      - "10 IP3, 0.1 Ca"
+      - "10 IP3, 0.2 Ca"
+      - "10 IP3, 0.4 Ca"
+      - "10 IP3, 1 Ca"
+      - "10 IP3, 3 Ca"
+      - "10 IP3, 10 Ca"
+      - "3 IP3, 0.4 Ca"
+      - "5 IP3, 0.4 Ca"
+      - "10 IP3, 0.4 Ca (rep)"
+    panels:
+      - label: "open probability"
+        data_col: 1
+        sim_col: 2
+
+  - name: sliding_basepoint
+    root: examples/sliding_basepoint
+    title: "Sliding basepoint - impact force and displacement"
+    xlabel: "time (s)"
+    panels:
+      - label: "force (N)"
+        data_col: 1
+        sim_col: 3
+      - label: "displacement (m)"
+        data_col: 2
+        sim_col: 4
+
+  - name: robertson_session
+    root: examples/robertson_session
+    title: "Robertson stiff kinetics"
+    xlabel: "time (s)"
+    xscale: log
+    panels:
+      - label: "y1"
+        data_col: 1
+        sim_col: 4
+      - label: "y2"
+        data_col: 2
+        sim_col: 5
+      - label: "y3"
+        data_col: 3
+        sim_col: 6
+
+  - name: piezo_bouc_wen
+    root: examples/piezo_bouc_wen
+    title: "Piezo actuator - Bouc-Wen hysteresis"
+    xlabel: "time (s)"
+    panels:
+      - label: "displacement (m)"
+        data_col: 1
+        sim_col: 2
+
+  - name: boehm_stat5
+    root: sessions/boehm_stat5
+    title: "STAT5 dimerisation - relative phosphorylation"
+    xlabel: "time (min)"
+    panels:
+      - label: "pSTAT5A rel (%)"
+        data_col: 1
+        sim_col: 4
+      - label: "pSTAT5B rel (%)"
+        data_col: 2
+        sim_col: 5
+      - label: "rSTAT5A rel (%)"
+        data_col: 3
+        sim_col: 6
+
+  - name: rahman_hiv
+    root: sessions/rahman_hiv
+    title: "HIV transmission - population prevalence"
+    xlabel: "time (years)"
+    panels:
+      - label: "prevalence (%)"
+        data_col: 1
+        sim_col: 2
+
+  - name: hif1a_1pct_fit
+    root: sessions/hif1a_1pct_fit
+    title: "HIF-1a hypoxia response at 1% O2"
+    xlabel: "time (h)"
+    panels:
+      - label: "HIF-1a stabilisation"
+        data_col: 1
+        sim_col: 3
+      - label: "luciferase reporter"
+        data_col: 2
+        sim_col: 4
+
+  - name: ARC_fitting
+    root: examples/ARC_fitting
+    title: "ARC battery thermal runaway"
+    xlabel: "time (s)"
+    panels:
+      # the signature ARC presentation: self-heating rate against temperature,
+      # log rate. Each series carries its own abscissa - measured rate against
+      # measured temperature, simulated against simulated.
+      - label: "self-heating rate (K/s)"
+        data_col: 2
+        sim_col: 4
+        x_data_col: 1
+        x_sim_col: 3
+        xlabel: "temperature (K)"
+        yscale: log
+      - label: "temperature (K)"
+        data_col: 1
+        sim_col: 3
