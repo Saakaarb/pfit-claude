@@ -1,0 +1,39 @@
+experiments:
+  - data_file: correct_units_piezo_electric_actuator.csv
+
+model:
+  trainable_parameters:
+    - {name: alpha, min_val: 0, max_val: 1.0, logscale: false}
+    - {name: beta, min_val: 0, max_val: 0.1, logscale: false}
+    - {name: gamma, min_val: 0, max_val: 0.1, logscale: false}
+    - {name: cp, min_val: 5, max_val: 100, logscale: false}
+    - {name: kp, min_val: 1.0e+06, max_val: 1.0e+08, logscale: true}
+    - {name: de, min_val: 1.0e-08, max_val: 1.0e-06, logscale: true}
+  fixed_parameters:
+    - {name: mp, value: 0.1}
+  integrated_variables:
+    - {name: xp, init_val: 0}
+    - {name: vp, init_val: 0}
+    - {name: h, init_val: 0}
+
+population_opt:
+  population_size: 200
+  num_iters: 50
+  processors: 8
+  stepsize_rtol: 1.0e-04
+  stepsize_atol: 1.0e-03
+
+gradient_opt:
+  num_iters: 10
+  stepsize_rtol: 1.0e-06
+  stepsize_atol: [1.0e-08, 1.0e-05, 1.0e-10]
+  initial_timestep: 1.0e-02
+  initial_time: 0
+  max_steps: 10000
+  init_value_lr: 1.0e-04
+  end_value_lr: 1.0e-05
+  transition_steps_lr: 500
+  decay_rate_lr: 0.9
+
+output:
+  write_results: true

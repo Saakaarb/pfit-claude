@@ -1,0 +1,51 @@
+experiments:
+  - data_file: data.csv
+
+model:
+  trainable_parameters:
+    - {name: k_deg, min_val: 2.7e-04, max_val: 2.7e+00, logscale: true}
+    - {name: k_exp_hetero, min_val: 1.0e-07, max_val: 1.0e-03, logscale: true}
+    - {name: k_exp_homo, min_val: 6.17e-05, max_val: 6.17e-01, logscale: true}
+    - {name: k_imp_hetero, min_val: 1.64e-04, max_val: 1.64e+00, logscale: true}
+    - {name: k_imp_homo, min_val: 9.77e+02, max_val: 9.77e+06, logscale: true}
+    - {name: k_phos, min_val: 1.58e+02, max_val: 1.58e+06, logscale: true}
+  fixed_parameters:
+    - {name: specC17, value: 0.107}
+    - {name: Epo0, value: 1.25e-07}
+    - {name: cyt, value: 1.4}
+    - {name: nuc, value: 0.45}
+  integrated_variables:
+    - {name: A, init_val: 143.8668}
+    - {name: B, init_val: 63.7332}
+    - {name: ApB, init_val: 0.0}
+    - {name: ApA, init_val: 0.0}
+    - {name: BpB, init_val: 0.0}
+    - {name: nApA, init_val: 0.0}
+    - {name: nApB, init_val: 0.0}
+    - {name: nBpB, init_val: 0.0}
+
+population_opt:
+  population_size: 600
+  num_iters: 30
+  processors: 16
+  algorithm: DE
+  random_seed: 0
+  stepsize_rtol: 1.0e-05
+  stepsize_atol: 1.0e-07
+
+gradient_opt:
+  num_iters: 1000
+  stepsize_rtol: 1.0e-07
+  stepsize_atol: 1.0e-09
+  initial_timestep: 1.0e-06
+  initial_time: 0.0
+  max_steps: 10000
+  integrator: Kvaerno5
+  gradient_optimizer: adam
+  init_value_lr: 1.0e-03
+  end_value_lr: 1.0e-05
+  transition_steps_lr: 200
+  decay_rate_lr: 0.9
+
+output:
+  write_results: true

@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.optimize
 import time
-from lib.utils.xmlread import XMLReader
+from lib.utils.yamlread import YAMLReader
 from lib.utils.classes import ProblemObjectBase
 from lib.utils.doe_space_sampling import get_lhs_sampling
 from pathlib import Path
@@ -9,7 +9,7 @@ from pathlib import Path
 
 class FitParamsDE:
 
-    def __init__(self, input_reader: XMLReader, problem_object: ProblemObjectBase):
+    def __init__(self, input_reader: YAMLReader, problem_object: ProblemObjectBase):
         self.problem_obj = problem_object
         self.input_reader = input_reader
         # Fall back to 42 when unset so DE stays reproducible by default (its

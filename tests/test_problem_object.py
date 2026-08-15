@@ -65,7 +65,7 @@ def test_generated_script_scaling_matches_the_framework():
 def build_problem(fixture_name: str, loss_fn=None, write_fn=None) -> CreatedClass:
     """Assemble a CreatedClass from a committed fixture, as fit_generic_system does."""
     session = FIXTURES / fixture_name
-    reader = get_input_reader(session / "inputs" / "user_input.xml")
+    reader = get_input_reader(session / "inputs" / "user_input.yaml")
 
     experiments = []
     for i, exp in enumerate(reader.experiments):
@@ -87,7 +87,7 @@ def test_constants_are_built_per_experiment():
     problem = build_problem("decay_multiexp")
     assert len(problem.constants_list) == 2
 
-    # each experiment carries its OWN initial condition, from its XML overrides
+    # each experiment carries its OWN initial condition, from its config overrides
     np.testing.assert_allclose(np.asarray(problem.constants_list[0]["init_cond"]), [1.0, 0.0])
     np.testing.assert_allclose(np.asarray(problem.constants_list[1]["init_cond"]), [2.0, 0.5])
 

@@ -1,0 +1,52 @@
+# Fast MULTI-EXPERIMENT test fixture: two-step linear decay chain
+# dA/dt = -k1*A
+# dB/dt =  k1*A - k2*B
+# with ground truth k1 = 1.0, k2 = 0.3 and y0 = (1.0, 0.0).
+#
+# Run A uses the global ICs (1.0, 0.0); run B overrides them to (2.0, 0.5) via
+# `initial_conditions`. Both runs share the same true parameters, so a correct
+# multi-experiment fit must recover k1=1.0, k2=0.3 from the averaged loss.
+#
+# The data is the exact analytic solution (verified to 1e-13 against an
+# independent stiff integration), so a converged fit must recover the true
+# parameters closely. The system is non-stiff and 2-dimensional, which keeps a
+# full PSO + NODE run to a few seconds — this fixture exists so the suite can
+# exercise every optimizer/solver configuration without paying Robertson's cost.
+
+experiments:
+  - data_file: decay_run_A.csv
+  - data_file: decay_run_B.csv
+    initial_conditions:
+      A: 2.0
+      B: 0.5
+
+model:
+  trainable_parameters:
+    - {name: k1, min_val: 0.01, max_val: 10.0, logscale: true}
+    - {name: k2, min_val: 0.01, max_val: 10.0, logscale: true}
+  integrated_variables:
+    - {name: A, init_val: 1.0}
+    - {name: B, init_val: 0.0}
+
+population_opt:
+  population_size: 20
+  num_iters: 5
+  processors: 2
+  stepsize_rtol: 1.0e-05
+  stepsize_atol: 1.0e-07
+
+gradient_opt:
+  num_iters: 8
+  stepsize_rtol: 1.0e-08
+  stepsize_atol: 1.0e-10
+  initial_timestep: 1.0e-04
+  max_steps: 4096
+  integrator: Dopri5
+  gradient_optimizer: lbfgs
+  init_value_lr: 1.0e-02
+  end_value_lr: 1.0e-04
+  transition_steps_lr: 50
+  decay_rate_lr: 0.9
+
+output:
+  write_results: true

@@ -2,7 +2,7 @@
 
 `resolve_session_dir` and `resolve_device_count` run before JAX is imported —
 `resolve_device_count` in particular decides the XLA host device count, and it
-must never raise, because a malformed XML there would kill the process before
+must never raise, because a malformed config there would kill the process before
 the real (well-reported) validation in the fitting path ever runs.
 
 These helpers were previously untested: the suite called `run_driver` directly
@@ -83,30 +83,31 @@ def test_resolve_session_dir_exits_when_sessions_is_empty(tmp_path, monkeypatch)
 # resolve_device_count
 # ---------------------------------------------------------------------------
 
-def test_resolve_device_count_reads_processors_from_xml(sessions_root):
-    # the decay fixture sets PROCESSORS = 2
+def test_resolve_device_count_reads_processors_from_config(sessions_root):
+    # the decay fixture sets processors: 2
     assert fit_parameters.resolve_device_count(sessions_root / "decay_session") == 2
 
 
-def test_resolve_device_count_falls_back_when_xml_is_missing(tmp_path):
+def test_resolve_device_count_falls_back_when_config_is_missing(tmp_path):
     """Must not raise — it runs before the real validation path."""
-    empty = tmp_path / "no_xml_here"
+    empty = tmp_path / "no_config_here"
     (empty / "inputs").mkdir(parents=True)
     assert fit_parameters.resolve_device_count(empty) == (os.cpu_count() or 1)
 
 
-def test_resolve_device_count_falls_back_on_malformed_xml(tmp_path):
+def test_resolve_device_count_falls_back_on_malformed_config(tmp_path):
     session = tmp_path / "broken"
     (session / "inputs").mkdir(parents=True)
-    (session / "inputs" / "user_input.xml").write_text("<FIT><POPULATION_OPT>")
+    # unbalanced bracket: not parseable as YAML at all
+    (session / "inputs" / "user_input.yaml").write_text("population_opt: [unclosed\n")
     assert fit_parameters.resolve_device_count(session) == (os.cpu_count() or 1)
 
 
 def test_resolve_device_count_is_at_least_one(sessions_root):
-    from tests.conftest import set_xml_setting
+    from tests.conftest import set_setting
 
-    xml = sessions_root / "decay_session" / "inputs" / "user_input.xml"
-    set_xml_setting(xml, "POPULATION_OPT", "PROCESSORS", 0)
+    config = sessions_root / "decay_session" / "inputs" / "user_input.yaml"
+    set_setting(config, "population_opt", "processors", 0)
     assert fit_parameters.resolve_device_count(sessions_root / "decay_session") >= 1
 
 

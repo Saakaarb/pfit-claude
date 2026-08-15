@@ -1,0 +1,92 @@
+# Nine clamp conditions. IP3 and Ca are carried as zero-derivative input
+# states; each experiment overrides their initial values.
+
+experiments:
+  - data_file: ca01.csv
+    initial_conditions:
+      IP3: 10.0
+      Ca: 0.1
+  - data_file: ca02.csv
+    initial_conditions:
+      IP3: 10.0
+      Ca: 0.2
+  - data_file: ca04.csv
+    initial_conditions:
+      IP3: 10.0
+      Ca: 0.4
+  - data_file: ca1.csv
+    initial_conditions:
+      IP3: 10.0
+      Ca: 1.0
+  - data_file: ca3.csv
+    initial_conditions:
+      IP3: 10.0
+      Ca: 3.0
+  - data_file: ca10.csv
+    initial_conditions:
+      IP3: 10.0
+      Ca: 10.0
+  - data_file: ip3.csv
+    initial_conditions:
+      IP3: 3.0
+      Ca: 0.4
+  - data_file: ip5.csv
+    initial_conditions:
+      IP3: 5.0
+      Ca: 0.4
+  - data_file: ip10.csv
+    initial_conditions:
+      IP3: 10.0
+      Ca: 0.4
+
+model:
+  trainable_parameters:
+    - {name: k1, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: k2, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: k3, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: k4, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: k_1, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: k_2, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: k_3, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: k_4, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: l2, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: l4, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: l6, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: l_2, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: l_4, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+    - {name: l_6, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+  integrated_variables:
+    - {name: O, init_val: 0.0}
+    - {name: R, init_val: 1.0}
+    - {name: I1, init_val: 0.0}
+    - {name: S, init_val: 0.0}
+    - {name: A, init_val: 0.0}
+    - {name: I2, init_val: 0.0}
+    - {name: IP3, init_val: 10.0}
+    - {name: Ca, init_val: 0.4}
+
+population_opt:
+  population_size: 1000
+  num_iters: 30
+  processors: 16
+  algorithm: DE
+  random_seed: 0
+  stepsize_rtol: 1.0e-05
+  stepsize_atol: 1.0e-07
+
+gradient_opt:
+  num_iters: 1000
+  stepsize_rtol: 1.0e-07
+  stepsize_atol: 1.0e-09
+  initial_timestep: 1.0e-06
+  initial_time: 0.0
+  max_steps: 10000
+  integrator: Kvaerno5
+  gradient_optimizer: adam
+  init_value_lr: 1.0e-03
+  end_value_lr: 1.0e-05
+  transition_steps_lr: 200
+  decay_rate_lr: 0.9
+
+output:
+  write_results: true

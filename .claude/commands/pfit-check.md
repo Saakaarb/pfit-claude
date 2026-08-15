@@ -1,4 +1,4 @@
-Validate and auto-correct the user_model.py and user_input.xml for the current session.
+Validate and auto-correct the user_model.py and user_input.yaml for the current session.
 
 This file is PROCEDURE only. The checks, thresholds, report format and
 correction policy live in the reference files below — apply them from there, not
@@ -13,11 +13,11 @@ from memory.
 | `lib/LLM/reference/correction_rules.md` | how to fix what you find |
 | `lib/LLM/reference/tuning_rules.md` | how to derive the Recommendations section, and the apply-on-confirmation policy |
 | `lib/LLM/reference/input_constraints.md` | the hard input constraints being checked |
-| `lib/LLM/reference/xml_format.md` | field schema, defaults and required fields |
+| `lib/LLM/reference/yaml_format.md` | field schema, defaults and required fields |
 | `lib/LLM/reference/user_model_contract.md` | what the three user functions must do |
-| `lib/LLM/api/diffrax.md` | the ONLY authority on valid `INTEGRATOR` names |
+| `lib/LLM/api/diffrax.md` | the ONLY authority on valid `integrator` names |
 | `lib/LLM/api/optax.md` | valid gradient optimizers and their real defaults |
-| `lib/LLM/api/population_optimizers.md` | valid `ALGORITHM` values |
+| `lib/LLM/api/population_optimizers.md` | valid `algorithm` values |
 | `lib/LLM/api/jax.md` | judging whether the pseudocode is JAX-convertible |
 | `lib/LLM/reference/staggered_data.md` | ONLY if the data is staggered/ragged |
 
@@ -25,16 +25,16 @@ from memory.
 
 1. Ask the user for the session name if not given as an argument.
 
-2. Read `sessions/<session_name>/inputs/user_input.xml`,
+2. Read `sessions/<session_name>/inputs/user_input.yaml`,
    `sessions/<session_name>/generated/user_model.py`, and the reference files
    above.
 
 3. **Validate.** Apply every check in `validation_rules.md`. For the optimizer
-   settings, read the actual numbers out of the XML and evaluate each threshold
+   settings, read the actual numbers out of the config and evaluate each threshold
    explicitly rather than eyeballing them.
 
 4. **Correct.** If there are critical errors, apply `correction_rules.md`,
-   editing `inputs/user_input.xml` and `generated/user_model.py` in place.
+   editing `inputs/user_input.yaml` and `generated/user_model.py` in place.
 
 5. **Re-validate.** Repeat 3-4 until there are no critical errors, or you have
    iterated 3 times.
@@ -42,7 +42,7 @@ from memory.
 6. **Recommend.** Once there are no critical errors, gather the evidence listed
    in `tuning_rules.md` and apply its rules to produce the Recommendations
    section. Read the dataset CSVs and the RHS for this — the recommendations come
-   from the model and the data, not from the XML alone. Emit nothing you cannot
+   from the model and the data, not from the config alone. Emit nothing you cannot
    attach evidence to.
 
 7. Write the final report to

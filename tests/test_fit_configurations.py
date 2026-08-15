@@ -21,7 +21,7 @@ import sys
 import numpy as np
 import pytest
 
-from tests.conftest import DECAY_TRUE_PARAMS, REPO_ROOT, set_xml_setting
+from tests.conftest import DECAY_TRUE_PARAMS, REPO_ROOT, set_setting
 
 TRUE = np.array([DECAY_TRUE_PARAMS["k1"], DECAY_TRUE_PARAMS["k2"]])
 
@@ -52,8 +52,8 @@ def test_pso_lbfgs_recovers_true_parameters(make_session, run_fit):
 
 
 def test_differential_evolution_recovers_true_parameters(make_session, run_fit):
-    """ALGORITHM = DE — the entire FitParamsDE class was previously unexecuted."""
-    session = make_session("decay_session", population={"ALGORITHM": "DE"})
+    """algorithm: DE — the entire FitParamsDE class was previously unexecuted."""
+    session = make_session("decay_session", population={"algorithm": "DE"})
     assert_recovers_truth(run_fit(session))
     assert (session / "outputs" / "de_fitting.log").exists()
     assert not (session / "outputs" / "pso_fitting.log").exists()
@@ -74,7 +74,7 @@ def test_pso_writes_its_own_log(make_session, run_fit):
 # ---------------------------------------------------------------------------
 
 def test_adam_gradient_optimizer_runs_and_improves(make_session, run_fit):
-    """GRADIENT_OPTIMIZER = adam exercises the LR-schedule branch in FitParamsNODE.
+    """gradient_optimizer: adam exercises the LR-schedule branch in FitParamsNODE.
 
     Adam is first-order, so it needs many more iterations than L-BFGS to move a
     comparable distance; the assertion is that it converges to the truth, with a
@@ -82,8 +82,8 @@ def test_adam_gradient_optimizer_runs_and_improves(make_session, run_fit):
     """
     session = make_session(
         "decay_session",
-        gradient={"GRADIENT_OPTIMIZER": "adam", "NUM_ITERS": 60,
-                  "INIT_VALUE_LR": 1e-2, "END_VALUE_LR": 1e-4},
+        gradient={"gradient_optimizer": "adam", "num_iters": 60,
+                  "init_value_lr": 1e-2, "end_value_lr": 1e-4},
     )
     assert_recovers_truth(run_fit(session), rtol=0.15)
     assert (session / "outputs" / "NODE_fitting.log").exists()
@@ -91,7 +91,7 @@ def test_adam_gradient_optimizer_runs_and_improves(make_session, run_fit):
 
 def test_unsupported_gradient_optimizer_degrades_to_the_population_result(
         make_session, run_fit, capsys):
-    """An unknown GRADIENT_OPTIMIZER does NOT abort the fit.
+    """An unknown gradient_optimizer does NOT abort the fit.
 
     FitParamsNODE raises, but fit_equation_system catches every NODE exception
     (helper_functions.py:414) and falls back to the population-search point with
@@ -99,7 +99,7 @@ def test_unsupported_gradient_optimizer_degrades_to_the_population_result(
     the entire gradient stage and the run still reports "success", so the test
     pins the behaviour and the warning that accompanies it.
     """
-    session = make_session("decay_session", gradient={"GRADIENT_OPTIMIZER": "rmsprop"})
+    session = make_session("decay_session", gradient={"gradient_optimizer": "rmsprop"})
     result = run_fit(session)
 
     assert np.all(np.isfinite(np.asarray(result, dtype=float)))
@@ -119,8 +119,8 @@ def test_fit_works_across_integrators(make_session, run_fit, integrator):
     The asymmetry the digest documents: a stiff solver on a non-stiff system is
     merely slower, so all four are expected to succeed here.
     """
-    session = make_session("decay_session", gradient={"INTEGRATOR": integrator})
-    # the solver class is baked into the generated script, not read from the XML
+    session = make_session("decay_session", gradient={"integrator": integrator})
+    # the solver class is baked into the generated script, not read from the config
     gs = session / "generated" / "generated_script.py"
     gs.write_text(gs.read_text().replace("diffrax.Dopri5()", f"diffrax.{integrator}()"))
 
@@ -167,17 +167,17 @@ def test_multi_experiment_solution_tracks_both_datasets(make_session, run_fit):
 # ---------------------------------------------------------------------------
 
 def test_random_seed_makes_the_fit_reproducible(make_session, run_fit):
-    """RANDOM_SEED must pin every stochastic component (LHS init + PSO draws)."""
-    a = make_session("decay_session", population={"RANDOM_SEED": 11}, dest_name="a")
-    b = make_session("decay_session", population={"RANDOM_SEED": 11}, dest_name="b")
+    """random_seed must pin every stochastic component (LHS init + PSO draws)."""
+    a = make_session("decay_session", population={"random_seed": 11}, dest_name="a")
+    b = make_session("decay_session", population={"random_seed": 11}, dest_name="b")
 
     np.testing.assert_array_equal(np.asarray(run_fit(a)), np.asarray(run_fit(b)))
 
 
 def test_de_is_reproducible_by_default(make_session, run_fit):
-    """DE falls back to seed 42 when RANDOM_SEED is unset, so it is deterministic."""
-    a = make_session("decay_session", population={"ALGORITHM": "DE"}, dest_name="a")
-    b = make_session("decay_session", population={"ALGORITHM": "DE"}, dest_name="b")
+    """DE falls back to seed 42 when random_seed is unset, so it is deterministic."""
+    a = make_session("decay_session", population={"algorithm": "DE"}, dest_name="a")
+    b = make_session("decay_session", population={"algorithm": "DE"}, dest_name="b")
 
     np.testing.assert_array_equal(np.asarray(run_fit(a)), np.asarray(run_fit(b)))
 
@@ -213,8 +213,7 @@ def test_sloppiness_report_describes_a_well_determined_fit(make_session, run_fit
 
 def test_write_results_off_suppresses_solution_files(make_session, run_fit):
     session = make_session("decay_session")
-    xml = session / "inputs" / "user_input.xml"
-    xml.write_text(xml.read_text().replace("WRITE_RESULTS = Y", "WRITE_RESULTS = N"))
+    set_setting(session / "inputs" / "user_input.yaml", "output", "write_results", False)
 
     run_fit(session)
     assert (session / "outputs" / "final_design_point.csv").exists()
@@ -250,7 +249,7 @@ def test_gradient_only_refines_an_existing_design_point(make_session):
     np.savetxt(outputs / "final_design_point.csv", np.array([0.6, 0.5]), delimiter=",")
     (outputs / "pso_fitting.log").write_text("from the previous run\n")
 
-    reader = get_input_reader(session / "inputs" / "user_input.xml")
+    reader = get_input_reader(session / "inputs" / "user_input.yaml")
     result = gradient_only_driver(session, reader)
 
     assert_recovers_truth(result, rtol=0.10)
@@ -268,7 +267,7 @@ def test_gradient_only_rejects_a_wrong_length_seed(make_session):
     outputs.mkdir(exist_ok=True)
     np.savetxt(outputs / "final_design_point.csv", np.array([1.0, 0.3, 0.1]), delimiter=",")
 
-    reader = get_input_reader(session / "inputs" / "user_input.xml")
+    reader = get_input_reader(session / "inputs" / "user_input.yaml")
     with pytest.raises(ValueError, match="init_guess has 3 entries"):
         gradient_only_driver(session, reader)
     assert (outputs / "fitting_error.txt").exists()
@@ -315,7 +314,7 @@ def test_stop_flag_halts_the_gradient_stage_and_returns_the_seed(make_session):
     np.savetxt(outputs / "final_design_point.csv", seed, delimiter=",")
     (outputs / "stop_fitting.flag").write_text("stop")
 
-    reader = get_input_reader(session / "inputs" / "user_input.xml")
+    reader = get_input_reader(session / "inputs" / "user_input.yaml")
     result = gradient_only_driver(session, reader)
 
     np.testing.assert_allclose(np.asarray(result, dtype=float), seed, rtol=1e-6)
@@ -374,8 +373,9 @@ def test_missing_data_file_writes_an_error_report(make_session, run_fit):
 
 def test_duplicate_names_are_rejected_before_fitting(make_session, run_fit):
     session = make_session("decay_session")
-    xml = session / "inputs" / "user_input.xml"
-    xml.write_text(xml.read_text().replace("<P> NAME = A </P>", "<P> NAME = k1 </P>", 1))
+    config = session / "inputs" / "user_input.yaml"
+    # rename integrated variable A to k1, colliding with the trainable parameter
+    config.write_text(config.read_text().replace("{name: A,", "{name: k1,", 1))
 
     with pytest.raises(ValueError, match="not unique"):
         run_fit(session)

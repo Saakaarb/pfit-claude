@@ -153,28 +153,29 @@ def test_documented_results_codes_exist():
 
 
 def test_integrators_used_by_sessions_are_valid():
-    """Any INTEGRATOR named in a committed session XML must be a real adaptive solver."""
+    """Any integrator named in a committed session config must be a real adaptive solver."""
     import diffrax
+    import yaml
 
     sessions = REPO_ROOT / "sessions"
     if not sessions.is_dir():
         pytest.skip("no sessions directory")
 
     checked = 0
-    for xml_path in sessions.glob("*/inputs/user_input.xml"):
-        match = re.search(r"INTEGRATOR\s*=\s*(\w+)", xml_path.read_text())
-        if not match:
+    for config_path in sessions.glob("*/inputs/user_input.yaml"):
+        config = yaml.safe_load(config_path.read_text()) or {}
+        name = (config.get("gradient_opt") or {}).get("integrator")
+        if not name:
             continue
         checked += 1
-        name = match.group(1)
         solver = getattr(diffrax, name, None)
-        assert solver is not None, f"{xml_path}: INTEGRATOR = {name} does not exist"
+        assert solver is not None, f"{config_path}: integrator {name} does not exist"
         assert issubclass(solver, diffrax.AbstractAdaptiveSolver), (
-            f"{xml_path}: INTEGRATOR = {name} is not adaptive and cannot be used "
+            f"{config_path}: integrator {name} is not adaptive and cannot be used "
             f"with the PIDController in _integrate_system"
         )
     if checked == 0:
-        pytest.skip("no session sets INTEGRATOR explicitly")
+        pytest.skip("no session sets integrator explicitly")
 
 
 def test_failure_mask_is_exhaustive_everywhere():

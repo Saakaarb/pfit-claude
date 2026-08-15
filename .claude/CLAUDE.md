@@ -13,8 +13,8 @@ file below. Open the relevant one rather than working from memory.**
 |---|---|
 | **The cold-start invariant — no solution is available when setup choices are made**, which artifacts are off-limits during setup, and the substitutes for answer-derived evidence | `lib/LLM/reference/cold_start.md` |
 | What the project is, the pipeline, session layout, the multi-experiment execution model, post-fit diagnostics, reproducibility, **the Python environment** | `lib/LLM/reference/project_context.md` |
-| `user_input.xml` schema — every section, field, default and valid value | `lib/LLM/reference/xml_format.md` |
-| Hard constraints on the dataset CSV and the XML | `lib/LLM/reference/input_constraints.md` |
+| `user_input.yaml` schema — every section, field, default and valid value | `lib/LLM/reference/yaml_format.md` |
+| Hard constraints on the dataset CSV and the config | `lib/LLM/reference/input_constraints.md` |
 | The three `user_model.py` functions, and how to generate a skeleton | `lib/LLM/reference/user_model_contract.md` |
 | Converting pseudocode to `generated_script.py` | `lib/LLM/reference/jax_translation.md` |
 | What `/pfit-check` validates, its thresholds, the report format | `lib/LLM/reference/validation_rules.md` |
@@ -46,8 +46,8 @@ a solver from memory.
 
 | Command | Does | Procedure file |
 |---|---|---|
-| `/pfit-skeleton` | XML -> `user_model.py` skeleton | `.claude/commands/pfit-skeleton.md` |
-| `/pfit-from-source` | paper -> XML + populated `user_model.py` | `.claude/commands/pfit-from-source.md` |
+| `/pfit-skeleton` | config -> `user_model.py` skeleton | `.claude/commands/pfit-skeleton.md` |
+| `/pfit-from-source` | paper -> config + populated `user_model.py` | `.claude/commands/pfit-from-source.md` |
 | `/pfit-check` | validate + auto-correct the inputs, and recommend settings | `.claude/commands/pfit-check.md` |
 | `/pfit-jax` | `user_model.py` -> `generated_script.py` | `.claude/commands/pfit-jax.md` |
 | `/pfit-diagnose` | completed fit -> diagnosis + what to change | `.claude/commands/pfit-diagnose.md` |
@@ -61,14 +61,14 @@ Each command file is procedure only and names the reference files it requires.
 | `fit_parameters.py` | entry point: full two-stage fit |
 | `fit_gradient_only.py` | entry point: gradient stage only, seeded from a previous fit |
 | `analyze_fit.py` | entry point: re-run post-fit diagnostics on a completed session |
-| `lib/utils/xmlread.py` | XML parsing |
+| `lib/utils/yamlread.py` | config parsing |
 | `lib/utils/helper_functions.py` | problem object, per-experiment dispatch, stage orchestration |
 | `lib/algorithms/{PSO,DE,NODE}/` | the three optimizers |
 | `lib/utils/sloppiness.py` | post-fit identifiability diagnostic |
 | `lib/utils/live_view.py` | the live convergence view: reads the iteration logs, draws the plot, and attaches itself to a fit running in-process |
 | `lib/utils/output_sample.py` | template for the generated script |
 | `lib/utils/user_model_sample_{un,}populated.py` | skeleton and worked model |
-| `lib/utils/user_input_sample.xml` | worked XML |
+| `lib/utils/user_input_sample.yaml` | worked config |
 | `sessions/` | every session, worked and in-progress alike; a fit is run against one of these. **Not agent input** — the skills take their templates from `lib/utils/*_sample*`, never from a session |
 | `tools/gen_api_context.py` | regenerates the API digests |
 | `tools/live_fit_monitor.py` | CLI for the same view, to watch a fit started in another terminal (the fit entry points raise it themselves) |

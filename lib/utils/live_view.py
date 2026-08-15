@@ -39,7 +39,7 @@ DEFAULT_CONFIG = REPO_ROOT / "tools" / "live_fit_monitor.yaml"
 logger = logging.getLogger("live_view")
 logger.addHandler(logging.NullHandler())
 
-# The failed-solve penalty, from lib/utils/xmlread.py. A best cost sitting here
+# The failed-solve penalty, from lib/utils/yamlread.py. A best cost sitting here
 # means every solve in the population failed (S1 in diagnosis_rules.md).
 ERROR_LOSS = 5000.0
 
@@ -245,7 +245,7 @@ def resolve_session(config: dict) -> str | None:
 
 
 def read_budgets(session_dir) -> dict:
-    """Iteration budgets and optimizer names from the session's XML.
+    """Iteration budgets and optimizer names from the session's user_input.yaml.
 
     Only used for the progress bars and the ETA, so every failure degrades to
     "unknown total" rather than stopping the view.
@@ -256,22 +256,19 @@ def read_budgets(session_dir) -> dict:
         "algorithm": None,
         "gradient_optimizer": None,
     }
-    xml_path = os.path.join(session_dir, "inputs", "user_input.xml")
-    if not os.path.isfile(xml_path):
+    config_path = os.path.join(session_dir, "inputs", "user_input.yaml")
+    if not os.path.isfile(config_path):
         return budgets
     try:
-        import xml.etree.ElementTree as ET
+        from lib.utils.yamlread import read_input_file
 
-        from lib.utils.xmlread import XMLReader
-
-        reader = XMLReader()
-        reader.read_XML(ET.parse(xml_path).getroot())
+        reader = read_input_file(config_path)
         budgets["n_iters_pop"] = reader.n_iters_pop
         budgets["n_iters_grad"] = reader.n_iters_grad
         budgets["algorithm"] = (reader.algorithm or "PSO").upper()
         budgets["gradient_optimizer"] = reader.gradient_optimizer
     except Exception as exc:
-        logger.warning("could not read budgets from %s: %s", xml_path, exc)
+        logger.warning("could not read budgets from %s: %s", config_path, exc)
     return budgets
 
 

@@ -68,7 +68,7 @@ with one data file, handled by one of the two approaches below.
 
 Very common: the ICs are defined at t=0 but the first sample is at t=4.
 
-Set `INITIAL_TIME = 0.0` in GRADIENT_OPT. Integration then starts at the ICs and
+Set `initial_time = 0.0` in gradient_opt. Integration then starts at the ICs and
 the solution is still saved at exactly `t_eval` (the `SaveAt` convention in
 `jax_translation.md`), so the saved rows stay aligned with the data rows. No
 anchor row is needed for alignment.

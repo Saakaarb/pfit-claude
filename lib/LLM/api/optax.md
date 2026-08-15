@@ -39,5 +39,5 @@ If the versions above differ from the installed ones, this digest is stale: rege
 ## Gotchas (curated — these are the ones that bite)
 
 - `optax.lbfgs()` has a NON-STANDARD update signature. It requires the params, value, grad and value_fn: `optimizer.update(grad, state, params, value=value, grad=grad, value_fn=f)`. Calling `update(grad, state)` as with adam raises a TypeError. See `lib/algorithms/NODE/classes.py:354`.
-- `optax.lbfgs()` performs its own line search, so it ignores the INIT_VALUE_LR / END_VALUE_LR / DECAY_RATE_LR settings entirely. Those XML fields only take effect when GRADIENT_OPTIMIZER = adam.
-- L-BFGS converges in tens of iterations; adam needs hundreds to ~1000. Setting NUM_ITERS for one optimizer and then switching to the other is a common misconfiguration.
+- `optax.lbfgs()` performs its own line search, so it ignores the init_value_lr / end_value_lr / decay_rate_lr settings entirely. Those config fields only take effect when gradient_optimizer: adam.
+- L-BFGS converges in tens of iterations; adam needs hundreds to ~1000. Setting num_iters for one optimizer and then switching to the other is a common misconfiguration.

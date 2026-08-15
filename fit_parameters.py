@@ -1,15 +1,14 @@
 import os
 import shutil
 import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # NOTE: jax is imported lazily (inside run_driver / __main__) so that the XLA
 # device count can be configured from the session's PROCESSORS setting *before*
-# the JAX backend initializes. XMLReader and live_view are import-safe (no jax
+# the JAX backend initializes. YAMLReader and live_view are import-safe (no jax
 # dependency).
 from lib.utils.live_view import attach as attach_live_view
-from lib.utils.xmlread import XMLReader
+from lib.utils.yamlread import YAMLReader, read_input_file
 
 
 def resolve_session_dir() -> Path:
@@ -48,9 +47,9 @@ def resolve_device_count(session_dir: Path) -> int:
     """
     Number of CPU devices to expose to JAX for population-parallel loss evaluation.
 
-    Fully configurable from the session's user_input.xml via PROCESSORS, with no
-    upper limit. Falls back to the number of logical CPUs when PROCESSORS is unset
-    or the XML cannot be read.
+    Fully configurable from the session's user_input.yaml via processors, with no
+    upper limit. Falls back to the number of logical CPUs when processors is unset
+    or the config cannot be read.
 
     Args:
         session_dir (Path): Path to the session directory.
@@ -60,17 +59,16 @@ def resolve_device_count(session_dir: Path) -> int:
     """
     fallback = os.cpu_count() or 1
     try:
-        xml_path = Path(session_dir) / "inputs" / "user_input.xml"
-        reader = XMLReader()
-        reader.read_XML(ET.parse(xml_path).getroot())
+        reader = read_input_file(Path(session_dir) / "inputs" / "user_input.yaml")
         if reader.processors:
             return max(1, int(reader.processors))
     except Exception as exc:
-        print(f"Could not read PROCESSORS from XML ({exc}); falling back to {fallback} CPU device(s)")
+        print(f"Could not read processors from user_input.yaml ({exc}); "
+              f"falling back to {fallback} CPU device(s)")
     return fallback
 
 
-def run_driver(session_dir: Path, input_reader: XMLReader):
+def run_driver(session_dir: Path, input_reader: YAMLReader):
     """
     Execute the parameter fitting workflow for the user's ODE system.
 
@@ -79,11 +77,11 @@ def run_driver(session_dir: Path, input_reader: XMLReader):
 
     Args:
         session_dir (Path): Path to the session directory.
-        input_reader (XMLReader): Parsed XML configuration.
+        input_reader (YAMLReader): Parsed YAML configuration.
 
     Returns:
         numpy.ndarray: Best parameter set found, in real (unscaled) units and in
-        XML trainable order. This is the same vector written to
+        YAML trainable order. This is the same vector written to
         outputs/final_design_point.csv, returned so callers (and the test suite)
         can assert on the fitted values without re-reading the file.
     """
@@ -94,7 +92,7 @@ def run_driver(session_dir: Path, input_reader: XMLReader):
     print("Available devices: ", jax.devices("cpu"))
 
     session_path = Path(session_dir)
-    path_to_input = session_path / input_reader.user_input_dirname / "user_input.xml"
+    path_to_input = session_path / input_reader.user_input_dirname / "user_input.yaml"
     path_to_output_dir = session_path / input_reader.output_dirname
     generated_dir = session_path / input_reader.generated_dirname
     generated_script = generated_dir / "generated_script.py"
@@ -132,14 +130,14 @@ if __name__ == "__main__":
 
     # Expose exactly the requested number of CPU devices to JAX. This MUST happen
     # before JAX initializes its backend, so it is set here — from the jax-free
-    # XML reader — prior to importing any jax-dependent module.
+    # YAML reader — prior to importing any jax-dependent module.
     n_devices = resolve_device_count(session_dir)
     os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={n_devices}"
-    print(f"Configuring JAX with {n_devices} CPU device(s) (PROCESSORS from XML)")
+    print(f"Configuring JAX with {n_devices} CPU device(s) (processors from user_input.yaml)")
 
     from lib.utils.helper_functions import get_input_reader
 
-    input_file_path = Path(session_dir) / "inputs" / "user_input.xml"
+    input_file_path = Path(session_dir) / "inputs" / "user_input.yaml"
     input_reader = get_input_reader(input_file_path)
 
     run_driver(session_dir, input_reader)

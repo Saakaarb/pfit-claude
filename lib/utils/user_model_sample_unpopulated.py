@@ -2,7 +2,7 @@ import numpy as np
 
 # Key: 
 # Nts: number of time steps in dataset
-# Ny: number of state variables defined in the user_input.xml file
+# Ny: number of state variables defined in the user_input.yaml file
 # N_col: number of columns in dataset provided (including the first columna as time) 
 
 def user_defined_system(t: float, y: np.ndarray, trainable_parameters: dict, fixed_parameters: dict, dataset: np.ndarray, t_eval: np.ndarray):
@@ -10,8 +10,8 @@ def user_defined_system(t: float, y: np.ndarray, trainable_parameters: dict, fix
         # Arguments:
         # t: time (float)
         # y: state vector (np.ndarray of size [Ny])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
+        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.yaml file
+        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.yaml file
         # dataset: dataset (np.ndarray of size [Nts,N_col-1]) (first dimension in dataset is time)
         # t_eval: evaluation times (np.ndarray of size [Nts])
 
@@ -44,8 +44,8 @@ def _compute_loss_problem(solution_time: np.ndarray, solution: np.ndarray, datas
         # solution_time: time (np.ndarray of size [Nts])
         # solution: state vector (np.ndarray of size [Nts,Ny])
         # dataset: dataset (np.ndarray of size [Nts,N_col-1])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
+        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.yaml file
+        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.yaml file
 
         loss=0.0
 
@@ -72,8 +72,8 @@ def writeout_description(solution_time: np.ndarray, solution: np.ndarray, datase
         # solution_time: time (np.ndarray of size [Nts])
         # solution: state vector (np.ndarray of size [Nts,Ny])
         # dataset: dataset (np.ndarray of size [Nts,N_col-1])
-        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.xml file
-        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.xml file
+        # trainable_parameters: dictionary of trainable parameters. keys identical to the names in the user_input.yaml file
+        # fixed_parameters: dictionary of fixed parameters. keys identical to the names in the user_input.yaml file
         # Change the size of writeout_array as per your requirement
 
         # this part is to be populated by the model

@@ -1,4 +1,4 @@
-Generate a user_model.py skeleton for the current session from its user_input.xml.
+Generate a user_model.py skeleton for the current session from its user_input.yaml.
 
 This file is PROCEDURE only. Every rule it depends on lives in exactly one
 reference file; read those rather than relying on recall.
@@ -10,20 +10,20 @@ reference file; read those rather than relying on recall.
 | `lib/LLM/reference/cold_start.md` | the invariant: setup choices are made without the solution | yes |
 | `lib/LLM/reference/input_constraints.md` | the constraints validated in step 3 |
 | `lib/LLM/reference/user_model_contract.md` | the three functions and the skeleton-generation rules |
-| `lib/LLM/reference/xml_format.md` | how to read the session XML |
+| `lib/LLM/reference/yaml_format.md` | how to read the session config |
 | `lib/LLM/reference/staggered_data.md` | ONLY if observables are sampled at different time points |
 | `lib/LLM/api/jax.md` | tracing rules — the pseudocode must be translatable later |
 
 Worked examples: `lib/utils/user_model_sample_unpopulated.py` (skeleton
 template), `lib/utils/user_model_sample_populated.py` (Robertson),
-`lib/utils/user_input_sample.xml`.
+`lib/utils/user_input_sample.yaml`.
 
 ## Steps
 
 1. Ask the user for the session name if not given as an argument. The session
    directory is `sessions/<session_name>/`.
 
-2. Read `sessions/<session_name>/inputs/user_input.xml` and the first ~20 rows of
+2. Read `sessions/<session_name>/inputs/user_input.yaml` and the first ~20 rows of
    each experiment's data CSV.
 
 3. **Validate the inputs against `input_constraints.md` before generating
@@ -41,7 +41,7 @@ template), `lib/utils/user_model_sample_populated.py` (Robertson),
 
 5. Write it to `sessions/<session_name>/generated/user_model.py`.
 
-6. Cross-check the result against the XML once more: parameter names, variable
+6. Cross-check the result against the config once more: parameter names, variable
    names and their order must match.
 
 7. Tell the user what was generated and that they must fill in the ODE logic,

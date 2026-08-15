@@ -71,8 +71,8 @@ SOLVER_NAMES = [
 
 # Files allowed to name solvers, and why.
 SOLVER_NAME_ALLOWED = {
-    # the default must be stated where the XML default is documented
-    "xml_format.md": {"Kvaerno5"},
+    # the default must be stated where the config default is documented
+    "yaml_format.md": {"Kvaerno5"},
     "jax_translation.md": {"Kvaerno5"},
     "validation_rules.md": {"Kvaerno5"},
 }
@@ -148,7 +148,7 @@ def test_referenced_repo_paths_exist(path):
     that turns "read the canonical file" into a dead end.
     """
     text = path.read_text()
-    referenced = set(re.findall(r"`((?:lib|tools|tests)/[\w./-]+\.(?:md|py|xml|txt))`", text))
+    referenced = set(re.findall(r"`((?:lib|tools|tests)/[\w./-]+\.(?:md|py|yaml|txt))`", text))
     missing = [r for r in referenced if not (REPO_ROOT / r).exists()]
     assert not missing, f"{path.name} references non-existent paths: {sorted(missing)}"
 

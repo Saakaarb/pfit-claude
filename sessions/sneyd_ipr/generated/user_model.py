@@ -8,7 +8,7 @@ import numpy as np
 #
 # Six-state IP3-receptor gating model of Sneyd & Dufour (2002). IP3 and Ca are
 # clamped per experiment, so they are carried as extra states with zero
-# derivative; their per-experiment values come from the XML INITIAL_CONDITIONS.
+# derivative; their per-experiment values come from initial_conditions in the config.
 
 
 def user_defined_system(t, y, trainable_parameters, fixed_parameters, dataset, t_eval):

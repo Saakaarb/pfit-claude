@@ -1,4 +1,4 @@
-Generate both user_input.xml and a fully-populated user_model.py in one step from an ODE system described in a paper, textbook, or other reference.
+Generate both user_input.yaml and a fully-populated user_model.py in one step from an ODE system described in a paper, textbook, or other reference.
 
 Use this instead of `/pfit-skeleton` when the user has a source that specifies
 the ODE system directly. This file is PROCEDURE only — the formats and rules it
@@ -9,10 +9,10 @@ produces against live in the reference files below.
 | File | Why |
 |---|---|
 | `lib/LLM/reference/cold_start.md` | the invariant: setup choices are made without the solution |
-| `lib/LLM/reference/xml_format.md` | the XML schema, defaults and valid values |
+| `lib/LLM/reference/yaml_format.md` | the schema, defaults and valid values |
 | `lib/LLM/reference/user_model_contract.md` | the three functions and what each must return |
 | `lib/LLM/reference/input_constraints.md` | what the generated inputs must satisfy |
-| `lib/LLM/api/diffrax.md` | valid `INTEGRATOR` names — never propose one from memory |
+| `lib/LLM/api/diffrax.md` | valid `integrator` names — never propose one from memory |
 | `lib/LLM/api/optax.md` | valid gradient optimizers and their real defaults |
 | `lib/LLM/reference/staggered_data.md` | if the source reports observables at different time points |
 
@@ -60,21 +60,21 @@ Present defaults and let the user override:
 - **Search ranges:** if the source gives a value `v`, propose `[v/100, v*100]`.
   If it gives none, propose a physically reasonable range and flag it explicitly
   for review.
-- **Population:** `POPULATION_SIZE = max(50, 10 x N_TRAINABLE)`, `NUM_ITERS = 20`,
-  `PROCESSORS = 4`.
-- **Gradient:** `NUM_ITERS = 10`, `MAX_STEPS = 10000`,
-  `INITIAL_TIMESTEP = 1e-6` (adjust if the problem's timescale is far from 1),
-  `INIT_VALUE_LR = 1e-4`, `END_VALUE_LR = 1e-5`,
-  `TRANSITION_STEPS_LR = 2000`, `DECAY_RATE_LR = 0.9`.
-- **Tolerances:** one `STEPSIZE_RTOL`/`STEPSIZE_ATOL` value per integrated
+- **Population:** `population_size = max(50, 10 x N_TRAINABLE)`, `num_iters = 20`,
+  `processors = 4`.
+- **Gradient:** `num_iters = 10`, `max_steps = 10000`,
+  `initial_timestep = 1e-6` (adjust if the problem's timescale is far from 1),
+  `init_value_lr = 1e-4`, `end_value_lr = 1e-5`,
+  `transition_steps_lr = 2000`, `decay_rate_lr = 0.9`.
+- **Tolerances:** one `stepsize_rtol`/`stepsize_atol` value per integrated
   variable.
 - **Solver / optimizer:** propose only values valid per the API digests.
 
 Wait for the answer.
 
-### 6. Write user_input.xml
+### 6. Write user_input.yaml
 
-Per `xml_format.md`, to `sessions/<session>/inputs/user_input.xml`.
+Per `yaml_format.md`, to `sessions/<session>/inputs/user_input.yaml`.
 
 ### 7. Write user_model.py
 

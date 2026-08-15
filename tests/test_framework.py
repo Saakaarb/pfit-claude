@@ -85,7 +85,7 @@ def test_vanderpol_fit_is_locally_optimal(tmp_path):
     session = tmp_path / "vanderpol_session"
     shutil.copytree(REPO_ROOT / "tests" / "vanderpol_session", session)
 
-    reader = get_input_reader(session / "inputs" / "user_input.xml")
+    reader = get_input_reader(session / "inputs" / "user_input.yaml")
     result = np.atleast_1d(np.asarray(run_driver(session, reader), dtype=float))
 
     assert result.shape == (1,)

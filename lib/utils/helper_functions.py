@@ -7,8 +7,7 @@ from functools import partial
 from lib.algorithms.PSO.classes import FitParamsPSO
 from lib.algorithms.DE.classes import FitParamsDE
 from lib.algorithms.NODE.classes import FitParamsNODE
-import xml.etree.ElementTree as ET
-from lib.utils.xmlread import XMLReader
+from lib.utils.yamlread import YAMLReader, read_input_file
 from pathlib import Path
 import importlib.util
 import sys
@@ -16,7 +15,7 @@ import sys
 jax.config.update("jax_enable_x64", True)
 
 class CreatedClass(ProblemObjectBase):
-    def __init__(self, experiments: list, input_reader: XMLReader, compute_loss_problem, write_problem_result):
+    def __init__(self, experiments: list, input_reader: YAMLReader, compute_loss_problem, write_problem_result):
         """
         Initialize the CreatedClass instance with problem configuration.
 
@@ -25,7 +24,7 @@ class CreatedClass(ProblemObjectBase):
                 't_eval'  (np.ndarray): time points for this experiment
                 'dataset' (np.ndarray): data array of shape (time_steps, variables)
                 'y0'      (jnp.ndarray): initial conditions for this experiment
-            input_reader (XMLReader): Configuration reader containing all problem parameters
+            input_reader (YAMLReader): Configuration reader containing all problem parameters
             compute_loss_problem (callable): Function to compute loss for a single experiment
             write_problem_result (callable): Function to write results for a single experiment
 
@@ -196,13 +195,13 @@ class CreatedClass(ProblemObjectBase):
         for c in self.constants_list:
             c["is_logscale"] = jnp.array(is_logscale)
 
-    def write_problem_result(self, design_point: np.ndarray, input_reader: XMLReader, label:str="default")-> None:
+    def write_problem_result(self, design_point: np.ndarray, input_reader: YAMLReader, label:str="default")-> None:
         """
         Write problem solution results to CSV files, one file per experiment.
 
         Args:
             design_point (numpy.ndarray): Parameter set that produced the solution
-            input_reader (XMLReader): Configuration reader containing output directory info
+            input_reader (YAMLReader): Configuration reader containing output directory info
             label (str, optional): Label prefix for the output files. Defaults to "default"
 
         Output files are named "{label}_solution_exp1.csv", "_exp2.csv", etc.
@@ -215,26 +214,21 @@ class CreatedClass(ProblemObjectBase):
       
 
 
-def get_input_reader(path_to_input: Path)-> XMLReader:
+def get_input_reader(path_to_input: Path)-> YAMLReader:
     """
-    Parse XML input file and create an XMLReader instance.
+    Parse the YAML input file and create a YAMLReader instance.
 
     Args:
-        path_to_input (Path): Path to the XML configuration file
+        path_to_input (Path): Path to the YAML configuration file
 
     Returns:
-        XMLReader: Configured reader instance containing all problem parameters
+        YAMLReader: Configured reader instance containing all problem parameters
 
-    This function parses the XML file using ElementTree and initializes
-    an XMLReader object with the parsed configuration data.
+    Raises:
+        InputError: if the file is not valid YAML, or a required key is missing,
+        or an unknown key is present in any section.
     """
-    tree = ET.parse(path_to_input)
-    root = tree.getroot()
-
-    input_reader=XMLReader()
-    input_reader.read_XML(root)
-
-    return input_reader
+    return read_input_file(path_to_input)
 
 
 def fit_generic_system(path_to_input: Path, path_to_output_dir: Path, generated_dir: Path,session_path: Path)-> np.ndarray:
@@ -245,7 +239,7 @@ def fit_generic_system(path_to_input: Path, path_to_output_dir: Path, generated_
     2. Gradient-based optimization (NODE) for local refinement
 
     The process includes:
-    1. Reading input parameters from XML
+    1. Reading input parameters from user_input.yaml
     2. Running PSO to find initial parameter estimates
     3. Using PSO results as initial guess for NODE
     4. Running NODE to refine the parameters
@@ -254,7 +248,7 @@ def fit_generic_system(path_to_input: Path, path_to_output_dir: Path, generated_
     Parameters
     ----------
     path_to_input : str or Path
-        Path to the input XML file containing optimization parameters
+        Path to the input YAML file containing optimization parameters
     path_to_output_dir : str or Path
         Directory where output files will be written
     generated_dir : str or Path
@@ -329,7 +323,7 @@ def fit_generic_system(path_to_input: Path, path_to_output_dir: Path, generated_
 
 
 # fixed
-def fit_equation_system(input_reader: XMLReader, problem_obj: CreatedClass)-> np.ndarray:
+def fit_equation_system(input_reader: YAMLReader, problem_obj: CreatedClass)-> np.ndarray:
     """
     Fit a system of equations using a two-phase optimization approach.
 
@@ -344,7 +338,7 @@ def fit_equation_system(input_reader: XMLReader, problem_obj: CreatedClass)-> np
     4. Writing results to output directory
 
     Args:
-        input_reader (XMLReader): Reader object containing optimization parameters from XML
+        input_reader (YAMLReader): Reader object containing optimization parameters from user_input.yaml
         problem_obj (CreatedClass): Problem object built from all experiment datasets
 
     Returns:
@@ -462,7 +456,7 @@ def fit_gradient_only_system(path_to_input: Path, path_to_output_dir: Path, gene
     Parameters
     ----------
     path_to_input : Path
-        Path to the session's user_input.xml.
+        Path to the session's user_input.yaml.
     path_to_output_dir : Path
         Session output directory (must already exist).
     generated_dir : Path
@@ -470,7 +464,7 @@ def fit_gradient_only_system(path_to_input: Path, path_to_output_dir: Path, gene
     session_path : Path
         Session root, used to resolve experiment data files.
     init_guess : numpy.ndarray
-        Starting parameter set in real (unscaled) units, in XML trainable order.
+        Starting parameter set in real (unscaled) units, in YAML trainable order.
 
     Returns
     -------
@@ -510,7 +504,7 @@ def fit_gradient_only_system(path_to_input: Path, path_to_output_dir: Path, gene
         init_guess = np.asarray(init_guess, dtype=float)
         if init_guess.shape[0] != input_reader.n_search_axes:
             raise ValueError(
-                f"init_guess has {init_guess.shape[0]} entries but the XML defines "
+                f"init_guess has {init_guess.shape[0]} entries but user_input.yaml defines "
                 f"{input_reader.n_search_axes} trainable parameters")
 
         fit_obj_NODE = FitParamsNODE(input_reader, problem_obj_node, init_guess=init_guess)
@@ -556,7 +550,7 @@ def fit_gradient_only_system(path_to_input: Path, path_to_output_dir: Path, gene
         raise e
 
 
-def optimize_function(fit_obj: FitParamsPSO, input_reader: XMLReader, file_obj: Path)-> tuple[np.ndarray, float]:
+def optimize_function(fit_obj: FitParamsPSO, input_reader: YAMLReader, file_obj: Path)-> tuple[np.ndarray, float]:
     """
     Execute PSO optimization iterations with logging and error handling.
 
@@ -566,7 +560,7 @@ def optimize_function(fit_obj: FitParamsPSO, input_reader: XMLReader, file_obj: 
 
     Args:
         fit_obj (FitParamsPSO): PSO optimization object configured with problem parameters
-        input_reader (XMLReader): Configuration reader containing iteration count and output directory
+        input_reader (YAMLReader): Configuration reader containing iteration count and output directory
         file_obj (Path): Path to the log file for writing optimization progress
 
     Returns:

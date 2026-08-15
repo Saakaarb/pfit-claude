@@ -83,7 +83,7 @@ available inputs.
 ### Worst case over the bounds
 
 Where a quantity cannot be known before fitting, evaluate it at the corners of
-the `MIN_VAL`/`MAX_VAL` box rather than at any single parameter set, and say
+the `min_val`/`max_val` box rather than at any single parameter set, and say
 that is what you did.
 
 This is not a weaker test but a stricter one, and it is the question that
@@ -103,7 +103,7 @@ must deliver.
 
 ### Read the equations — do not sample the box
 
-**The integrator family, `MAX_STEPS` and the tolerances are decided by reading
+**The integrator family, `max_steps` and the tolerances are decided by reading
 the equation terms and the dataset. Never by sampling parameters and
 integrating.**
 

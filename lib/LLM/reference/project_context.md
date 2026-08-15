@@ -29,7 +29,7 @@ Parameters are fitted in two stages:
    seeded from the best point of stage 1.
 
 Stage boundaries matter for tolerances: the global search may run at looser ODE
-tolerances (`POP_STEPSIZE_*`) than the gradient stage, and falls back to the
+tolerances (`population_opt.stepsize_*`) than the gradient stage, and falls back to the
 gradient tolerances when those are unset.
 
 ## Workflows
@@ -53,7 +53,7 @@ From a paper (model extracts the ODE):
 ```
 sessions/<session_name>/
 ├── inputs/
-│   ├── user_input.xml        <- USER PROVIDES: configuration
+│   ├── user_input.yaml       <- USER PROVIDES: configuration
 │   └── <data>.csv            <- USER PROVIDES: time-series data
 ├── generated/
 │   ├── user_model.py         <- created by /pfit-skeleton, filled by the user
@@ -69,7 +69,7 @@ sessions/<session_name>/
     └── sloppiness_spectrum.png
 ```
 
-The directory names are overridable via the XML `PATH` section.
+The directory names are overridable via the `paths` section.
 
 ## The live view
 
@@ -91,7 +91,7 @@ same view for a fit already running in another terminal.
 
 **Understand this before generating or reviewing any code.**
 
-Multiple `<EXPERIMENT>` blocks mean the same parameter set is fitted
+Multiple `experiments` blocks mean the same parameter set is fitted
 simultaneously against multiple datasets — e.g. the same system measured under
 different initial conditions or in different runs. The framework handles all
 aggregation:
@@ -149,7 +149,7 @@ Re-run stand-alone on a completed session without re-fitting:
 
 ## Reproducibility
 
-Setting `RANDOM_SEED` in `POPULATION_OPT/SETTINGS` makes the fit deterministic
+Setting `random_seed` in `population_opt` makes the fit deterministic
 (same machine, same library versions). It is threaded to every stochastic
 component:
 
@@ -160,12 +160,12 @@ component:
   velocities and the per-iteration cognitive/social draws, which pyswarms takes
   from NumPy's global RNG.
 - **DE** — the same seed is passed to `scipy.optimize.differential_evolution`.
-  When `RANDOM_SEED` is unset, DE falls back to `42`, so **DE is reproducible by
+  When `random_seed` is unset, DE falls back to `42`, so **DE is reproducible by
   default; PSO is not**.
 - **Gradient stage** — already deterministic (optax lbfgs/adam have no RNG, and
   the initial guess is the fixed best point from the global search).
 
-The parallel loss evaluation shards independently of `PROCESSORS`, so the device
+The parallel loss evaluation shards independently of `processors`, so the device
 count does not change results. Determinism is bit-for-bit only on identical
 hardware and identical library versions.
 

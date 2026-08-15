@@ -1,23 +1,23 @@
 """Shared fixtures for the pfit-claude test suite.
 
 The integration tests all follow the same shape: copy a committed session
-fixture into a tmp directory, optionally patch a handful of XML settings, and
-run a fit. Copying matters — a fit deletes and rewrites `outputs/`, so running
-against the committed fixture in place would dirty the repo and make tests
-order-dependent.
+fixture into a tmp directory, optionally patch a handful of settings in
+user_input.yaml, and run a fit. Copying matters — a fit deletes and rewrites
+`outputs/`, so running against the committed fixture in place would dirty the
+repo and make tests order-dependent.
 """
 
 import shutil
 import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
-# Ground truth used to generate every decay fixture's data (see the XML header).
+# Ground truth used to generate every decay fixture's data (see the config header).
 DECAY_TRUE_PARAMS = {"k1": 1.0, "k2": 0.3}
 DECAY_PARAM_ORDER = ["k1", "k2"]
 
@@ -28,44 +28,55 @@ ROBERTSON_TRUE_PARAMS = [0.04, 3.0e7, 1.0e4]
 sys.path.insert(0, str(REPO_ROOT))
 
 
-def set_xml_setting(xml_path: Path, section: str, key: str, value) -> None:
-    """Set (or insert) `<P> key = value </P>` inside a named XML section.
+def _split_header(text: str) -> tuple[str, str]:
+    """Separate the leading `#` comment block from the YAML body.
 
-    `section` is a top-level tag such as POPULATION_OPT or GRADIENT_OPT. The key
-    is matched on the text left of the `=`, mirroring how `XMLReader` parses it.
-    NUM_ITERS exists in both optimizer sections, which is exactly why the
-    section must be given explicitly.
+    The fixtures document their ground-truth parameters in that header, and a
+    PyYAML round-trip drops every comment — so it is preserved by hand.
     """
-    tree = ET.parse(xml_path)
-    root = tree.getroot()
-
-    block = root.find(section)
-    if block is None:
-        raise ValueError(f"{xml_path} has no <{section}> section")
-    settings = block.find("SETTINGS")
-    if settings is None:
-        raise ValueError(f"<{section}> in {xml_path} has no <SETTINGS>")
-
-    for p in settings.findall("P"):
-        if p.text and p.text.split("=")[0].strip() == key:
-            p.text = f" {key} = {value} "
+    lines = text.splitlines(keepends=True)
+    cut = 0
+    for i, line in enumerate(lines):
+        if line.strip() and not line.lstrip().startswith("#"):
+            cut = i
             break
     else:
-        new = ET.SubElement(settings, "P")
-        new.text = f" {key} = {value} "
-
-    tree.write(xml_path, encoding="utf-8", xml_declaration=True)
+        cut = len(lines)
+    return "".join(lines[:cut]), "".join(lines[cut:])
 
 
-def remove_xml_setting(xml_path: Path, section: str, key: str) -> None:
-    """Delete a `<P> key = ... </P>` entry, so the reader falls back to its default."""
-    tree = ET.parse(xml_path)
-    root = tree.getroot()
-    settings = root.find(section).find("SETTINGS")
-    for p in list(settings.findall("P")):
-        if p.text and p.text.split("=")[0].strip() == key:
-            settings.remove(p)
-    tree.write(xml_path, encoding="utf-8", xml_declaration=True)
+def _rewrite_config(config_path: Path, mutate) -> None:
+    header, body = _split_header(config_path.read_text())
+    config = yaml.safe_load(body)
+    mutate(config)
+    config_path.write_text(
+        header + yaml.safe_dump(config, sort_keys=False, default_flow_style=False)
+    )
+
+
+def set_setting(config_path: Path, section: str, key: str, value) -> None:
+    """Set (or insert) `key: value` inside a named section of user_input.yaml.
+
+    `section` is a top-level key such as population_opt or gradient_opt.
+    num_iters exists in both optimizer sections, which is exactly why the
+    section must be given explicitly.
+    """
+
+    def mutate(config):
+        if section not in config:
+            raise ValueError(f"{config_path} has no '{section}' section")
+        config[section][key] = value
+
+    _rewrite_config(config_path, mutate)
+
+
+def remove_setting(config_path: Path, section: str, key: str) -> None:
+    """Delete a key, so the reader falls back to its default."""
+
+    def mutate(config):
+        config[section].pop(key, None)
+
+    _rewrite_config(config_path, mutate)
 
 
 @pytest.fixture(autouse=True)
@@ -92,12 +103,12 @@ def clear_jax_caches_between_tests():
 
 @pytest.fixture
 def make_session(tmp_path):
-    """Factory: copy a committed fixture session into tmp_path and patch its XML.
+    """Factory: copy a committed fixture session into tmp_path and patch its config.
 
     Usage:
         session = make_session("decay_session",
-                               population={"NUM_ITERS": 2},
-                               gradient={"GRADIENT_OPTIMIZER": "adam"})
+                               population={"num_iters": 2},
+                               gradient={"gradient_optimizer": "adam"})
     """
 
     def _make(name: str, population: dict | None = None,
@@ -108,11 +119,11 @@ def make_session(tmp_path):
         dest = tmp_path / (dest_name or name)
         shutil.copytree(source, dest)
 
-        xml_path = dest / "inputs" / "user_input.xml"
+        config_path = dest / "inputs" / "user_input.yaml"
         for key, value in (population or {}).items():
-            set_xml_setting(xml_path, "POPULATION_OPT", key, value)
+            set_setting(config_path, "population_opt", key, value)
         for key, value in (gradient or {}).items():
-            set_xml_setting(xml_path, "GRADIENT_OPT", key, value)
+            set_setting(config_path, "gradient_opt", key, value)
         return dest
 
     return _make
@@ -126,7 +137,7 @@ def run_fit():
         from fit_parameters import run_driver
         from lib.utils.helper_functions import get_input_reader
 
-        reader = get_input_reader(session_dir / "inputs" / "user_input.xml")
+        reader = get_input_reader(session_dir / "inputs" / "user_input.yaml")
         return run_driver(session_dir, reader)
 
     return _run

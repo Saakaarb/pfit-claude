@@ -456,7 +456,7 @@ def build_population(cfg: dict, versions: dict[str, str]) -> list[str]:
         "## `scipy.optimize.differential_evolution`",
         "",
         "Driven by `lib/algorithms/DE/classes.py`. Only the arguments the "
-        "framework sets are exposed through the XML today; the rest are scipy "
+        "framework sets are exposed through user_input.yaml today; the rest are scipy "
         "defaults shown here.",
         "",
         "```python",

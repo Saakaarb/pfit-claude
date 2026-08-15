@@ -1,6 +1,5 @@
 import numpy as np
-import xml.etree.ElementTree as ET
-from lib.utils.xmlread import XMLReader
+from lib.utils.yamlread import YAMLReader
 from pathlib import Path
 from functools import partial
 import jax

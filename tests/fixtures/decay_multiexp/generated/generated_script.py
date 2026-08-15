@@ -29,7 +29,7 @@ def scale_value(unscaled_val, min_val, max_val, is_logscale):
 # Two-step linear decay chain:
 #   dA/dt = -k1*A
 #   dB/dt =  k1*A - k2*B
-# trainable parameter order (from the XML): k1, k2
+# trainable parameter order (from the config): k1, k2
 @jax.jit
 def user_defined_system(t, y, other_args):
 

@@ -26,8 +26,8 @@ packages, regenerate first:
 
 1. Ask the user for the session name if not given as an argument.
 
-2. Read `sessions/<session_name>/inputs/user_input.xml` (for the parameter
-   order, `MAX_STEPS` and `INTEGRATOR`),
+2. Read `sessions/<session_name>/inputs/user_input.yaml` (for the parameter
+   order, `max_steps` and `integrator`),
    `sessions/<session_name>/generated/user_model.py`, and the reference files
    above.
 

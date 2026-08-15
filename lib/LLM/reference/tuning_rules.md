@@ -14,9 +14,9 @@ Applied by `/pfit-check` to produce the **Recommendations** section of its
 report, *before* any fit has run. Post-fit tuning is a different job with
 different evidence — see `diagnosis_rules.md`.
 
-Severity thresholds on the numbers already in the XML belong to
+Severity thresholds on the numbers already in the config belong to
 `validation_rules.md`; this file owns recommendations **derived from the model
-and the data**, i.e. from evidence the XML does not contain. The human-facing
+and the data**, i.e. from evidence the config does not contain. The human-facing
 catalogue of what is tunable at all is `docs/tunable_choices.md`.
 
 ## The rule that governs every recommendation
@@ -24,10 +24,10 @@ catalogue of what is tunable at all is `docs/tunable_choices.md`.
 **Every recommendation must cite the evidence that produced it.** A suggestion
 with no evidence line is noise — omit it and let the default stand. Evidence
 means a specific thing you read: a line of the RHS, a column range in the CSV,
-a parameter's `MIN_VAL`/`MAX_VAL` ratio, a count. Never recommend a value
+a parameter's `min_val`/`max_val` ratio, a count. Never recommend a value
 because it is "typical".
 
-If the current XML value is already reasonable, say nothing about that field.
+If the current config value is already reasonable, say nothing about that field.
 
 **Every recommendation must also satisfy the cold-start invariant in
 `cold_start.md`**: it must stand up from the equations, the dataset and the
@@ -44,21 +44,21 @@ Read these before writing any recommendation:
 | Whether the RHS is smooth | `user_defined_system` in `user_model.py` — look for `sign`, `abs`, `floor`, `ceil`, `clip`, `minimum`/`maximum`, `where` on a state-dependent condition | integrator family |
 | How many discontinuities, and of what kind | the same expressions — count the distinct switches, and decide for each whether it is **one-way** (a threshold the trajectory crosses once and does not return through) or **chattering** (a switch the trajectory can re-cross repeatedly, as in a friction or on/off control law) | integrator family |
 | Whether the fastest mode is **slaved or active** | the RHS **form** — structural, so it needs no parameter values, but it must be *derived, not recognised*. See the test below; do not classify a mode from the shape of its terms | integrator family |
-| Worst-case stiffness **over the bounds** | evaluate the RHS's rate terms at the corners of the `MIN_VAL`/`MAX_VAL` box, not at any single parameter set — the global search visits the whole box, so the question is whether the system *can* be stiff anywhere in it. Quote the implied step count over the data's time span | integrator family, `MAX_STEPS` |
+| Worst-case stiffness **over the bounds** | evaluate the RHS's rate terms at the corners of the `min_val`/`max_val` box, not at any single parameter set — the global search visits the whole box, so the question is whether the system *can* be stiff anywhere in it. Quote the implied step count over the data's time span | integrator family, `max_steps` |
 | Timescale evidence in the data | column 0 of each CSV against how fast each observable moves: an observable that is flat across most of the record and then changes by its full range within one or two sample intervals is direct evidence of a fast/slow split, measurable before any fit | integrator family, tolerances |
-| Stiffness indicators | slaved fast modes, worst-case box stiffness and the data evidence (all above); whether the RHS mixes fast and slow variables; whether any bound in the XML spans >4 decades | integrator family, tolerances |
-| Time-span vs. sampling | first/last value and spacing of column 0 of each CSV; whether spacing is uniform or geometric | `MAX_STEPS`, `INITIAL_TIMESTEP` |
+| Stiffness indicators | slaved fast modes, worst-case box stiffness and the data evidence (all above); whether the RHS mixes fast and slow variables; whether any bound in the config spans >4 decades | integrator family, tolerances |
+| Time-span vs. sampling | first/last value and spacing of column 0 of each CSV; whether spacing is uniform or geometric | `max_steps`, `initial_timestep` |
 | Per-column magnitudes | max `|value|` of each data column | loss normalisation and weighting |
 | Blank/NaN cells | any empty cell in a CSV | staggered-data handling |
-| Bound width per parameter | `MAX_VAL / MIN_VAL` per trainable parameter | `LOGSCALE` |
-| N, number of trainable parameters | XML | search budget, identifiability warning |
-| Number of experiments | count of `<EXPERIMENT>` blocks | aggregation caveat |
+| Bound width per parameter | `max_val / min_val` per trainable parameter | `logscale` |
+| N, number of trainable parameters | config | search budget, identifiability warning |
+| Number of experiments | count of `experiments` blocks | aggregation caveat |
 
 ## Rules
 
 ### R1 — Integrator family (highest value; always emit a verdict)
 
-This is the only recommendation to make even when the XML already names a
+This is the only recommendation to make even when the config already names a
 solver, because a wrong family makes every other setting irrelevant.
 
 Recommend a **family**, then name a specific solver only by reading it out of
@@ -236,7 +236,7 @@ Resolve on both axes, in this order:
 - **Non-smooth with chattering switches and no slaved fast mode** → recommend an
   **explicit** solver. Cite the exact offending expression. Explain that an
   implicit inner solve cannot converge across the discontinuity for *any*
-  `MAX_STEPS`, so failures there are not fixable by raising it.
+  `max_steps`, so failures there are not fixable by raising it.
 - **Stiff *and* chattering** → this is a genuine conflict and neither family is
   right. Say so plainly rather than picking the lesser evil, and recommend
   fixing it in the **model**: replace the hard switch with a smooth transition
@@ -266,15 +266,15 @@ family alone does not determine:
   appropriately. Recommend one only if the split is visible in the equations and
   the digest actually offers such a solver.
 
-### R2 — `LOGSCALE` per parameter
+### R2 — `logscale` per parameter
 
-`MAX_VAL / MIN_VAL` >= 100 → recommend `LOGSCALE = Y`, quoting the ratio.
+`max_val / min_val` >= 100 → recommend `logscale: true`, quoting the ratio.
 Below that, linear is fine. State it per parameter by name; do not issue a
 blanket recommendation for all of them.
 
 ### R3 — Bounds
 
-- A bound that is not strictly positive on a parameter marked `LOGSCALE = Y` is
+- A bound that is not strictly positive on a parameter marked `logscale: true` is
   a critical error, not a recommendation — hand it to `validation_rules.md`.
 - Bounds spanning more than ~8 decades → recommend narrowing using whatever the
   source or the data implies, and cite what that is. A 10-decade box wastes most
@@ -285,10 +285,10 @@ blanket recommendation for all of them.
 
 ### R4 — Two-tier tolerances
 
-If `POP_STEPSIZE_RTOL`/`_ATOL` are absent, recommend setting them ~100× looser
-than `STEPSIZE_RTOL`/`_ATOL`, and say what that buys: the global search does
-`POPULATION_SIZE × NUM_ITERS` solves and does not need refinement accuracy.
-Include the concrete values for this XML, one per state variable.
+If `population_opt.stepsize_rtol`/`_ATOL` are absent, recommend setting them ~100× looser
+than `stepsize_rtol`/`_ATOL`, and say what that buys: the global search does
+`population_size × num_iters` solves and does not need refinement accuracy.
+Include the concrete values for this config, one per state variable.
 
 Do not recommend this when the loss is dominated by a fast transient that loose
 tolerances would smear — if the CSV's early time spacing is orders of magnitude
@@ -296,10 +296,10 @@ finer than its late spacing, say so and recommend only ~10× looser.
 
 ### R5 — Search budget
 
-Recommend `POPULATION_SIZE` >= 10·N and `NUM_ITERS` >= 20, N = number of
+Recommend `population_size` >= 10·N and `num_iters` >= 20, N = number of
 trainable parameters. Report the implied number of ODE solves
-(`POPULATION_SIZE × NUM_ITERS`), and — if a per-solve time is known from a
-previous session — the implied wall-clock at the current `PROCESSORS`. Budget is
+(`population_size × num_iters`), and — if a per-solve time is known from a
+previous session — the implied wall-clock at the current `processors`. Budget is
 the choice the user is best placed to make, so give them the arithmetic rather
 than a bare number.
 
@@ -319,19 +319,19 @@ regions. Say it is a robustness/speed trade, not a correctness one.
   nothing.
 
   Set the count from the learning rate, not from a fixed number:
-  **`NUM_ITERS` >= `1 / INIT_VALUE_LR`**, which is 1000 at the recommended
+  **`num_iters` >= `1 / init_value_lr`**, which is 1000 at the recommended
   starting rate. The reason is that adam's step is normalized — it moves about
   `lr` per iteration in the `[-1, 1]` scaled parameter space whatever the
-  gradient magnitude — so `NUM_ITERS * INIT_VALUE_LR` is the distance it can
+  gradient magnitude — so `num_iters * init_value_lr` is the distance it can
   cover, and a count that cannot cover a basin cannot reach its bottom.
   `validation_rules.md` owns the threshold and the warning.
-- Never recommend the LR fields while `GRADIENT_OPTIMIZER` is `lbfgs`; they are
+- Never recommend the LR fields while `gradient_optimizer` is `lbfgs`; they are
   silently ignored.
 
 ### R8 — Loss shape
 
 The loss lives in `user_model.py`, so these are recommendations about code, not
-XML. Quote the line you would change.
+config. Quote the line you would change.
 
 - Column magnitudes differing by more than ~10× and no per-column scaling in
   `_compute_loss_problem` → recommend the per-column-scaled RMSE pattern from
@@ -340,7 +340,7 @@ XML. Quote the line you would change.
 - Any blank cell in a CSV and no NaN handling in the loss → recommend the
   NaN-safe pattern from `staggered_data.md`. Note that sanitising *after* any
   arithmetic still produces NaN gradients.
-- More than one `<EXPERIMENT>` and datasets of visibly different quality or
+- More than one `experiments` and datasets of visibly different quality or
   length → note that aggregation is an unweighted mean over experiments with no
   weighting available, so the user should decide whether that is acceptable
   (per-experiment weighting would require a code change).
@@ -353,7 +353,7 @@ non-identifiable directions in the post-fit sloppiness report, and that the fix
 is fewer trainable parameters or a reparameterisation, not more iterations.
 Cite the RHS expression where the parameters are entangled.
 
-### R10 — `MAX_STEPS`
+### R10 — `max_steps`
 
 Size it from the data and the equations. There is no empirical confirmation step
 available, because the failure code that would carry the signal is ambiguous —
@@ -364,7 +364,7 @@ data — for each observable, the smallest value of `|y| / |dy/dt|` using finite
 differences on the column. Then
 
 ```
-MAX_STEPS ~ t_span / tau_min
+max_steps ~ t_span / tau_min
 ```
 
 This assumes the solver runs at its smallest step for the entire span, so it
@@ -382,7 +382,7 @@ sampling rate rather than a property of the system. Evaluate that term's
 timescale expression over the bounds — this is arithmetic on the RHS, not a
 trial integration (`cold_start.md`).
 
-**Do not tune it by sweeping.** Raising `MAX_STEPS` over sampled parameter sets
+**Do not tune it by sweeping.** Raising `max_steps` over sampled parameter sets
 and watching the success count does not measure what it appears to: most of a
 box is singular or inert, so the count is dominated by candidates that no budget
 would rescue and by ones that never needed a large budget. Note also that
@@ -391,7 +391,7 @@ singular and the step is collapsing toward zero"* — both burn the whole budget
 and return the same code — so the count cannot be read as evidence either way.
 
 State the estimate and the two numbers behind it. Because the cost of the global
-search is roughly linear in `MAX_STEPS`, an over-large ceiling is paid on every
+search is roughly linear in `max_steps`, an over-large ceiling is paid on every
 doomed candidate; prefer the estimate above to an arbitrary large round number.
 
 1. Anything in `docs/tunable_choices.md` marked as living in **code** — the
@@ -399,7 +399,7 @@ doomed candidate; prefer the estimate above to an arbitrary large round number.
    initial-population sampler, swarm/DE internals. Mention one only if the
    evidence specifically implicates it, and then say plainly that it requires a
    library edit and is out of scope for a session-level change.
-2. `PROCESSORS` as a quality knob. It is throughput only.
+2. `processors` as a quality knob. It is throughput only.
 3. Reordering parameters or variables. The order is load-bearing.
 4. Values with no evidence behind them.
 5. More than **five** recommendations. Rank by expected effect on the fit and
@@ -415,15 +415,15 @@ Each recommendation is exactly four lines, in the **Recommendations** section of
 the report defined by `validation_rules.md`:
 
 ```
-[R2] LOGSCALE for k2: N -> Y
-     Evidence: MIN_VAL = 5E3, MAX_VAL = 5E10 — a ratio of 1e7.
+[R2] logscale for k2: false -> true
+     Evidence: min_val = 5.0e+03, max_val = 5.0e+10 — a ratio of 1e7.
      Why: a linear search over 7 decades never resolves the lower two, so the
           swarm spends its whole budget in the top decade of the box.
-     Edit: <P> LOGSCALE = Y </P>   (k2 block)
+     Edit: model.trainable_parameters, k2 entry -> logscale: true
 ```
 
 Rules: current value → proposed value on the first line; the rule id in
-brackets; `Edit:` gives the literal XML line, or the file and function for a
+brackets; `Edit:` gives the literal config line, or the file and function for a
 `user_model.py` change. Order most to least impactful. Omit the section entirely
 when there is nothing evidence-backed to say.
 
@@ -438,7 +438,7 @@ applied automatically** — unlike the critical-error corrections in
 2. Apply only what they name. Make the minimal edit; change nothing else.
 3. If two selected recommendations conflict (e.g. an explicit solver plus
    tighter tolerances), say so and apply neither until they choose.
-4. After applying anything that changes the XML, re-run the `/pfit-check`
+4. After applying anything that changes the config, re-run the `/pfit-check`
    validation pass — a recommended value can violate a threshold.
 5. Never apply a recommendation and a critical-error correction in one edit
    without saying which is which.

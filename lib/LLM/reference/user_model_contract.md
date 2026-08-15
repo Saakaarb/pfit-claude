@@ -38,10 +38,10 @@ variables, `N_col` = number of columns in the dataset including time.
 ## Conventions
 
 - `trainable_parameters` and `fixed_parameters` are treated as **dicts** whose
-  keys are the names in the XML. This is a convenience for the user; the
+  keys are the names in the config. This is a convenience for the user; the
   translation step converts the trainable dict to vector indexing.
 - **Only `numpy` and `math` may be used.** No scipy, torch, or anything else.
-- The parameter *order* in the XML is load-bearing and is restated as a comment
+- The parameter *order* in the config is load-bearing and is restated as a comment
   in the skeleton. Never reorder.
 - `dataset`, `t_eval` and the initial conditions always describe **one
   experiment** — see the multi-experiment model in `project_context.md`.
@@ -51,7 +51,7 @@ variables, `N_col` = number of columns in the dataset including time.
 ### `user_defined_system`
 
 Returns a list/array of derivatives for **every** integrated variable, in the
-XML's variable order. Every integrated variable must have a derivative defined
+config's variable order. Every integrated variable must have a derivative defined
 and returned.
 
 ### `_compute_loss_problem`
@@ -82,13 +82,13 @@ fit. It must NOT loop over multiple datasets.
 ## Generating a skeleton (used by /pfit-skeleton)
 
 Build the skeleton from `lib/utils/user_model_sample_unpopulated.py`, using the
-XML to populate:
+config to populate:
 
-- trainable parameter names from `TRAINABLE_PARAMETER_DESCRIPTION`, with a
+- trainable parameter names from `model.trainable_parameters`, with a
   comment giving their vector order;
-- fixed parameter names from `FIXED_PARAM_DESCRIPTION`;
+- fixed parameter names from `model.fixed_parameters`;
 - integrated variable names and initial values from
-  `INTEGRATED_SYSTEM_DESCRIPTION`.
+  `model.integrated_variables`.
 
 Rules:
 
@@ -97,7 +97,7 @@ Rules:
 - **Preserve every comment** from the template.
 - Add `import numpy as np` at the top.
 - Output pure Python — no boilerplate prose, no markdown fences.
-- When the XML has multiple `<EXPERIMENT>` blocks, add a comment below each
+- When the config has multiple `experiments` blocks, add a comment below each
   function's argument list: `# dataset and t_eval represent ONE experiment's
   data; the framework calls this function once per experiment`.
 

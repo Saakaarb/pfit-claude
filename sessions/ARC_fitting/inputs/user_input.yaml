@@ -1,0 +1,45 @@
+experiments:
+  - data_file: NMC_SOC80_M2_normalized_converted_units.csv
+
+model:
+  trainable_parameters:
+    - {name: Ea1, min_val: 1.0e-19, max_val: 3.0e-19, logscale: true}
+    - {name: A1, min_val: 1.0e+05, max_val: 1.0e+25, logscale: true}
+    - {name: n1, min_val: 0.5, max_val: 3.0, logscale: false}
+    - {name: h1, min_val: 1.0, max_val: 3.2e+02, logscale: true}
+    - {name: Ea2, min_val: 2.0e-19, max_val: 4.0e-19, logscale: true}
+    - {name: A2, min_val: 1.0e+08, max_val: 1.0e+18, logscale: true}
+    - {name: m2, min_val: 1.0, max_val: 8.0, logscale: false}
+    - {name: h2, min_val: 1.0, max_val: 3.3e+02, logscale: true}
+  fixed_parameters:
+    - {name: T_ignite, value: 485.0}
+    - {name: kb, value: 1.380649e-23}
+  integrated_variables:
+    - {name: c1, init_val: 1.0}
+    - {name: c2, init_val: 0.04}
+    - {name: T, init_val: 354.0}
+
+population_opt:
+  population_size: 600
+  num_iters: 30
+  processors: 16
+  algorithm: DE
+  random_seed: 0
+  stepsize_rtol: 1.0e-06
+  stepsize_atol: [1.0e-09, 1.0e-09, 1.0e-04]
+
+gradient_opt:
+  num_iters: 1000
+  stepsize_rtol: 1.0e-08
+  stepsize_atol: [1.0e-11, 1.0e-11, 1.0e-06]
+  initial_timestep: 1.0e-06
+  max_steps: 10000
+  integrator: Kvaerno5
+  gradient_optimizer: adam
+  init_value_lr: 1.0e-03
+  end_value_lr: 1.0e-05
+  transition_steps_lr: 200
+  decay_rate_lr: 0.9
+
+output:
+  write_results: true

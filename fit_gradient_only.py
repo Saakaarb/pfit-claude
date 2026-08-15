@@ -8,7 +8,7 @@ import numpy as np
 # jax is imported lazily (inside run_driver) so XLA device count can be set first.
 from fit_parameters import resolve_session_dir, resolve_device_count
 from lib.utils.live_view import attach as attach_live_view
-from lib.utils.xmlread import XMLReader
+from lib.utils.yamlread import YAMLReader
 
 
 def load_init_guess(session_dir: Path) -> np.ndarray:
@@ -23,7 +23,7 @@ def load_init_guess(session_dir: Path) -> np.ndarray:
         session_dir (Path): Path to the session directory.
 
     Returns:
-        numpy.ndarray: Initial guess in real parameter units, in XML trainable order.
+        numpy.ndarray: Initial guess in real parameter units, in YAML trainable order.
     """
     guess_path = Path(session_dir) / "outputs" / "final_design_point.csv"
     if not guess_path.exists():
@@ -37,7 +37,7 @@ def load_init_guess(session_dir: Path) -> np.ndarray:
     return guess
 
 
-def run_driver(session_dir: Path, input_reader: XMLReader):
+def run_driver(session_dir: Path, input_reader: YAMLReader):
     """
     Execute ONLY the gradient (NODE) refinement stage for the user's ODE system.
 
@@ -50,7 +50,7 @@ def run_driver(session_dir: Path, input_reader: XMLReader):
 
     Args:
         session_dir (Path): Path to the session directory.
-        input_reader (XMLReader): Parsed XML configuration.
+        input_reader (YAMLReader): Parsed YAML configuration.
 
     Returns:
         numpy.ndarray: The refined parameter set in real (unscaled) units.
@@ -62,7 +62,7 @@ def run_driver(session_dir: Path, input_reader: XMLReader):
     print("Available devices: ", jax.devices("cpu"))
 
     session_path = Path(session_dir)
-    path_to_input = session_path / input_reader.user_input_dirname / "user_input.xml"
+    path_to_input = session_path / input_reader.user_input_dirname / "user_input.yaml"
     path_to_output_dir = session_path / input_reader.output_dirname
     generated_dir = session_path / input_reader.generated_dirname
     generated_script = generated_dir / "generated_script.py"
@@ -104,11 +104,11 @@ if __name__ == "__main__":
     # with fit_parameters.py so the environment matches.)
     n_devices = resolve_device_count(session_dir)
     os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={n_devices}"
-    print(f"Configuring JAX with {n_devices} CPU device(s) (PROCESSORS from XML)")
+    print(f"Configuring JAX with {n_devices} CPU device(s) (processors from user_input.yaml)")
 
     from lib.utils.helper_functions import get_input_reader
 
-    input_file_path = Path(session_dir) / "inputs" / "user_input.xml"
+    input_file_path = Path(session_dir) / "inputs" / "user_input.yaml"
     input_reader = get_input_reader(input_file_path)
 
     run_driver(session_dir, input_reader)

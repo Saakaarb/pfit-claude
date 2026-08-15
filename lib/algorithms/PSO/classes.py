@@ -2,7 +2,7 @@ import numpy as np
 import pyswarms
 from lib.utils.doe_space_sampling import get_spacefilled_DoE, get_lhs_sampling, get_sobol_sampling
 import time
-from lib.utils.xmlread import XMLReader
+from lib.utils.yamlread import YAMLReader
 from lib.utils.classes import ProblemObjectBase
 from pathlib import Path
 
@@ -10,7 +10,7 @@ from pathlib import Path
 
 class FitParamsPSO:
 
-    def __init__(self, input_reader: XMLReader, problem_object: ProblemObjectBase):
+    def __init__(self, input_reader: YAMLReader, problem_object: ProblemObjectBase):
         """Initialize the Particle Swarm Optimization (PSO) fitting parameters.
 
         This method sets up the PSO algorithm parameters by:

@@ -51,7 +51,7 @@ def main():
     spec.loader.exec_module(gen)
 
     # rebuild the framework problem object
-    input_reader = get_input_reader(str(session / "inputs" / "user_input.xml"))
+    input_reader = get_input_reader(str(session / "inputs" / "user_input.yaml"))
     input_reader.check_name_uniqueness()
     input_reader.output_dir = session / "outputs"
     experiments = []

@@ -46,7 +46,7 @@ def run_sloppiness_analysis(compute_loss_problem, constants_list, scaled_best_po
         constants_list: list of per-experiment constants dicts (must already have
                         'min_limits', 'max_limits', 'is_logscale' set)
         scaled_best_position: best-fit parameters in the [-1, 1] search space
-        param_names: list of trainable-parameter names (XML order)
+        param_names: list of trainable-parameter names (YAML order)
         output_dir: session outputs directory (report + plot are written here)
 
     Never raises: any failure is caught and reported, so it cannot break a fit.

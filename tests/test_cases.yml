@@ -1,6 +1,6 @@
 # Data-driven end-to-end cases for test_framework.py.
 #
-# `expected` holds the parameters that generated the data, in XML trainable
+# `expected` holds the parameters that generated the data, in config trainable
 # order. When present, the fitted result must match them to within the harness
 # tolerance (|fractional error| <= 0.1) — this is what makes the case an
 # accuracy test rather than a smoke test.

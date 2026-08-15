@@ -58,28 +58,28 @@ exactly **two** permitted substitutions, described next.
 ### Substitution 1: `max_steps`
 
 `max_steps` in `diffrax.diffeqsolve` must be the **literal integer** from
-`GRADIENT_OPT/SETTINGS/MAX_STEPS` in the XML. Not a variable, not a dict lookup,
+`gradient_opt/max_steps` in the config. Not a variable, not a dict lookup,
 not left empty — a literal number. It is a compile-time (static) argument;
 passing a traced value fails to compile.
 
 ### Substitution 2: the solver class
 
 Replace the placeholder `diffrax.SOLVER_CLASS()` with `diffrax.<IntegratorName>()`
-where `IntegratorName` comes from `GRADIENT_OPT/SETTINGS/INTEGRATOR` (default
+where `IntegratorName` comes from `gradient_opt/integrator` (default
 `Kvaerno5` when absent). Like `max_steps`, this must be a literal class
 instantiation, not a variable.
 
 The valid names are exactly the solver table in `lib/LLM/api/diffrax.md`. A name
 absent from that table does not exist in the pinned diffrax and will raise
 `AttributeError`; the table also excludes solvers that exist but cannot work
-here. If the XML names an invalid solver, stop and report it rather than
+here. If the config names an invalid solver, stop and report it rather than
 generating the script.
 
 **Weigh smoothness and stiffness together — neither one decides alone.** The
-XML's `INTEGRATOR` is normally the answer `/pfit-check` already reached under R1
+The config's `integrator` is normally the answer `/pfit-check` already reached under R1
 in `tuning_rules.md`, which owns that decision; do not re-derive it here from
-smoothness alone. Translate what the XML names, and only stop to question it if
-the XML names a solver absent from the table.
+smoothness alone. Translate what the config names, and only stop to question it if
+the config names a solver absent from the table.
 
 Both failure modes are real, and they are not symmetric:
 
@@ -88,7 +88,7 @@ that switches on the state, or any piecewise definition — the usual sources ar
 dry friction, contact, saturation, hysteresis and on/off control. An implicit
 method solves a nonlinear system at every step; across a discontinuity that
 solve cannot converge, the step collapses, and the integration fails for **any**
-`MAX_STEPS`. Raising `MAX_STEPS` does not help. But this bites only *at* the
+`max_steps`. Raising `max_steps` does not help. But this bites only *at* the
 switching instants, so its total cost scales with how often the trajectory
 crosses one — rare one-way crossings are survivable, chattering ones are not.
 
@@ -96,18 +96,18 @@ Stiffness is the opposite shape. An explicit method's step is capped by the
 fastest eigenvalue in the system for the *whole* interval, even where that mode
 has saturated and stopped contributing to the solution. There is no adaptive
 escape, so on a genuinely stiff system an explicit solver does not merely run
-slowly — it cannot complete a single solve within any reachable `MAX_STEPS`.
+slowly — it cannot complete a single solve within any reachable `max_steps`.
 
 Either failure scores `error_loss`, which does not merely slow the fit: it hides
 whole regions of parameter space from the optimizer, which then converges
 confidently to a much worse answer elsewhere. That is the reason to get the
-family right rather than compensating with `MAX_STEPS`.
+family right rather than compensating with `max_steps`.
 
 ## Translation rules
 
 - **Trainable parameters:** the pseudocode treats them as a dict; in JAX they are
   a **vector**. Unpack via
-  `unscale_value(trainable_variables, min_val, max_val, is_logscale)` in the XML
+  `unscale_value(trainable_variables, min_val, max_val, is_logscale)` in the config
   order. That order is fixed — never change it, never add or drop a parameter.
 - **Fixed parameters stay a dict.** Do not treat them as a vector. They are used
   as given and are never trained or modified.
@@ -139,8 +139,8 @@ invariant that matters is: *the save times must equal the data times.*
 `ts=t_eval` guarantees that for any `init_time`.
 
 `SaveAt(t0=True, ts=t_eval[1:])` saves at `[init_time, t_eval[1], ...]`. That is
-equivalent only while `init_time == t_eval[0]`. As soon as the XML sets an
-`INITIAL_TIME` earlier than the first sample — the normal case when the initial
+equivalent only while `init_time == t_eval[0]`. As soon as the config sets an
+`initial_time` earlier than the first sample — the normal case when the initial
 conditions are defined before measurement starts — row 0 compares the model at
 `init_time` against the data at `t_eval[0]`, and `t_eval[0]` is never evaluated
 at all. Nothing raises; the residual is just silently computed against the wrong
@@ -160,14 +160,14 @@ comments.
 
 ## Performance note
 
-If the first global-search iteration takes minutes, lower `MAX_STEPS`. During
+If the first global-search iteration takes minutes, lower `max_steps`. During
 global search the population contains wild parameter sets; for systems that can
 blow up, those drive the stiff solver to grind to `max_steps` before failing, at
-a cost of `population_size x max_steps x (stiff solve)`. Dropping `MAX_STEPS`
+a cost of `population_size x max_steps x (stiff solve)`. Dropping `max_steps`
 (e.g. 100000 -> 5000) makes doomed solves fail fast and return `error_loss`
 while still resolving good members — often a 10-40x speedup with no loss of fit
-quality. Halving the population helps proportionally. Change `MAX_STEPS` in
-**both** the XML and the literal in `generated_script.py`.
+quality. Halving the population helps proportionally. Change `max_steps` in
+**both** the config and the literal in `generated_script.py`.
 
 ## Verification
 

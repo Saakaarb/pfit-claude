@@ -11,12 +11,12 @@ there, not from memory.
 | `lib/LLM/reference/cold_start.md` | the invariant, and which artifacts diagnosis may read | yes |
 | `lib/LLM/reference/diagnosis_rules.md` | every evidence source, symptom rule and the report format | yes |
 | `lib/LLM/reference/tuning_rules.md` | the evidence rule, the entry format, the do-not-recommend list, the apply policy | yes |
-| `lib/LLM/reference/xml_format.md` | field schema and defaults, to propose a valid edit | yes |
-| `lib/LLM/api/diffrax.md` | the ONLY authority on `INTEGRATOR` names | when the diagnosis touches the solver |
+| `lib/LLM/reference/yaml_format.md` | field schema and defaults, to propose a valid edit | yes |
+| `lib/LLM/api/diffrax.md` | the ONLY authority on `integrator` names | when the diagnosis touches the solver |
 | `lib/LLM/reference/user_model_contract.md` | the loss contract | when the diagnosis touches the loss |
 | `lib/LLM/reference/project_context.md` | session layout, the sloppiness report's meaning | yes |
 | `lib/LLM/reference/staggered_data.md` | ONLY if the data is staggered/ragged | conditional |
-| `docs/tunable_choices.md` | what is tunable in the XML vs. only in library code | yes |
+| `docs/tunable_choices.md` | what is tunable in the config vs. only in library code | yes |
 
 ## Steps
 
@@ -28,7 +28,7 @@ there, not from memory.
    `final_design_point.csv` exists, say which artifacts are missing and that the
    diagnosis is correspondingly limited.
 
-3. Read `inputs/user_input.xml`, `generated/user_model.py`, and **every**
+3. Read `inputs/user_input.yaml`, `generated/user_model.py`, and **every**
    artifact in `outputs/` that `diagnosis_rules.md` lists. Do not stop at the
    first one that explains the outcome — S6 in particular is only separable by
    combining the NODE log with the bounds.
@@ -37,7 +37,7 @@ there, not from memory.
    - first and last `best_cost` per stage, and the iteration at which each
      stopped improving materially;
    - each fitted value from `final_design_point.csv` as a fraction of its
-     `MIN_VAL`/`MAX_VAL` range, to detect a pinned parameter;
+     `min_val`/`max_val` range, to detect a pinned parameter;
    - per-column and per-time-region residuals from `result_solution_expN.csv`
      when it exists;
    - the exit-gradient ratio `|grad|_inf / loss` from `sloppiness_report.txt`
@@ -59,10 +59,10 @@ there, not from memory.
    `tuning_rules.md`.
 
 8. If anything was applied, tell the user what to re-run:
-   - XML-only changes to `GRADIENT_OPT`, or a gradient-stage finding, and stage 1
+   - config-only changes to `gradient_opt`, or a gradient-stage finding, and stage 1
      already found a good basin → `fit_gradient_only.py <session>` reuses the
      existing seed point.
-   - a changed `INTEGRATOR`, bounds, `LOGSCALE`, or population settings →
+   - a changed `integrator`, bounds, `logscale`, or population settings →
      `fit_parameters.py <session>` (a full re-fit; the old basin is no longer
      valid).
    - a changed `user_model.py` → `/pfit-check`, then `/pfit-jax`, then

@@ -31,7 +31,7 @@ def user_defined_system(t, y, other_args):
     # Trainable parameter ordering (trainable_variables): mu
     mu, = unscale_value(trainable_variables, min_val, max_val, is_logscale)
 
-    # Ny=2 (from XML): y = [x1, x2]
+    # Ny=2 (from config): y = [x1, x2]
     x1 = y[0]
     x2 = y[1]
 

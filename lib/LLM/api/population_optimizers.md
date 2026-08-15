@@ -8,7 +8,7 @@ If the versions above differ from the installed ones, this digest is stale: rege
 
 ## `scipy.optimize.differential_evolution`
 
-Driven by `lib/algorithms/DE/classes.py`. Only the arguments the framework sets are exposed through the XML today; the rest are scipy defaults shown here.
+Driven by `lib/algorithms/DE/classes.py`. Only the arguments the framework sets are exposed through user_input.yaml today; the rest are scipy defaults shown here.
 
 ```python
 differential_evolution(func, bounds, args=(), strategy='best1bin', maxiter=1000, popsize=15, tol=0.01, mutation=(0.5, 1), recombination=0.7, rng=None, callback=None, disp=False, polish=True, init='latinhypercube', atol=0, updating='immediate', workers=1, constraints=(), x0=None, integrality=None, vectorized=False)
