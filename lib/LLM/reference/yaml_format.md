@@ -98,6 +98,45 @@ Rules specific to multi-experiment configs:
 - Different experiments having different initial conditions is expected and
   valid.
 
+## Initial-condition semantics: `init_val` vs the data's row 0
+
+These are two different things and the framework never reconciles them.
+
+- **The initial condition comes only from the config.** `get_y0` builds `y0` from
+  `model.integrated_variables[].init_val`, overridden per experiment by
+  `experiments[].initial_conditions`. It never reads the CSV. Both must be plain
+  numbers — **an initial condition cannot be a trainable parameter**, so the fit
+  can never absorb an error in one.
+- **Integration starts at `initial_time`**, defaulting to `t_eval[0]`.
+- **Every data time is a save point** (`SaveAt(ts=t_eval)`), so `solution` row `k`
+  is the state at `t_eval[k]` and is differenced against `dataset` row `k`.
+
+Whether `init_val` may differ from data row 0 depends entirely on `initial_time`:
+
+**Regime 1 — `initial_time == t_eval[0]` (or unset).** The solve starts exactly
+where the first save point is, so `solution[0]` **is** `y0`, identically, for
+every candidate parameter set. Any disagreement with data row 0 is therefore a
+constant penalty no parameter can remove; it sets a floor on the achievable loss
+and biases the fit as it tries to compensate downstream. Confirm it by reading
+row 0 of `result_solution_expN.csv`: the simulated column will reproduce the
+`init_val` to full precision.
+
+**Regime 2 — `initial_time < t_eval[0]`.** The solver integrates over
+`[initial_time, t_eval[0]]` before the first comparison, so `solution[0]` is the
+**evolved** state, not `y0`. Here the two legitimately differ, and the gap is
+something the parameters can explain rather than a fixed penalty.
+
+Consequences for setup:
+
+- Set `initial_time` below `t_eval[0]` whenever the true state at the first
+  measurement is unknown and the system needs to equilibrate into it. That
+  converts an unremovable offset into a fitted transient.
+- `initial_time > t_eval[0]` is always an error: it asks for a save point before
+  `t0` and raises inside JIT (check D6 in `validation_rules.md`).
+- Unobserved states have no row-0 counterpart at all, so their `init_val` is a
+  pure assumption. Say so when reporting; it is a common source of a fit that
+  cannot be improved by any parameter.
+
 ## Optional paths section
 
 ```yaml

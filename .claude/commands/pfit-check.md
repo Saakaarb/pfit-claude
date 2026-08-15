@@ -29,30 +29,44 @@ from memory.
    `sessions/<session_name>/generated/user_model.py`, and the reference files
    above.
 
-3. **Validate.** Apply every check in `validation_rules.md`. For the optimizer
+3. **Measure the datasets.** Run
+
+   ```bash
+   ./venv/bin/python3 tools/check_dataset.py <session_name>
+   ```
+
+   and read its output. This is not optional and reading the CSVs by eye is not a
+   substitute — several of the checks (a trailing delimiter, a duplicate
+   timestamp, a degenerate time span) are invisible on inspection and produce a
+   completed run with a plausible number. Classify each reported id by the
+   severity table in `validation_rules.md`; quote the tool's numbers as the
+   evidence. A `SKIP` is unresolved, not a pass.
+
+4. **Validate.** Apply every check in `validation_rules.md`. For the optimizer
    settings, read the actual numbers out of the config and evaluate each threshold
    explicitly rather than eyeballing them.
 
-4. **Correct.** If there are critical errors, apply `correction_rules.md`,
-   editing `inputs/user_input.yaml` and `generated/user_model.py` in place.
+5. **Correct.** If there are critical errors, apply `correction_rules.md`,
+   editing `inputs/user_input.yaml` and `generated/user_model.py` in place. Never
+   edit a dataset CSV — see the dataset policy in that file.
 
-5. **Re-validate.** Repeat 3-4 until there are no critical errors, or you have
+6. **Re-validate.** Repeat 3-5 until there are no critical errors, or you have
    iterated 3 times.
 
-6. **Recommend.** Once there are no critical errors, gather the evidence listed
+7. **Recommend.** Once there are no critical errors, gather the evidence listed
    in `tuning_rules.md` and apply its rules to produce the Recommendations
    section. Read the dataset CSVs and the RHS for this — the recommendations come
    from the model and the data, not from the config alone. Emit nothing you cannot
    attach evidence to.
 
-7. Write the final report to
+8. Write the final report to
    `sessions/<session_name>/generated/user_input_check.txt`.
 
-8. Tell the user the outcome:
+9. Tell the user the outcome:
    - clean: "Validation passed. Run `/pfit-jax` to generate the JAX optimization code."
    - otherwise: list the unresolved critical errors and ask them to fix those
      manually before re-running `/pfit-check`.
 
-9. If there are recommendations, list them and ask which to apply (by rule id,
-   `all`, or `none`). Apply only what the user names, following the apply policy
-   in `tuning_rules.md`, then re-run step 3 on anything you changed.
+10. If there are recommendations, list them and ask which to apply (by rule id,
+    `all`, or `none`). Apply only what the user names, following the apply policy
+    in `tuning_rules.md`, then re-run steps 3-4 on anything you changed.

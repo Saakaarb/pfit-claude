@@ -21,6 +21,54 @@ Severity:
   on every run. Anything conditional on the data's values is a warning.
 - **Warning** — MIGHT break one of those, or degrade convergence.
 
+## Dataset checks
+
+The framework imposes real structure on the CSV and enforces almost none of it.
+Four of the failures below produce a **completed run with a plausible number**,
+so they cannot be caught later — this section is the only place they are caught.
+
+**Measure, never eyeball.** Run
+
+```bash
+./venv/bin/python3 tools/check_dataset.py <session>
+```
+
+which loads every CSV exactly as `lib/utils/helper_functions.py` does and prints
+one `PASS`/`FAIL`/`SKIP` line per id below, with the numbers behind it. Reading
+the CSV yourself instead is not equivalent: a trailing delimiter and a duplicate
+timestamp are both invisible to the eye. The tool reports facts and assigns no
+severity; this table is the only authority on severity.
+
+| id | Requirement | Severity | What happens if violated |
+|---|---|---|---|
+| D1 | >= 2 rows and >= 2 columns | critical | the array loads **1-D**, and `all_data[:, 0]` raises `IndexError` |
+| D2 | no trailing delimiter on the rows | critical | appends a phantom **all-NaN column**, inflating the observable count and triggering D3x |
+| D3 | NaN cells only when deliberate | see D3x | on its own, informational — `staggered_data.md` supports NaN by design |
+| D3x | if the data carries NaN, the loss uses a nan-safe reduction | critical | the loss is NaN for **every** candidate, sanitised to `error_loss`; the search flatlines with no error and a full log of constant cost |
+| D4 | time column strictly increasing | critical | raises **inside JIT**; the traceback points at diffrax, not at the CSV, so it reads as a solver bug |
+| D5 | no duplicate time values | warning | does **not** raise. The instant is saved twice and silently double-weighted in the loss |
+| D6 | `t_eval[0] >= initial_time` when `initial_time` is set | critical | a save point before `t0` raises inside JIT |
+| D7 | `t_eval[-1] > t0` | critical | does **not** raise. The solve returns `y0` as the entire trajectory, so the run completes having integrated nothing |
+| D8 | every literal `dataset[:, k]` in the loss/writeout exists | critical | shape error at trace time, or a silently wrong observable when `k` happens to be in range |
+| D8b | if the model differences `solution` against the whole `dataset`, the observable count equals the state dimension | critical | broadcast error, or silent broadcasting against every state when one side has width 1 |
+| D9 | all experiments share column count **and** column order | critical | the mapping is positional and nothing in the config remaps it, so a mismatch fits a different observable per file |
+| D10 | data row 0 agrees with the `init_val`s for observed variables | warning | an irreducible loss floor the optimizer cannot remove. **Judgement, not arithmetic** — see below |
+| D11 | which initial-condition regime the experiment is in | informational | never a failure; it decides whether D10 is a defect or expected |
+
+Notes on the two that need judgement:
+
+- **D8/D8b are read off `user_model.py`**, so a `SKIP` means the indices are not
+  literals, not that the check passed. Say so rather than reporting it clean.
+- **D10 cannot be automated**: which CSV column maps to which state is known only
+  to the loss body. The tool prints each dataset's row 0 beside the `init_val`s;
+  you decide whether they agree, and only for variables the loss actually
+  compares. A deliberate offset (an equilibration period before `t_eval[0]`, which
+  D11 reports as regime 2) is valid — see the initial-condition semantics in
+  `yaml_format.md`. Flag a disagreement, do not correct it.
+
+Report a `FAIL` using this file's severity and the tool's own numbers as the
+evidence line. Do not restate a check that passed.
+
 ## Config checks
 
 ### API validity (check against the generated digests, never from memory)
@@ -43,7 +91,9 @@ Severity:
 - At least one must exist -> critical if missing.
 - Each must have `data_file` -> critical if missing. If one is missing, flag
   it; do NOT invent a filename.
-- Every referenced CSV must exist in `sessions/<session>/inputs/`.
+- Every referenced CSV must exist in `sessions/<session>/inputs/`. Existence is
+  all that is checked here — the CSV's *structure* is the Dataset checks above,
+  and they are not optional.
 - Each each name under `initial_conditions` must match a variable in
   `model.integrated_variables` -> critical on mismatch.
 - `initial_conditions` is optional per experiment; its absence means that
