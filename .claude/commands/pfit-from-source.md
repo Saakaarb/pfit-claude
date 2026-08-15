@@ -8,6 +8,7 @@ produces against live in the reference files below.
 
 | File | Why |
 |---|---|
+| `lib/LLM/reference/cold_start.md` | the invariant: setup choices are made without the solution |
 | `lib/LLM/reference/xml_format.md` | the XML schema, defaults and valid values |
 | `lib/LLM/reference/user_model_contract.md` | the three functions and what each must return |
 | `lib/LLM/reference/input_constraints.md` | what the generated inputs must satisfy |

@@ -8,6 +8,7 @@ there, not from memory.
 
 | File | Why | Required |
 |---|---|---|
+| `lib/LLM/reference/cold_start.md` | the invariant, and which artifacts diagnosis may read | yes |
 | `lib/LLM/reference/diagnosis_rules.md` | every evidence source, symptom rule and the report format | yes |
 | `lib/LLM/reference/tuning_rules.md` | the evidence rule, the entry format, the do-not-recommend list, the apply policy | yes |
 | `lib/LLM/reference/xml_format.md` | field schema and defaults, to propose a valid edit | yes |

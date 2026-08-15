@@ -8,6 +8,7 @@ from memory.
 
 | File | Why |
 |---|---|
+| `lib/LLM/reference/cold_start.md` | the invariant: setup choices are made without the solution |
 | `lib/LLM/reference/validation_rules.md` | every check, its severity, and the report format |
 | `lib/LLM/reference/correction_rules.md` | how to fix what you find |
 | `lib/LLM/reference/tuning_rules.md` | how to derive the Recommendations section, and the apply-on-confirmation policy |

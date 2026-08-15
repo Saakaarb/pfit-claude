@@ -20,3 +20,17 @@ tools/*.log
 # coverage artifacts
 .coverage
 htmlcov/
+
+# root-level plot output from tools/plot_fits.py (regenerate with the tool).
+# NOTE: anchored with a leading slash on purpose -- a bare "outputs/" would also
+# match sessions/*/outputs and examples/*/outputs, which ARE tracked.
+/outputs/
+
+# blind re-run working notes (exercise record, not part of the workflow)
+rerun_scorecard.md
+
+# source papers pulled in while reconstructing models (large binaries)
+*.pdf
+
+# stray run logs
+report.log

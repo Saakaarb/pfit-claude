@@ -7,6 +7,7 @@ reference file; read those rather than relying on recall.
 
 | File | Why |
 |---|---|
+| `lib/LLM/reference/cold_start.md` | the invariant: setup choices are made without the solution | yes |
 | `lib/LLM/reference/input_constraints.md` | the constraints validated in step 3 |
 | `lib/LLM/reference/user_model_contract.md` | the three functions and the skeleton-generation rules |
 | `lib/LLM/reference/xml_format.md` | how to read the session XML |

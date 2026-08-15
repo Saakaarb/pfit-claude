@@ -7,6 +7,7 @@ This file is PROCEDURE only. Every translation rule lives in
 
 | File | Why |
 |---|---|
+| `lib/LLM/reference/cold_start.md` | the invariant: setup choices are made without the solution |
 | `lib/LLM/reference/jax_translation.md` | the complete translation rules: structure, copied functions, both substitutions, the failure mask, SaveAt, output format |
 | `lib/LLM/api/diffrax.md` | valid solver names, the `RESULTS` table, real signatures |
 | `lib/LLM/api/jax.md` | available `jnp` functions and the tracing rules |

@@ -11,6 +11,7 @@ file below. Open the relevant one rather than working from memory.**
 
 | Topic | Canonical file |
 |---|---|
+| **The cold-start invariant — no solution is available when setup choices are made**, which artifacts are off-limits during setup, and the substitutes for answer-derived evidence | `lib/LLM/reference/cold_start.md` |
 | What the project is, the pipeline, session layout, the multi-experiment execution model, post-fit diagnostics, reproducibility, **the Python environment** | `lib/LLM/reference/project_context.md` |
 | `user_input.xml` schema — every section, field, default and valid value | `lib/LLM/reference/xml_format.md` |
 | Hard constraints on the dataset CSV and the XML | `lib/LLM/reference/input_constraints.md` |
@@ -64,9 +65,13 @@ Each command file is procedure only and names the reference files it requires.
 | `lib/utils/helper_functions.py` | problem object, per-experiment dispatch, stage orchestration |
 | `lib/algorithms/{PSO,DE,NODE}/` | the three optimizers |
 | `lib/utils/sloppiness.py` | post-fit identifiability diagnostic |
+| `lib/utils/live_view.py` | the live convergence view: reads the iteration logs, draws the plot, and attaches itself to a fit running in-process |
 | `lib/utils/output_sample.py` | template for the generated script |
 | `lib/utils/user_model_sample_{un,}populated.py` | skeleton and worked model |
 | `lib/utils/user_input_sample.xml` | worked XML |
 | `examples/` | complete worked sessions (robertson, ARC, piezo, sliding_basepoint) |
 | `tools/gen_api_context.py` | regenerates the API digests |
+| `tools/live_fit_monitor.py` | CLI for the same view, to watch a fit started in another terminal (the fit entry points raise it themselves) |
+| `tools/plot_fits.py` | replots every fitted session's simulation against its data, from the stored `result_solution_expN.csv` |
+| `tools/stiffness_bench.py` | benchmarks stiffness estimators over a parameter box against systems of known character; the evidence behind R1's choice of the matrix measure |
 | `tests/` | suite; `pytest -m "not slow"` skips the full fits |
