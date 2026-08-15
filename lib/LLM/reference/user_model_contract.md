@@ -1,6 +1,6 @@
 ---
 topic: The three user functions — their contract, conventions, and how to generate a skeleton
-consumed_by: [pfit-skeleton, pfit-from-source, pfit-check, pfit-jax]
+consumed_by: [pfit-skeleton, pfit-new, pfit-check, pfit-jax]
 generated: false
 owns: >
   Function names and signatures, the pseudocode conventions, what each function
@@ -101,5 +101,5 @@ Rules:
   function's argument list: `# dataset and t_eval represent ONE experiment's
   data; the framework calls this function once per experiment`.
 
-A fully-populated model (used by `/pfit-from-source`) follows the same contract,
+A fully-populated model (used by `/pfit-new`) follows the same contract,
 with the ODE right-hand side implemented exactly as the source specifies.

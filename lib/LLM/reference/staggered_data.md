@@ -1,6 +1,6 @@
 ---
 topic: Fitting when observables are sampled at different time points
-consumed_by: [pfit-skeleton, pfit-from-source, pfit-check, pfit-jax]
+consumed_by: [pfit-skeleton, pfit-new, pfit-check, pfit-jax]
 generated: false
 owns: >
   The union-grid + NaN-masking layout, the t=0 anchor row, the interpolation

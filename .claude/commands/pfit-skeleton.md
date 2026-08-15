@@ -1,4 +1,16 @@
-Generate a user_model.py skeleton for the current session from its user_input.yaml.
+Regenerate a user_model.py skeleton from an EXISTING user_input.yaml.
+
+**This is not the entry point for a new session** — `/pfit-new` is, whether or
+not the user has a source document. Use this skill only when a
+`user_input.yaml` already exists and the user wants the model stub rebuilt from
+it: a config carried over from a previous session, a hand-edited config, or a
+model file that needs restoring.
+
+If the user is starting from scratch, do not ask them to write the config first.
+Send them to `/pfit-new`, which writes the config and the model together from the
+same reading of the equations — the only way to guarantee that the config's
+parameter and variable orderings match the model's unpacking, since a mismatch
+does not raise.
 
 This file is PROCEDURE only. Every rule it depends on lives in exactly one
 reference file; read those rather than relying on recall.

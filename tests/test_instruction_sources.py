@@ -292,7 +292,7 @@ SOLUTION_ARTIFACTS = [
 # optimizer's behaviour rather than a reference answer.
 SETUP_COMMANDS = [
     "pfit-skeleton.md",
-    "pfit-from-source.md",
+    "pfit-new.md",
     "pfit-check.md",
     "pfit-jax.md",
 ]

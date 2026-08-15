@@ -46,8 +46,8 @@ a solver from memory.
 
 | Command | Does | Procedure file |
 |---|---|---|
-| `/pfit-skeleton` | config -> `user_model.py` skeleton | `.claude/commands/pfit-skeleton.md` |
-| `/pfit-from-source` | paper -> config + populated `user_model.py` | `.claude/commands/pfit-from-source.md` |
+| `/pfit-new` | **the entry point.** equations (from a paper, or from the user) -> config + populated `user_model.py`, written together | `.claude/commands/pfit-new.md` |
+| `/pfit-skeleton` | EXISTING config -> `user_model.py` skeleton; not an entry point | `.claude/commands/pfit-skeleton.md` |
 | `/pfit-check` | validate + auto-correct the inputs, and recommend settings | `.claude/commands/pfit-check.md` |
 | `/pfit-jax` | `user_model.py` -> `generated_script.py` | `.claude/commands/pfit-jax.md` |
 | `/pfit-diagnose` | completed fit -> diagnosis + what to change | `.claude/commands/pfit-diagnose.md` |

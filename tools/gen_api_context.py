@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate version-pinned API digests from the installed packages.
 
-The pfit skills (/pfit-from-source, /pfit-check, /pfit-jax) generate JAX +
+The pfit skills (/pfit-new, /pfit-check, /pfit-jax) generate JAX +
 diffrax + optax code. Relying on the model's recollection of those APIs is the
 main source of subtle generation bugs, because the installed versions are
 pinned to an old, mutually-compatible set (see requirements.txt) whose API

@@ -1,6 +1,6 @@
 ---
 topic: What this project is, how a session is laid out, and how to run it
-consumed_by: [pfit-skeleton, pfit-from-source, pfit-check, pfit-jax, ad-hoc work]
+consumed_by: [pfit-skeleton, pfit-new, pfit-check, pfit-jax, ad-hoc work]
 generated: false
 owns: >
   Project purpose, the stage pipeline, session directory layout, the
@@ -34,29 +34,33 @@ gradient tolerances when those are unset.
 
 ## Workflows
 
-Standard (user writes the ODE):
+There is one workflow. `/pfit-new` is the entry point whether or not the user
+has a source document: with one it extracts the equations, without one it asks
+for them. Either way it writes `user_input.yaml` and `user_model.py` **together**,
+which is what guarantees their orderings agree.
 
 ```
-/pfit-skeleton  ->  user fills in the ODE logic  ->  /pfit-check  ->  /pfit-jax
+/pfit-new  ->  /pfit-check  ->  /pfit-jax
   ->  ./venv/bin/python3 fit_parameters.py <session_name>
+  ->  /pfit-diagnose
 ```
 
-From a paper (model extracts the ODE):
+The user supplies three things: the data CSV(s), a description of the system
+(paper, pasted equations, or prose), and answers to the clarification rounds.
+They are never asked to hand-author `user_input.yaml`.
 
-```
-/pfit-from-source  ->  /pfit-check  ->  /pfit-jax
-  ->  ./venv/bin/python3 fit_parameters.py <session_name>
-```
+`/pfit-skeleton` is a side path, not a stage: it rebuilds `user_model.py` from a
+config that already exists.
 
 ## Session layout
 
 ```
 sessions/<session_name>/
 ├── inputs/
-│   ├── user_input.yaml       <- USER PROVIDES: configuration
+│   ├── user_input.yaml       <- written by /pfit-new; user tunes it thereafter
 │   └── <data>.csv            <- USER PROVIDES: time-series data
 ├── generated/
-│   ├── user_model.py         <- created by /pfit-skeleton, filled by the user
+│   ├── user_model.py         <- created by /pfit-new (populated), or /pfit-skeleton (stub)
 │   ├── user_input_check.txt  <- created by /pfit-check
 │   └── generated_script.py   <- created by /pfit-jax
 └── outputs/                  <- created by fit_parameters.py

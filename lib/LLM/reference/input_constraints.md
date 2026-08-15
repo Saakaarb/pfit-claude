@@ -1,6 +1,6 @@
 ---
 topic: Hard constraints the framework imposes on the two user-provided inputs
-consumed_by: [pfit-skeleton, pfit-from-source, pfit-check]
+consumed_by: [pfit-skeleton, pfit-new, pfit-check]
 generated: false
 owns: >
   The dataset CSV and config constraints that cause a crash or silently wrong

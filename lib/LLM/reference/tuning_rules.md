@@ -279,7 +279,7 @@ blanket recommendation for all of them.
 - Bounds spanning more than ~8 decades → recommend narrowing using whatever the
   source or the data implies, and cite what that is. A 10-decade box wastes most
   of the population budget.
-- If the source document (for a `/pfit-from-source` session) gives a literature
+- If the source document (for a `/pfit-new` session) gives a literature
   value, recommend a box bracketing it by 1–2 decades rather than an arbitrary
   one.
 
