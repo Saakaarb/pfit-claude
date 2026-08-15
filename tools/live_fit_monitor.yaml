@@ -19,14 +19,13 @@ console_tail_lines: 12
 # Which session to follow.
 #   auto            attach to whichever session's iteration logs were written
 #                   most recently (start the monitor, then start the fit)
-#   <session name>  pin one, e.g. sneyd_ipr, or a path like examples/robertson_session
+#   <session name>  pin one, e.g. sneyd_ipr, or a path like sessions/robertson_session
 session: auto
 
 # Where `session: auto` looks for sessions. Each entry is a directory of
 # session directories, relative to the repo root.
 search_roots:
   - sessions
-  - examples
 
 # Seconds between redraws. The logs gain a line per optimizer iteration, which
 # on a real fit is seconds to minutes apart, so there is nothing to gain below

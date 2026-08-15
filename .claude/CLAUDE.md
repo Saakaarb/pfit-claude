@@ -69,7 +69,7 @@ Each command file is procedure only and names the reference files it requires.
 | `lib/utils/output_sample.py` | template for the generated script |
 | `lib/utils/user_model_sample_{un,}populated.py` | skeleton and worked model |
 | `lib/utils/user_input_sample.xml` | worked XML |
-| `examples/` | complete worked sessions (robertson, ARC, piezo, sliding_basepoint) |
+| `sessions/` | every session, worked and in-progress alike; a fit is run against one of these. **Not agent input** — the skills take their templates from `lib/utils/*_sample*`, never from a session |
 | `tools/gen_api_context.py` | regenerates the API digests |
 | `tools/live_fit_monitor.py` | CLI for the same view, to watch a fit started in another terminal (the fit entry points raise it themselves) |
 | `tools/plot_fits.py` | replots every fitted session's simulation against its data, from the stored `result_solution_expN.csv` |

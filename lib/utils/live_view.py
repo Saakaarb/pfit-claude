@@ -57,7 +57,7 @@ CLEAR_BELOW = f"{ESC}[J"
 
 DEFAULTS = {
     "session": "auto",
-    "search_roots": ["sessions", "examples"],
+    "search_roots": ["sessions"],
     "refresh_seconds": 1.0,
     "wait_for_session_seconds": 60,
     "y_scale": "log10",

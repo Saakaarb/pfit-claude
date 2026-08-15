@@ -187,7 +187,6 @@ def test_failure_mask_is_exhaustive_everywhere():
     fit, which silently produces NaN gradients in the NODE stage.
     """
     targets = [REPO_ROOT / "lib" / "utils" / "output_sample.py"]
-    targets += sorted(REPO_ROOT.glob("examples/*/generated/generated_script.py"))
     targets += sorted(REPO_ROOT.glob("sessions/*/generated/generated_script.py"))
     targets += sorted(REPO_ROOT.glob("tests/*/generated/generated_script.py"))
 
@@ -215,12 +214,11 @@ def test_saveat_preserves_data_row_alignment():
     `init_time`; `SaveAt(t0=True, ts=t_eval[1:])` only matches while
     `INITIAL_TIME == t_eval[0]`, and silently misaligns every residual otherwise
     (row 0 compares the model at init_time against the data at t_eval[0], and
-    t_eval[0] is never evaluated). That regression shipped in examples/
-    sliding_basepoint, which sets INITIAL_TIME=0.0 against data starting at
-    9.94e-4, and nothing caught it.
+    t_eval[0] is never evaluated). That regression shipped in
+    sessions/sliding_basepoint, which sets INITIAL_TIME=0.0 against data
+    starting at 9.94e-4, and nothing caught it.
     """
     targets = [REPO_ROOT / "lib" / "utils" / "output_sample.py"]
-    targets += sorted(REPO_ROOT.glob("examples/*/generated/generated_script.py"))
     targets += sorted(REPO_ROOT.glob("sessions/*/generated/generated_script.py"))
     targets += sorted(REPO_ROOT.glob("tests/*/generated/generated_script.py"))
     targets += sorted(REPO_ROOT.glob("tests/fixtures/*/generated/generated_script.py"))

@@ -41,7 +41,7 @@ sessions:
         sim_col: 2
 
   - name: sliding_basepoint
-    root: examples/sliding_basepoint
+    root: sessions/sliding_basepoint
     title: "Sliding basepoint - impact force and displacement"
     xlabel: "time (s)"
     panels:
@@ -53,7 +53,7 @@ sessions:
         sim_col: 4
 
   - name: robertson_session
-    root: examples/robertson_session
+    root: sessions/robertson_session
     title: "Robertson stiff kinetics"
     xlabel: "time (s)"
     xscale: log
@@ -69,7 +69,7 @@ sessions:
         sim_col: 6
 
   - name: piezo_bouc_wen
-    root: examples/piezo_bouc_wen
+    root: sessions/piezo_bouc_wen
     title: "Piezo actuator - Bouc-Wen hysteresis"
     xlabel: "time (s)"
     panels:
@@ -114,7 +114,7 @@ sessions:
         sim_col: 4
 
   - name: ARC_fitting
-    root: examples/ARC_fitting
+    root: sessions/ARC_fitting
     title: "ARC battery thermal runaway"
     xlabel: "time (s)"
     panels:
