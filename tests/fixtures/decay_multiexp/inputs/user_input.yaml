@@ -15,7 +15,15 @@
 
 experiments:
   - data_file: decay_run_A.csv
+    columns:
+      - {name: time, units: s}
+      - {name: A, observes: A}
+      - {name: B, observes: B}
   - data_file: decay_run_B.csv
+    columns:
+      - {name: time, units: s}
+      - {name: A, observes: A}
+      - {name: B, observes: B}
     initial_conditions:
       A: 2.0
       B: 0.5

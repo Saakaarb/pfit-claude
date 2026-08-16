@@ -161,8 +161,11 @@ TOP_LEVEL_SECTIONS = {
     "experiments", "model", "population_opt", "gradient_opt", "output", "paths",
 }
 
-EXPERIMENT_KEYS = {"data_file", "initial_conditions"}
-MODEL_KEYS = {"trainable_parameters", "fixed_parameters", "integrated_variables"}
+EXPERIMENT_KEYS = {"data_file", "initial_conditions", "columns"}
+COLUMN_KEYS = {"name", "units", "observes", "uncertainty_of"}
+MODEL_KEYS = {"trainable_parameters", "fixed_parameters", "integrated_variables",
+              "observables"}
+OBSERVABLE_KEYS = {"name", "units"}
 TRAINABLE_KEYS = {"name", "min_val", "max_val", "logscale"}
 FIXED_KEYS = {"name", "value"}
 VARIABLE_KEYS = {"name", "init_val"}
@@ -197,6 +200,7 @@ class YAMLReader():
         self.fixed_parameter_names = []
         self.fixed_parameter_values = []
         self.integrated_variable_names = []
+        self.observable_names = []
         self.integrated_variable_init_values = []
 
         # population optimizer settings
@@ -294,6 +298,19 @@ class YAMLReader():
             self.axis_logscale.append(
                 int(_as_bool(_require(param, "logscale", where), f"{where}.logscale")))
 
+        # Observables: quantities the model COMPUTES from the states and that
+        # the data measures, e.g. an open probability or a relative percentage.
+        # They are named here so a dataset column can reference one by name --
+        # otherwise a derived column has only a free-text label and the link to
+        # the model exists solely inside the loss body, where nothing can check
+        # it. `_observables` in user_model.py must return exactly these keys.
+        for i, observable in enumerate(_as_list_of_mappings(
+                model.get("observables"), "model.observables")):
+            where = f"model.observables[{i}]"
+            _reject_unknown(observable, OBSERVABLE_KEYS, where)
+            self.observable_names.append(
+                _as_name(_require(observable, "name", where), f"{where}.name"))
+
         # The list length IS the parameter count. The XML carried a separate
         # N_TRAINABLE_PARAMETERS that had to agree with it; that redundancy
         # (and the mismatch error it caused) has no YAML equivalent.
@@ -350,7 +367,96 @@ class YAMLReader():
             self.experiments.append({
                 'filename': filename.strip(),
                 'ic_overrides': ic_overrides,
+                'columns': self._read_columns(entry.get("columns"), where),
             })
+
+    def _read_columns(self, columns, where: str) -> list:
+        """Read one experiment's column declarations.
+
+        Descriptive only: nothing here changes how the fit runs. The dataset's
+        column meanings are otherwise recorded nowhere machine-readable -- the
+        map from state to observable lives as arbitrary Python inside the loss
+        -- so without this block, tooling cannot tell which column is which, and
+        neither can a reader of the config.
+
+        Entry i describes column i of the CSV, so the first entry is always the
+        time column. `observes` names an integrated variable when the column is
+        that state measured directly; a derived observable simply omits it.
+        """
+        entries = _as_list_of_mappings(columns, f"{where}.columns")
+        if not entries:
+            raise InputError(
+                f"{where}.columns is required: declare one entry per column of "
+                f"the CSV, starting with the time column. Without it the meaning "
+                f"of each column is not recorded anywhere."
+            )
+        if len(entries) < 2:
+            raise InputError(
+                f"{where}.columns: expected at least 2 entries (time plus one "
+                f"observable), got {len(entries)}"
+            )
+
+        declared = []
+        for j, column in enumerate(entries):
+            column_where = f"{where}.columns[{j}]"
+            _reject_unknown(column, COLUMN_KEYS, column_where)
+            name = _as_name(_require(column, "name", column_where), f"{column_where}.name")
+
+            observes = column.get("observes")
+            if observes is not None:
+                observes = _as_name(observes, f"{column_where}.observes")
+                known = self.integrated_variable_names + self.observable_names
+                if observes not in known:
+                    raise InputError(
+                        f"{column_where}.observes: '{observes}' is neither an "
+                        f"integrated variable nor a declared observable. Known: "
+                        f"{known}"
+                    )
+                if j == 0:
+                    raise InputError(
+                        f"{column_where}.observes: column 0 is the time grid, "
+                        f"not an observable, so it cannot observe a state"
+                    )
+
+            units = column.get("units")
+            if units is not None and not isinstance(units, str):
+                raise InputError(f"{column_where}.units: expected a string, got {units!r}")
+
+            declared.append({
+                'name': name,
+                'units': units,
+                'observes': observes,
+                'uncertainty_of': column.get("uncertainty_of"),
+            })
+
+        # resolved in a second pass so a column may reference one declared after
+        # it, and so the target is checked against the finished list
+        measurements = {c['name'] for c in declared[1:] if c['uncertainty_of'] is None}
+        for j, column in enumerate(declared):
+            target = column['uncertainty_of']
+            if target is None:
+                continue
+            column_where = f"{where}.columns[{j}]"
+            target = _as_name(target, f"{column_where}.uncertainty_of")
+            if j == 0:
+                raise InputError(
+                    f"{column_where}.uncertainty_of: column 0 is the time grid")
+            if target == column['name']:
+                raise InputError(
+                    f"{column_where}.uncertainty_of: a column cannot be its own "
+                    f"uncertainty")
+            if target not in measurements:
+                raise InputError(
+                    f"{column_where}.uncertainty_of: '{target}' is not a measurement "
+                    f"column of this experiment. Known measurement columns: "
+                    f"{sorted(measurements)}"
+                )
+            column['uncertainty_of'] = target
+
+        duplicates = {c['name'] for c in declared}
+        if len(duplicates) != len(declared):
+            raise InputError(f"{where}.columns: column names must be unique")
+        return declared
 
     def _read_population_opt(self, settings: dict) -> None:
         _reject_unknown(settings, POPULATION_KEYS, "population_opt")
@@ -421,9 +527,10 @@ class YAMLReader():
             self.output_dirname = str(paths["output_dir"]).strip()
 
     def check_name_uniqueness(self):
-        combined_list = self.trainable_parameter_names + self.fixed_parameter_names + self.integrated_variable_names
+        combined_list = (self.trainable_parameter_names + self.fixed_parameter_names
+                         + self.integrated_variable_names + self.observable_names)
         if len(combined_list) > len(set(combined_list)):
-            raise ValueError("The provided names of every simulation element (trainable parameters, fixed parameters and integrated variable name) is not unique. Please provide unique names for each.")
+            raise ValueError("The provided names of every simulation element (trainable parameters, fixed parameters, integrated variables and observables) is not unique. Please provide unique names for each.")
 
 
 def load_config(path) -> dict:

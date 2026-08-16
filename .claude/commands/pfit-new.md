@@ -30,6 +30,38 @@ the reference files below.
 
 Worked example: `lib/utils/user_model_sample_populated.py`.
 
+## The four required inputs
+
+A session cannot be specified without all four. Where they come from — a paper, a
+snippet the user typed, a mix — does not matter; a paper is simply more likely to
+carry all of them. Establish which are present **before** starting the interview,
+and handle each absence by its own rule:
+
+| # | Input | If missing |
+|---|---|---|
+| 1 | **The equation system** | **Fatal.** Nothing can substitute for it. Say so and stop; ask the user to supply the equations in any form. |
+| 2 | **The loss formulation** | **Propose one** from the declared dataset columns (see below), and have the user confirm it. |
+| 3 | **The parameter ranges** | If the source publishes values, use them: `[v/100, v*100]`, four decades centred on the published value. Otherwise the **user must supply them** — do not invent ranges and proceed. |
+| 4 | **The dataset** | **Fatal.** Stop and ask for the CSV(s). Never generate data. |
+
+### Proposing a loss (input 2)
+
+Only possible once every dataset column has a declared meaning, so do the column
+declaration first. Then:
+
+- **Uncertainty columns present** (`uncertainty_of`) — propose a sigma-weighted
+  residual, `mean(((model - measured) / sigma)**2)`. Error bars supplied and then
+  ignored is a silent loss of information.
+- **No uncertainty columns** — propose a per-column normalised RMSE, dividing
+  each column's residual by that column's own `max|data|`. State the column
+  magnitudes you measured as the reason: columns of unequal scale otherwise
+  contribute unequally, and a small-magnitude observable becomes invisible.
+- **NaN present in the data** — the reduction must be nan-safe
+  (`staggered_data.md`), and say why.
+
+Present the proposal with its arithmetic and wait for confirmation. Never write a
+loss the user has not agreed to.
+
 ## Steps
 
 ### 1. Gather inputs
@@ -38,8 +70,9 @@ Ask for (if not given): the **session name**, the **data file(s)** already
 present in `sessions/<session>/inputs/`, and **a source, if one exists** — a URL,
 a local path, pasted equations, or nothing at all.
 
-Do not ask the user to produce a source they do not have, and do not ask them to
-write any YAML.
+Check the four required inputs above and report which are missing before going
+further. Do not ask the user to produce a source they do not have, and do not ask
+them to write any YAML.
 
 ### 2. Establish the equations
 
@@ -67,13 +100,38 @@ Present your findings and wait for confirmation:
    fit simultaneously. If yes: how many, which CSV each is, and whether the
    initial conditions differ per run.
 
-### 4. Clarify the data
+### 4. Declare what every dataset column is (REQUIRED)
 
-Read the first 20 rows of each CSV. Report per file: column count, headers or
-index labels, sample values, and your best guess at what each column is. Ask the
-user to confirm the column mapping (which index is time; which column maps to
-which state variable or derived observable). Assume one layout for all files
-unless told otherwise. Wait for the answer.
+The CSV is a bare numeric matrix. Nothing in it says what column 2 means, and no
+amount of later validation can recover that — so this must be established here,
+and it is what makes the loss proposal possible at all.
+
+Read the first 20 rows of each CSV. **If the file has a header row, it is the
+user's own statement of the column meanings** — use it as the starting point
+rather than guessing. A header is optional and skipped on load; the file may
+equally well have none.
+
+Report per file: column count, the header if present, sample values, and your
+reading of each column. Then have the user confirm, and record the result as the
+`columns` block of every experiment (schema in `yaml_format.md`):
+
+- entry `i` describes column `i`, so the first entry is always time;
+- `observes: <name>` on every measurement column, naming the model quantity it
+  measures. That is either an integrated variable (measured directly, which also
+  lets `/pfit-check` compare it against `init_val`) or a **declared observable**;
+- a column measuring something the model computes rather than integrates — an
+  open probability, a relative percentage, a prevalence — needs an entry in
+  `model.observables` and a matching key from `_observables` in `user_model.py`.
+  The column's own `name` may differ from the observable's: `name` is what the
+  user calls it, `observes` is what the model calls it, and the `columns` block
+  is the dictionary between the two;
+- `uncertainty_of: <column>` for a standard-deviation column, which also
+  determines the loss shape in input 2;
+- `units` wherever they are known.
+
+Assume one layout for all files unless told otherwise, and say that you assumed
+it. Wait for the answer — a wrong column map silently fits the wrong data, and
+nothing downstream detects it.
 
 ### 5. Elicit the search ranges — by magnitude, not by min/max
 

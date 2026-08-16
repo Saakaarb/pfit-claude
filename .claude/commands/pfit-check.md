@@ -42,6 +42,13 @@ from memory.
    severity table in `validation_rules.md`; quote the tool's numbers as the
    evidence. A `SKIP` is unresolved, not a pass.
 
+   The same output ends with the **loss review** (L1-L4): scale ratios between
+   measurement channels, declared-but-unused uncertainties, how the samples
+   distribute across each observable's range, and the spread across experiments.
+   Report what bears on this session — a loss whose channels differ by orders of
+   magnitude, or an observable whose samples all sit in one decile of its range,
+   is worth raising even when every D check passes.
+
 4. **Validate.** Apply every check in `validation_rules.md`. For the optimizer
    settings, read the actual numbers out of the config and evaluate each threshold
    explicitly rather than eyeballing them.

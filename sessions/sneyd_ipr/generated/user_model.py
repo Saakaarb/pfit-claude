@@ -70,15 +70,24 @@ def user_defined_system(t, y, trainable_parameters, fixed_parameters, dataset, t
         return np.array([dOdt, dRdt, dI1dt, dSdt, dAdt, dI2dt, dIP3dt, dCadt])
 
 
+def _observables(solution, trainable_parameters, fixed_parameters):
+        """The measured quantities, keyed by the names in model.observables.
+
+        Declared so a dataset column can name what it measures; the loss and the
+        writeout both read them from here rather than recomputing the algebra.
+        """
+        O = solution[:, 0]
+        A = solution[:, 4]
+
+        # the channel open probability
+        return {"Po": (0.9 * A + 0.1 * O) ** 4}
+
+
 def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
         # dataset and t_eval represent ONE experiment's data; the framework
         # calls this function once per experiment and averages the results
 
-        O = solution[:, 0]
-        A = solution[:, 4]
-
-        # the measured observable is the channel open probability
-        Po_sim = (0.9 * A + 0.1 * O) ** 4
+        Po_sim = _observables(solution, trainable_parameters, fixed_parameters)["Po"]
         Po_exp = dataset[:, 0]
 
         # Po is already a probability in [0, 1], so a plain RMSE is normalized
@@ -87,10 +96,7 @@ def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters
 
 def writeout_description(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
-        O = solution[:, 0]
-        A = solution[:, 4]
-
-        Po_sim = (0.9 * A + 0.1 * O) ** 4
+        Po_sim = _observables(solution, trainable_parameters, fixed_parameters)["Po"]
         Po_exp = dataset[:, 0]
 
         Nts = solution_time.shape[0]

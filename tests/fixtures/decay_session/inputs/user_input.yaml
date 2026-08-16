@@ -11,6 +11,10 @@
 
 experiments:
   - data_file: decay_data.csv
+    columns:
+      - {name: time, units: s}
+      - {name: A, observes: A}
+      - {name: B, observes: B}
 
 model:
   trainable_parameters:

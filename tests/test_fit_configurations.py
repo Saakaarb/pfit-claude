@@ -374,8 +374,13 @@ def test_missing_data_file_writes_an_error_report(make_session, run_fit):
 def test_duplicate_names_are_rejected_before_fitting(make_session, run_fit):
     session = make_session("decay_session")
     config = session / "inputs" / "user_input.yaml"
-    # rename integrated variable A to k1, colliding with the trainable parameter
-    config.write_text(config.read_text().replace("{name: A,", "{name: k1,", 1))
+    # Rename integrated variable A to k1, colliding with the trainable parameter.
+    # Anchored on `init_val` because the `columns` block above also contains a
+    # `{name: A, ...}` entry, and its column reference has to be renamed too --
+    # a dangling `observes` would fail the parse before the collision is reached.
+    config.write_text(config.read_text()
+                      .replace("{name: A, init_val:", "{name: k1, init_val:")
+                      .replace("observes: A}", "observes: k1}"))
 
     with pytest.raises(ValueError, match="not unique"):
         run_fit(session)

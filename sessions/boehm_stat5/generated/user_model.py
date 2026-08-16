@@ -59,8 +59,8 @@ def user_defined_system(t, y, trainable_parameters, fixed_parameters, dataset, t
                          dnApAdt, dnApBdt, dnBpBdt])
 
 
-def _observables(solution, fixed_parameters):
-        """The three measured relative percentages, from cytoplasmic species."""
+def _observables(solution, trainable_parameters, fixed_parameters):
+        """The measured quantities, keyed by the names in model.observables."""
         s = fixed_parameters['specC17']
 
         A   = solution[:, 0]
@@ -76,12 +76,15 @@ def _observables(solution, fixed_parameters):
                    / (2.0 * ApB + A * s + 2.0 * ApA * s
                       - B * (s - 1.0) - 2.0 * BpB * (s - 1.0)))
 
-        return pSTAT5A, pSTAT5B, rSTAT5A
+        return {"pSTAT5A": pSTAT5A, "pSTAT5B": pSTAT5B, "rSTAT5A": rSTAT5A}
 
 
 def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
-        pSTAT5A, pSTAT5B, rSTAT5A = _observables(solution, fixed_parameters)
+        observables = _observables(solution, trainable_parameters, fixed_parameters)
+        pSTAT5A = observables['pSTAT5A']
+        pSTAT5B = observables['pSTAT5B']
+        rSTAT5A = observables['rSTAT5A']
         sim = np.stack([pSTAT5A, pSTAT5B, rSTAT5A], axis=1)
 
         # column-wise scale-normalised RMSE, so the three percentage channels
@@ -94,7 +97,10 @@ def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters
 
 def writeout_description(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
-        pSTAT5A, pSTAT5B, rSTAT5A = _observables(solution, fixed_parameters)
+        observables = _observables(solution, trainable_parameters, fixed_parameters)
+        pSTAT5A = observables['pSTAT5A']
+        pSTAT5B = observables['pSTAT5B']
+        rSTAT5A = observables['rSTAT5A']
 
         Nts = solution_time.shape[0]
         writeout_array = np.zeros([Nts, 7])

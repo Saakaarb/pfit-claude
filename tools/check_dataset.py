@@ -3,15 +3,13 @@
 Measure every dataset CSV of a session against the structural requirements the
 framework imposes but does not enforce.
 
-This tool REPORTS FACTS ONLY. It emits one line per check id (D1..D9) with a
-PASS/FAIL verdict and the numbers behind it. The severity of each id, and what
-to do about it, are owned by `lib/LLM/reference/validation_rules.md` — do not
-duplicate that mapping here.
+This tool REPORTS FACTS ONLY. It emits one PASS/FAIL/SKIP line per check id
+(D1..D15) with the numbers behind it, then an L1..L4 review of how the loss is
+constructed. The severity of each id, and what to do about it, are owned by
+`lib/LLM/reference/validation_rules.md` — do not duplicate that mapping here.
 
-The loader mirrors `lib/utils/helper_functions.py` exactly: the same
-`encoding='utf-8-sig'` open and the same
-`np.genfromtxt(dtype=float, delimiter=',')` call, so what this tool sees is what
-the fit will see.
+The loader is `lib/utils/dataset_io.load_dataset`, the same function the fit
+uses, so what this tool sees is exactly what the fit will see.
 
 Usage:
     ./venv/bin/python3 tools/check_dataset.py <session>
@@ -30,6 +28,9 @@ import yaml
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
+sys.path.insert(0, str(REPO_ROOT))
+
+from lib.utils.dataset_io import load_dataset, read_header  # noqa: E402
 
 logger = logging.getLogger("check_dataset")
 
@@ -60,9 +61,81 @@ def resolve_session_dir(arg: str) -> Path:
     return session_dir
 
 
-def load_like_the_framework(path: Path) -> np.ndarray:
-    with open(path, "r", encoding="utf-8-sig") as handle:
-        return np.genfromtxt(handle, dtype=float, delimiter=",")
+def observable_keys(model_src: str) -> set | None:
+    """
+    The keys `_observables` returns, or None when the model does not define it.
+
+    Read from the dict literal rather than by executing anything: the model is
+    pseudocode and is never run as-is.
+    """
+    if "def _observables" not in model_src:
+        return None
+    body = model_src.split("def _observables", 1)[1].split("\ndef ", 1)[0]
+    return set(re.findall(r"""["'](\w+)["']\s*:""", body))
+
+
+def check_observables(declared: list, model_src: str, referenced: set) -> int:
+    """
+    D14/D15 - the three-way agreement between config, model and columns.
+
+    This is the whole point of naming observables: each link is an exact string
+    match, so none of it depends on reading the loss body's arithmetic.
+    """
+    failures = 0
+    keys = observable_keys(model_src)
+
+    if not declared and keys is None:
+        report("D14", None, "no observables declared and none defined "
+                            "(every measured column observes a state directly)")
+    elif keys is None:
+        failures += report("D14", False,
+                           f"config declares observables {sorted(declared)} but "
+                           f"user_model.py defines no _observables")
+    else:
+        failures += report("D14", set(declared) == keys,
+                           f"declared {sorted(declared)} vs returned by "
+                           f"_observables {sorted(keys)}")
+
+    # D15 - a declared observable no column measures is dead weight, and usually
+    # means a column's `observes` was left off.
+    unused = sorted(set(declared) - referenced)
+    failures += report("D15", not unused,
+                       f"declared observable(s) not referenced by any column: {unused}"
+                       if unused else
+                       "every declared observable is referenced by a column")
+    return failures
+
+
+def check_declaration(name: str, data: np.ndarray, columns: list, path: Path) -> int:
+    """
+    D12/D13 - the config's `columns` block against the file it describes.
+
+    The CSV is a bare numeric matrix, so nothing in it says what column 2 is.
+    `columns` is the user's statement of that, and these two checks are the only
+    thing keeping the statement honest as the data changes underneath it.
+    """
+    failures = 0
+
+    # D12 - a column added to or removed from the CSV shifts every index the
+    # loss uses. Positional mapping makes that silent; this makes it loud.
+    declared, actual = len(columns), (data.shape[1] if data.ndim == 2 else 0)
+    failures += report("D12", declared == actual,
+                       f"{name}: config declares {declared} column(s), file has {actual}"
+                       + ("" if declared == actual else
+                          f" - declared {[c['name'] for c in columns]}"))
+
+    # D13 - a header is optional, but when present it is a second statement of
+    # the same thing and the two must not drift.
+    header = read_header(path)
+    if header is None:
+        report("D13", None, f"{name}: no header row; `columns` is the only column map")
+    else:
+        expected = [c["name"] for c in columns]
+        matches = len(header) == len(expected) and all(
+            h.strip().lower() == e.lower() for h, e in zip(header, expected))
+        failures += report("D13", matches,
+                           f"{name}: header {header} vs declared {expected}")
+    return failures
 
 
 def max_dataset_index(model_src: str) -> int | None:
@@ -148,11 +221,12 @@ def check_experiment(name: str, data: np.ndarray, init_time: float | None,
 
     # D3 - NaN anywhere. Deliberate under staggered_data.md, fatal otherwise; the
     # cross-check against the loss body happens in check_session.
+    # Reported without a verdict: NaN is legitimate under staggered_data.md, and
+    # D3x -- the cross-check against the loss body -- is what actually decides
+    # whether it is a defect. Printing FAIL here would contradict a D3x PASS.
     n_nan = int(np.isnan(data).sum())
-    # not counted as a failure here: NaN is legitimate under staggered_data.md.
-    # The D3x cross-check against the loss body is what decides it.
-    report("D3", n_nan == 0, f"{name}: {n_nan} NaN cell(s)"
-           + (" - the loss MUST use nan-safe reductions (see D3 cross-check)" if n_nan else ""))
+    logger.info("D3 INFO  %s: %d NaN cell(s)%s", name, n_nan,
+                " - legitimate only if the loss is nan-safe, see D3x" if n_nan else "")
 
     t = data[:, 0]
     finite_t = np.isfinite(t).all()
@@ -223,11 +297,147 @@ def check_experiment(name: str, data: np.ndarray, init_time: float | None,
                "before the first comparison, so solution[0] is the evolved state, not "
                "y0. init_val and row 0 may legitimately differ")
 
-    logger.info("D10 INFO  %s: data row 0 = %s", name,
-                np.array2string(data[0], precision=6))
     logger.debug("%s: median dt=%g, t_span=%g", name,
                  float(np.median(diffs)), float(t[-1] - t[0]))
     return failures, n_cols
+
+
+def check_initial_conditions(name: str, data: np.ndarray, columns: list,
+                             y0: dict, init_time: float | None) -> None:
+    """
+    D10 - each directly-observed state's initial condition against data row 0.
+
+    Only possible because `columns` declares which column observes which state;
+    before that, the map lived as arbitrary Python inside the loss and this
+    comparison could not be made by tooling at all. Derived columns are still
+    beyond reach and are skipped rather than guessed at.
+
+    Never a failure. In regime 1 a mismatch is a real defect -- the solve starts
+    at the first save point, so solution[0] IS y0 and the gap is a constant
+    penalty no parameter can remove -- but the severity call belongs to
+    validation_rules.md, and in regime 2 the same gap is expected.
+    """
+    regime_1 = init_time is None or init_time == data[0, 0]
+    for index, column in enumerate(columns):
+        state = column.get("observes")
+        if state is None or index >= data.shape[1]:
+            continue
+        measured, configured = float(data[0, index]), y0.get(state)
+        if configured is None:
+            continue
+        gap = abs(measured - configured)
+        # Scored against the column's own observed range, not against the values
+        # themselves: the range is what the loss normalises by, so this is the
+        # fraction of the signal that is permanently mis-fit. Scoring relative to
+        # the value would read 100% whenever init_val is exactly zero, however
+        # negligible the absolute gap.
+        finite = data[:, index][np.isfinite(data[:, index])]
+        span = float(finite.max() - finite.min()) if finite.size else 0.0
+        fraction = gap / span if span > 0 else (0.0 if gap == 0 else float("inf"))
+        verdict = "WARN" if (regime_1 and fraction > 1e-3) else "ok"
+        logger.info(
+            "D10 %s  %s: state '%s' (column %d '%s') init_val=%g vs row 0=%g "
+            "- gap %.3g = %.2f%% of the column's range%s",
+            verdict, name, state, index, column["name"], configured, measured,
+            gap, 100.0 * fraction,
+            " - in regime 1 this is a constant penalty no parameter can remove"
+            if verdict == "WARN" else "")
+
+    derived = [c["name"] for i, c in enumerate(columns[1:], 1)
+               if not c.get("observes") and not c.get("uncertainty_of")]
+    if derived:
+        logger.info("D10 INFO  %s: derived column(s) %s have no state to compare "
+                    "against; their init_val is unchecked", name, derived)
+
+
+def review_loss(session_dir: Path, config: dict, experiments: list,
+                model_src: str) -> None:
+    """
+    L1..L4 - feedback on how the loss is CONSTRUCTED, measured from the data
+    alone. No solve, no fitted parameters, so it is available before the first
+    fit and stays inside the cold-start invariant.
+
+    Reported as facts, never as verdicts. In particular this does NOT try to
+    detect whether the loss normalises: that would mean pattern-matching
+    arbitrary Python, which is exactly the fragility the `columns` declaration
+    exists to remove. The magnitudes below are the actionable part -- what the
+    term weights WOULD be without normalisation -- and whether a normaliser is
+    present is answered by reading the loss.
+    """
+    loss_body = (model_src.split("def _compute_loss_problem", 1)[1].split("\ndef ", 1)[0]
+                 if "def _compute_loss_problem" in model_src else "")
+
+    scales_per_exp = []
+    for index, experiment in enumerate(experiments):
+        columns = experiment.get("columns") or []
+        path = session_dir / "inputs" / experiment["data_file"]
+        if not path.is_file() or not columns:
+            continue
+        try:
+            data = load_dataset(path)
+        except ValueError:
+            continue
+        if data.ndim != 2:
+            continue
+
+        measurements = [(i, c) for i, c in enumerate(columns)
+                        if i > 0 and not c.get("uncertainty_of") and i < data.shape[1]]
+        scales = {}
+        for i, column in enumerate([c for _, c in measurements]):
+            values = data[:, measurements[i][0]]
+            values = values[np.isfinite(values)]
+            scales[column["name"]] = float(np.abs(values).max()) if values.size else 0.0
+        scales_per_exp.append(max(scales.values(), default=0.0))
+
+        if index == 0 and scales:
+            logger.info("L1 INFO  column scales (max|data|): %s",
+                        ", ".join(f"{k}={v:.3g}" for k, v in scales.items()))
+            positive = [v for v in scales.values() if v > 0]
+            if len(positive) > 1:
+                ratio = max(positive) / min(positive)
+                total = sum(v ** 2 for v in positive)
+                share = ", ".join(f"{k} {100 * v ** 2 / total:.3f}%"
+                                  for k, v in scales.items())
+                logger.info("L1 INFO  largest/smallest scale ratio %.3g:1", ratio)
+                logger.info("L1 INFO  IF residuals are squared and NOT normalised "
+                            "per column, the implied weight share is: %s", share)
+
+            # L3 - where the samples sit inside each observable's own range. A
+            # heavily one-sided distribution means the loss is dominated by
+            # whichever regime holds most of the samples, not by the interesting
+            # one.
+            for column_index, column in measurements:
+                values = data[:, column_index]
+                values = values[np.isfinite(values)]
+                if values.size < 4:
+                    continue
+                low, high = values.min(), values.max()
+                if high <= low:
+                    continue
+                fraction = (values - low) / (high - low)
+                logger.info("L3 INFO  %s: %.0f%% of samples in the lowest decile of "
+                            "its range, %.0f%% in the highest", column["name"],
+                            100 * np.mean(fraction < 0.1), 100 * np.mean(fraction > 0.9))
+
+    # L2 - declared uncertainties the loss may not be using. Reported, not judged:
+    # the loss reads sigma columns by index, so this is a hint, not proof.
+    sigma_columns = [c["name"] for e in experiments
+                     for c in (e.get("columns") or []) if c.get("uncertainty_of")]
+    if sigma_columns:
+        mentioned = "sigma" in loss_body or any(s in loss_body for s in sigma_columns)
+        logger.info("L2 INFO  uncertainty column(s) declared %s; the loss body "
+                    "appears to reference them = %s (a declared uncertainty the "
+                    "loss ignores discards information)",
+                    sorted(set(sigma_columns)), mentioned)
+
+    # L4 - losses are averaged across experiments UNWEIGHTED, so a scale spread
+    # is a weighting the user did not choose.
+    positive = [s for s in scales_per_exp if s > 0]
+    if len(positive) > 1:
+        logger.info("L4 INFO  %d experiments, data scales %.3g..%.3g (ratio %.3g:1); "
+                    "experiment losses are averaged UNWEIGHTED",
+                    len(scales_per_exp), min(positive), max(positive),
+                    max(positive) / min(positive))
 
 
 def check_session(session_dir: Path) -> int:
@@ -256,6 +466,8 @@ def check_session(session_dir: Path) -> int:
             init_time = float(value)
             break
 
+    global_y0 = {v["name"]: v.get("init_val") for v in variables}
+
     experiments = config.get("experiments") or []
     logger.info("session %s: %d experiment(s), initial_time=%s",
                 session_dir.name, len(experiments), init_time)
@@ -273,7 +485,7 @@ def check_session(session_dir: Path) -> int:
             failures += 1
             continue
         try:
-            data = load_like_the_framework(path)
+            data = load_dataset(path)
         except ValueError as exc:
             # genfromtxt raises on a ragged file; that is the one structural
             # requirement the loader already enforces, and its message is clear.
@@ -284,10 +496,25 @@ def check_session(session_dir: Path) -> int:
         exp_failures, n_cols = check_experiment(filename, data, init_time, max_idx,
                                                 whole, n_states)
         failures += exp_failures
+
+        columns = experiment.get("columns") or []
+        if columns:
+            failures += check_declaration(filename, data, columns, path)
+            if data.ndim == 2 and data.shape[0]:
+                y0 = dict(global_y0)
+                y0.update(experiment.get("initial_conditions") or {})
+                check_initial_conditions(filename, data, columns, y0, init_time)
+        else:
+            report("D12", None, f"{filename}: no `columns` block declared")
         if n_cols is not None:
             col_counts.append((filename, n_cols))
         if data.ndim == 2 and np.isnan(data).any():
             any_nan = True
+
+    declared = [o["name"] for o in (config.get("model") or {}).get("observables", [])]
+    referenced = {c.get("observes") for e in experiments
+                  for c in (e.get("columns") or []) if c.get("observes")}
+    failures += check_observables(declared, model_src, referenced)
 
     # D3 cross-check - NaN in the data is only supported when the loss is
     # nan-safe. Neither half is checked anywhere else.
@@ -308,19 +535,11 @@ def check_session(session_dir: Path) -> int:
                               f" - {col_counts}; the mapping is positional, so a "
                               "mismatch fits a different observable per file"))
 
-    # D10 - reported, never judged. The config's initial conditions sit beside
-    # each dataset's row 0 (printed per experiment above) so they can be compared
-    # directly. Which column maps to which variable is known only to the loss
-    # body, so the agent, not this tool, decides whether they agree - and only
-    # for states the loss actually compares against a column.
     if variables:
-        logger.info("D10 INFO  init_val per integrated variable: %s",
-                    {v["name"]: v.get("init_val") for v in variables})
-        overrides = [(index + 1, experiment["initial_conditions"])
-                     for index, experiment in enumerate(experiments)
-                     if experiment.get("initial_conditions")]
-        for index, override in overrides:
-            logger.info("D10 INFO  experiment %d overrides: %s", index, override)
+        logger.info("D10 INFO  init_val per integrated variable: %s", global_y0)
+
+    if experiments:
+        review_loss(session_dir, config, experiments, model_src)
 
     logger.info("%s: %d check(s) failed", session_dir.name, failures)
     return failures

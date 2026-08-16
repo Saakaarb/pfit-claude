@@ -20,9 +20,9 @@ must be *true* of the inputs.
 
 - **Comma-delimited plain text.** Tab/space-delimited or Excel files fail.
 - **A header row is optional.** It is detected (a first row that does not parse
-  as numbers) and skipped on load by `lib/utils/dataset_io.py`, which is the same
-  function the fit uses. Without one, nothing in the file records what its
-  columns mean.
+  as numbers) and skipped on load by `lib/utils/dataset_io.py`. When present it
+  must agree with the experiment's `columns` block. Without one, `columns` is the
+  only record of what each column means.
 - **Column 0 is time, monotonically increasing.** It is the integration/save grid.
 - **Rectangular.** Every row must have the same number of columns.
 - **No accidental blank cells.** Missing values become `NaN`, which makes the
@@ -35,6 +35,9 @@ must be *true* of the inputs.
   (after time) are consumed in file order; the loss and writeout index
   `dataset[:, k]` by position. Nothing in the config remaps them. A wrong
   column order silently fits the wrong data.
+- **Every experiment must declare a `columns` block**, one entry per column of
+  the file, and its length must equal the file's column count. This is the only
+  machine-readable record of what each column means — see `yaml_format.md`.
 
 ### Config (user_input.yaml)
 

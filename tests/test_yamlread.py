@@ -45,6 +45,9 @@ def decay_config(tmp_path):
 MINIMAL = """
     experiments:
       - data_file: d.csv
+        columns:
+          - {name: time, units: s}
+          - {name: A, observes: A}
     model:
       trainable_parameters:
         - {name: k1, min_val: 0.01, max_val: 10.0, logscale: true}
@@ -104,7 +107,12 @@ def test_missing_required_parameter_key_raises():
 
 
 def test_check_name_uniqueness_rejects_collisions():
-    r = read_text(MINIMAL.replace("{name: A, init_val: 1.0}", "{name: k1, init_val: 1.0}"))
+    # the column declaration references the variable by name, so renaming it
+    # here has to rename the reference too -- otherwise the parse fails on a
+    # dangling `observes` before it ever reaches the collision being tested
+    r = read_text(MINIMAL
+                  .replace("{name: A, init_val: 1.0}", "{name: k1, init_val: 1.0}")
+                  .replace("observes: A", "observes: k1"))
     with pytest.raises(ValueError, match="not unique"):
         r.check_name_uniqueness()
 
@@ -386,3 +394,115 @@ def test_errors_are_prefixed_with_the_file_path(tmp_path):
     config.write_text("experiments: []\n")
     with pytest.raises(InputError, match=str(config)):
         read(config)
+
+
+# ---------------------------------------------------------------------------
+# column declarations
+# ---------------------------------------------------------------------------
+
+def _with_columns(block: str) -> str:
+    return MINIMAL.replace("""        columns:
+          - {name: time, units: s}
+          - {name: A, observes: A}
+""", block)
+
+
+def test_columns_are_parsed_with_their_semantics():
+    r = read_text(MINIMAL)
+    columns = r.experiments[0]["columns"]
+    assert [c["name"] for c in columns] == ["time", "A"]
+    assert columns[0]["units"] == "s"
+    assert columns[1]["observes"] == "A"
+    assert columns[1]["uncertainty_of"] is None
+
+
+def test_columns_are_required():
+    """The CSV is a bare numeric matrix; without this block nothing records
+    what each column means."""
+    with pytest.raises(InputError, match="columns is required"):
+        read_text(_with_columns(""))
+
+
+def test_a_single_column_declaration_is_rejected():
+    """Time alone is not a dataset: there must be at least one observable."""
+    with pytest.raises(InputError, match="at least 2 entries"):
+        read_text(_with_columns("        columns:\n          - {name: time}\n"))
+
+
+def test_observes_must_name_a_state_or_a_declared_observable():
+    with pytest.raises(InputError, match="neither an integrated variable nor"):
+        read_text(_with_columns(
+            "        columns:\n          - {name: time}\n"
+            "          - {name: q, observes: nope}\n"))
+
+
+def test_observes_resolves_against_a_declared_observable():
+    """A derived column names a model-computed quantity, not a state. Without
+    this the link from column to model exists only inside the loss body."""
+    config = _with_columns(
+        "        columns:\n          - {name: time}\n"
+        "          - {name: measured_Po, observes: Po}\n"
+    ).replace("      integrated_variables:",
+              "      observables:\n        - {name: Po}\n"
+              "      integrated_variables:")
+    r = read_text(config)
+    assert r.observable_names == ["Po"]
+    assert r.experiments[0]["columns"][1]["observes"] == "Po"
+
+
+def test_an_observable_colliding_with_a_state_is_rejected():
+    config = MINIMAL.replace("      integrated_variables:",
+                             "      observables:\n        - {name: A}\n"
+                             "      integrated_variables:")
+    with pytest.raises(ValueError, match="not unique"):
+        read_text(config).check_name_uniqueness()
+
+
+def test_the_time_column_cannot_observe_a_state():
+    with pytest.raises(InputError, match="time grid"):
+        read_text(_with_columns(
+            "        columns:\n          - {name: time, observes: A}\n"
+            "          - {name: q}\n"))
+
+
+def test_uncertainty_of_pairs_a_sigma_column_with_its_measurement():
+    r = read_text(_with_columns(
+        "        columns:\n          - {name: time}\n"
+        "          - {name: A, observes: A}\n"
+        "          - {name: A_sd, uncertainty_of: A}\n"))
+    columns = r.experiments[0]["columns"]
+    assert columns[2]["uncertainty_of"] == "A"
+    assert columns[2]["observes"] is None
+
+
+def test_uncertainty_of_must_name_a_measurement_column():
+    with pytest.raises(InputError, match="not a measurement column"):
+        read_text(_with_columns(
+            "        columns:\n          - {name: time}\n"
+            "          - {name: A, observes: A}\n"
+            "          - {name: A_sd, uncertainty_of: ghost}\n"))
+
+
+def test_an_uncertainty_cannot_point_at_another_uncertainty():
+    """Otherwise a chain of sigmas would parse as if it carried measurements."""
+    with pytest.raises(InputError, match="not a measurement column"):
+        read_text(_with_columns(
+            "        columns:\n          - {name: time}\n"
+            "          - {name: A, observes: A}\n"
+            "          - {name: A_sd, uncertainty_of: A}\n"
+            "          - {name: A_sd2, uncertainty_of: A_sd}\n"))
+
+
+def test_duplicate_column_names_are_rejected():
+    with pytest.raises(InputError, match="must be unique"):
+        read_text(_with_columns(
+            "        columns:\n          - {name: time}\n"
+            "          - {name: A, observes: A}\n"
+            "          - {name: A}\n"))
+
+
+def test_an_unknown_column_key_is_rejected():
+    with pytest.raises(InputError):
+        read_text(_with_columns(
+            "        columns:\n          - {name: time}\n"
+            "          - {name: A, describes: A}\n"))

@@ -50,6 +50,34 @@ def user_defined_system(t, y, trainable_parameters, fixed_parameters, dataset, t
         return np.array([dc1dt, dc2dt, dTdt])
 
 
+def _observables(solution, trainable_parameters, fixed_parameters):
+        """The measured quantities, keyed by the names in model.observables.
+
+        Temperature is a state and is measured directly (its column declares
+        `observes: T`), so only the self-heating rate is named here. It is
+        reconstructed from the saved states via the same _heat_rate the RHS uses,
+        which is why that helper stays separate.
+        """
+        Ea1 = trainable_parameters['Ea1']
+        A1  = trainable_parameters['A1']
+        n1  = trainable_parameters['n1']
+        h1  = trainable_parameters['h1']
+        Ea2 = trainable_parameters['Ea2']
+        A2  = trainable_parameters['A2']
+        m2  = trainable_parameters['m2']
+        h2  = trainable_parameters['h2']
+        T_ignite = fixed_parameters['T_ignite']
+        kb       = fixed_parameters['kb']
+
+        c1 = solution[:, 0]
+        c2 = solution[:, 1]
+        T  = solution[:, 2]
+
+        _, _, rate_sim = _heat_rate(c1, c2, T, Ea1, A1, n1, h1,
+                                    Ea2, A2, m2, h2, T_ignite, kb)
+        return {"heat_rate": rate_sim}
+
+
 def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
         Ea1 = trainable_parameters['Ea1']
@@ -72,8 +100,8 @@ def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters
         rate_exp = dataset[:, 1]
 
         # the model heating rate, reconstructed from the saved states
-        _, _, rate_sim = _heat_rate(c1, c2, T, Ea1, A1, n1, h1,
-                                    Ea2, A2, m2, h2, T_ignite, kb)
+        rate_sim = _observables(
+            solution, trainable_parameters, fixed_parameters)["heat_rate"]
 
         # L1: the heating rate spans six decades, so it is matched in log space.
         # A linear residual would let the runaway endpoint own the objective and
@@ -129,8 +157,8 @@ def writeout_description(solution_time, solution, dataset, trainable_parameters,
         c2 = solution[:, 1]
         T  = solution[:, 2]
 
-        _, _, rate_sim = _heat_rate(c1, c2, T, Ea1, A1, n1, h1,
-                                    Ea2, A2, m2, h2, T_ignite, kb)
+        rate_sim = _observables(
+            solution, trainable_parameters, fixed_parameters)["heat_rate"]
 
         Nts = solution_time.shape[0]
         writeout_array = np.zeros([Nts, 5])

@@ -3,38 +3,65 @@
 
 experiments:
   - data_file: ca01.csv
+    columns:
+      - {name: time, units: s}
+      - {name: open_probability, units: dimensionless, observes: Po}
     initial_conditions:
       IP3: 10.0
       Ca: 0.1
   - data_file: ca02.csv
+    columns:
+      - {name: time, units: s}
+      - {name: open_probability, units: dimensionless, observes: Po}
     initial_conditions:
       IP3: 10.0
       Ca: 0.2
   - data_file: ca04.csv
+    columns:
+      - {name: time, units: s}
+      - {name: open_probability, units: dimensionless, observes: Po}
     initial_conditions:
       IP3: 10.0
       Ca: 0.4
   - data_file: ca1.csv
+    columns:
+      - {name: time, units: s}
+      - {name: open_probability, units: dimensionless, observes: Po}
     initial_conditions:
       IP3: 10.0
       Ca: 1.0
   - data_file: ca3.csv
+    columns:
+      - {name: time, units: s}
+      - {name: open_probability, units: dimensionless, observes: Po}
     initial_conditions:
       IP3: 10.0
       Ca: 3.0
   - data_file: ca10.csv
+    columns:
+      - {name: time, units: s}
+      - {name: open_probability, units: dimensionless, observes: Po}
     initial_conditions:
       IP3: 10.0
       Ca: 10.0
   - data_file: ip3.csv
+    columns:
+      - {name: time, units: s}
+      - {name: open_probability, units: dimensionless, observes: Po}
     initial_conditions:
       IP3: 3.0
       Ca: 0.4
   - data_file: ip5.csv
+    columns:
+      - {name: time, units: s}
+      - {name: open_probability, units: dimensionless, observes: Po}
     initial_conditions:
       IP3: 5.0
       Ca: 0.4
   - data_file: ip10.csv
+    columns:
+      - {name: time, units: s}
+      - {name: open_probability, units: dimensionless, observes: Po}
     initial_conditions:
       IP3: 10.0
       Ca: 0.4
@@ -55,6 +82,8 @@ model:
     - {name: l_2, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
     - {name: l_4, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
     - {name: l_6, min_val: 1.0e-03, max_val: 1.0e+05, logscale: true}
+  observables:
+    - {name: Po}
   integrated_variables:
     - {name: O, init_val: 0.0}
     - {name: R, init_val: 1.0}

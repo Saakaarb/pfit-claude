@@ -1,5 +1,8 @@
 experiments:
   - data_file: correct_units_piezo_electric_actuator.csv
+    columns:
+      - {name: time, units: s}
+      - {name: displacement, units: m, observes: xp}
 
 model:
   trainable_parameters:

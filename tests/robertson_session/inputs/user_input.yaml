@@ -1,5 +1,10 @@
 experiments:
   - data_file: robertson_data.csv
+    columns:
+      - {name: time, units: s}
+      - {name: y1, observes: y1}
+      - {name: y2, observes: y2}
+      - {name: y3, observes: y3}
 
 model:
   trainable_parameters:

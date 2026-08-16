@@ -1,5 +1,9 @@
 experiments:
   - data_file: vanderpol_data.csv
+    columns:
+      - {name: time, units: s}
+      - {name: x1, observes: x1}
+      - {name: x2, observes: x2}
 
 model:
   trainable_parameters:

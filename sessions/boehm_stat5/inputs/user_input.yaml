@@ -1,5 +1,10 @@
 experiments:
   - data_file: data.csv
+    columns:
+      - {name: time, units: min}
+      - {name: pSTAT5A_rel, units: percent, observes: pSTAT5A}
+      - {name: pSTAT5B_rel, units: percent, observes: pSTAT5B}
+      - {name: rSTAT5A_rel, units: percent, observes: rSTAT5A}
 
 model:
   trainable_parameters:
@@ -14,6 +19,10 @@ model:
     - {name: Epo0, value: 1.25e-07}
     - {name: cyt, value: 1.4}
     - {name: nuc, value: 0.45}
+  observables:
+    - {name: pSTAT5A}
+    - {name: pSTAT5B}
+    - {name: rSTAT5A}
   integrated_variables:
     - {name: A, init_val: 143.8668}
     - {name: B, init_val: 63.7332}

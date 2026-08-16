@@ -1,5 +1,9 @@
 experiments:
   - data_file: force_disp_data_sliding_basepoint.csv
+    columns:
+      - {name: time, units: s}
+      - {name: contact_force, units: kN, observes: contact_force}
+      - {name: displacement, units: m, observes: x1}
 
 model:
   trainable_parameters:
@@ -10,6 +14,8 @@ model:
     - {name: m2, min_val: 1.0, max_val: 1.0e+02, logscale: true}
   fixed_parameters:
     - {name: vf, value: 0.1}
+  observables:
+    - {name: contact_force}
   integrated_variables:
     - {name: x1, init_val: 0.0}
     - {name: x2, init_val: 0.0}

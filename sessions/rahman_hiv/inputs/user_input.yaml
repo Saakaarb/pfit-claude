@@ -1,5 +1,8 @@
 experiments:
   - data_file: data.csv
+    columns:
+      - {name: time, units: years}
+      - {name: prevalence, units: percent, observes: prevalence}
 
 model:
   trainable_parameters:
@@ -24,6 +27,8 @@ model:
     - {name: mu_Tn, value: 0.0408}
     - {name: mu_Tm, value: 0.0528}
     - {name: mu_Tw, value: 0.1752}
+  observables:
+    - {name: prevalence}
   integrated_variables:
     - {name: S, init_val: 1.794e+07}
     - {name: In, init_val: 16300.0}

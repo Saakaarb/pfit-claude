@@ -10,9 +10,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT))
 TOOL = REPO_ROOT / "tools" / "check_dataset.py"
 VENV_PYTHON = REPO_ROOT / "venv" / "bin" / "python3"
 PYTHON = str(VENV_PYTHON) if VENV_PYTHON.exists() else sys.executable
@@ -205,3 +207,121 @@ def test_every_shipped_session_passes(tmp_path):
         if code != 0:
             broken.append(f"{session.name}: {sorted(failed_ids(out))}")
     assert not broken, "sessions failing the dataset checks:\n" + "\n".join(broken)
+
+
+# ---------------------------------------------------------------------------
+# column declarations: the CSV is a bare numeric matrix, so `columns` is the
+# only record of what each column means
+# ---------------------------------------------------------------------------
+
+COLUMNS_2 = """    columns:
+      - {name: time, units: s}
+      - {name: A, observes: y1}
+      - {name: B, observes: y2}
+"""
+
+
+def build_declared(tmp_path, csv, columns=COLUMNS_2, model=COLUMNWISE_MODEL, extra=""):
+    session = tmp_path / "declared"
+    (session / "inputs").mkdir(parents=True)
+    (session / "generated").mkdir(parents=True)
+    (session / "inputs" / "d.csv").write_text(csv)
+    (session / "inputs" / "user_input.yaml").write_text(
+        "experiments:\n  - data_file: d.csv\n" + columns +
+        "model:\n"
+        "  trainable_parameters:\n"
+        "    - {name: k1, min_val: 0.1, max_val: 10.0, logscale: false}\n"
+        "  integrated_variables:\n"
+        "    - {name: y1, init_val: 1.0}\n"
+        "    - {name: y2, init_val: 0.0}\n" + extra)
+    (session / "generated" / "user_model.py").write_text(model)
+    return session
+
+
+def test_declared_column_count_must_match_the_file(tmp_path):
+    """D12 - a column added to the CSV shifts every index the loss uses."""
+    session = build_declared(tmp_path, "0,1.0,0.0,9.0\n1,0.5,0.5,9.0\n")
+    code, out = run_tool(session, tmp_path)
+    assert "D12" in failed_ids(out), out
+    assert code == 1
+
+
+def test_a_header_is_skipped_and_checked_against_the_declaration(tmp_path):
+    """D13 - a header is a second statement of the column map; it must agree."""
+    session = build_declared(tmp_path, "time,A,B\n0,1.0,0.0\n1,0.5,0.5\n")
+    code, out = run_tool(session, tmp_path)
+    assert not failed_ids(out), out
+    assert code == 0
+
+
+def test_a_header_that_disagrees_with_the_declaration_is_caught(tmp_path):
+    session = build_declared(tmp_path, "time,B,A\n0,1.0,0.0\n1,0.5,0.5\n")
+    code, out = run_tool(session, tmp_path)
+    assert "D13" in failed_ids(out), out
+
+
+def test_a_headered_file_loads_to_the_same_array_as_a_bare_one(tmp_path):
+    """The header must not reach the solver as data."""
+    from lib.utils.dataset_io import load_dataset
+    bare, headed = tmp_path / "a.csv", tmp_path / "b.csv"
+    bare.write_text("0,1.0,0.0\n1,0.5,0.5\n")
+    headed.write_text("time,A,B\n0,1.0,0.0\n1,0.5,0.5\n")
+    assert np.array_equal(load_dataset(bare), load_dataset(headed))
+
+
+def test_an_observed_state_disagreeing_with_row_0_is_reported(tmp_path):
+    """D10 - automatable only because `observes` declares the column map."""
+    session = build_declared(tmp_path, "0,0.5,0.0\n1,0.2,0.5\n")  # y1 init_val is 1.0
+    code, out = run_tool(session, tmp_path)
+    assert "D10 WARN" in out, out
+    assert code == 0, "D10 is a warning, not a failure"
+
+
+def test_an_observed_state_agreeing_with_row_0_is_not_reported(tmp_path):
+    session = build_declared(tmp_path, "0,1.0,0.0\n1,0.5,0.5\n")
+    code, out = run_tool(session, tmp_path)
+    assert "D10 WARN" not in out, out
+
+
+def test_a_declared_observable_the_model_does_not_define_is_caught(tmp_path):
+    """D14 - the column names a model quantity that does not exist."""
+    session = build_declared(
+        tmp_path, GOOD_CSV,
+        columns="    columns:\n      - {name: time}\n"
+                "      - {name: A, observes: y1}\n      - {name: q, observes: Po}\n",
+        extra="")
+    cfg = session / "inputs" / "user_input.yaml"
+    cfg.write_text(cfg.read_text().replace(
+        "  integrated_variables:", "  observables:\n    - {name: Po}\n  integrated_variables:"))
+    code, out = run_tool(session, tmp_path)
+    assert "D14" in failed_ids(out), out
+    assert code == 1
+
+
+def test_declared_and_returned_observables_must_match(tmp_path):
+    session = build_declared(
+        tmp_path, GOOD_CSV,
+        columns="    columns:\n      - {name: time}\n"
+                "      - {name: A, observes: y1}\n      - {name: q, observes: Po}\n",
+        model=COLUMNWISE_MODEL + '\n\ndef _observables(solution, trainable_parameters, '
+              'fixed_parameters):\n        return {"WrongName": solution[:, 0]}\n')
+    cfg = session / "inputs" / "user_input.yaml"
+    cfg.write_text(cfg.read_text().replace(
+        "  integrated_variables:", "  observables:\n    - {name: Po}\n  integrated_variables:"))
+    code, out = run_tool(session, tmp_path)
+    assert "D14" in failed_ids(out), out
+
+
+def test_matching_observables_pass(tmp_path):
+    session = build_declared(
+        tmp_path, GOOD_CSV,
+        columns="    columns:\n      - {name: time}\n"
+                "      - {name: A, observes: y1}\n      - {name: q, observes: Po}\n",
+        model=COLUMNWISE_MODEL + '\n\ndef _observables(solution, trainable_parameters, '
+              'fixed_parameters):\n        return {"Po": solution[:, 0]}\n')
+    cfg = session / "inputs" / "user_input.yaml"
+    cfg.write_text(cfg.read_text().replace(
+        "  integrated_variables:", "  observables:\n    - {name: Po}\n  integrated_variables:"))
+    code, out = run_tool(session, tmp_path)
+    assert not failed_ids(out), out
+    assert code == 0

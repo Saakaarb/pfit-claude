@@ -72,14 +72,20 @@ def user_defined_system(t, y, trainable_parameters, fixed_parameters, dataset, t
         return np.array([dSdt, dIndt, dImdt, dIwdt, dTndt, dTmdt, dTwdt])
 
 
-def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
-
+def _observables(solution, trainable_parameters, fixed_parameters):
+        """The measured quantities, keyed by the names in model.observables."""
         S = solution[:, 0]
         N = (solution[:, 0] + solution[:, 1] + solution[:, 2] + solution[:, 3]
              + solution[:, 4] + solution[:, 5] + solution[:, 6])
 
         # the lone observable: the percentage of the population not susceptible
-        prevalence_sim = (1.0 - S / N) * 100.0
+        return {"prevalence": (1.0 - S / N) * 100.0}
+
+
+def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
+
+        prevalence_sim = _observables(
+            solution, trainable_parameters, fixed_parameters)["prevalence"]
         prevalence_exp = dataset[:, 0]
 
         # peak-normalised RMSE, which keeps the loss on a [0, 1] scale
@@ -92,11 +98,8 @@ def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters
 
 def writeout_description(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
-        S = solution[:, 0]
-        N = (solution[:, 0] + solution[:, 1] + solution[:, 2] + solution[:, 3]
-             + solution[:, 4] + solution[:, 5] + solution[:, 6])
-
-        prevalence_sim = (1.0 - S / N) * 100.0
+        prevalence_sim = _observables(
+            solution, trainable_parameters, fixed_parameters)["prevalence"]
         prevalence_exp = dataset[:, 0]
 
         Nts = solution_time.shape[0]

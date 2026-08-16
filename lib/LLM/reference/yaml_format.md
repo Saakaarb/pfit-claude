@@ -70,6 +70,53 @@ with one of those names never reaches the reader as a name. It is rejected with
 an explanation rather than silently mangled, but the fix is to rename it.
 (`Y` and `N` are safe — they are not YAML booleans.)
 
+## Declaring the dataset columns (required)
+
+Every experiment needs a `columns` block. The CSV is consumed positionally as a
+bare numeric matrix, so without this the meaning of each column is recorded
+nowhere machine-readable — the map from state to observable otherwise lives as
+arbitrary Python inside `_compute_loss_problem`.
+
+```yaml
+experiments:
+  - data_file: run_A.csv
+    columns:
+      - {name: time, units: s}
+      - {name: X, units: mol/L, observes: X}
+      - {name: Z, units: mol/L, observes: Z}
+      - {name: X_sd, units: mol/L, uncertainty_of: X}
+      - {name: Z_sd, units: mol/L, uncertainty_of: Z}
+```
+
+Entry `i` describes column `i`, so the first entry is always the time column.
+
+| Field | Required | Meaning |
+|---|---|---|
+| `name` | yes | a valid identifier, unique within the experiment |
+| `units` | no | free text, for the reader |
+| `observes` | no | names an integrated variable this column measures **directly**. Omit for a derived observable |
+| `uncertainty_of` | no | names another measurement column in the same experiment; marks this column as its standard deviation |
+
+Rejected at read time: an `observes` or `uncertainty_of` naming something that
+does not exist, either on column 0, an `uncertainty_of` pointing at another
+uncertainty column or at itself, duplicate names, and fewer than two entries.
+
+The block is **descriptive** — nothing at runtime reads it. What it buys:
+
+- `/pfit-new` can propose a loss, and knows to weight by sigma when uncertainty
+  columns exist;
+- `/pfit-check` can compare each directly-observed state's `init_val` against
+  data row 0 (D10), which is otherwise not decidable by tooling;
+- adding or removing a CSV column becomes an error (D12) rather than a silent
+  re-indexing of every observable.
+
+### Optional header row
+
+The CSV may carry a header. It is detected (a first row that does not parse as
+numbers), skipped on load, and **must agree with `columns`** (D13). A header is
+convenient because it is usually already in the user's file, but `columns` is
+the authority; the header is a redundant second statement of the same thing.
+
 ## Multi-experiment
 
 Add one entry to `experiments` per dataset. `initial_conditions` overrides the

@@ -23,9 +23,14 @@ The three function names are fixed and must never be changed:
 
 ```python
 def user_defined_system(t, y, trainable_parameters, fixed_parameters, dataset, t_eval)
+def _observables(solution, trainable_parameters, fixed_parameters)
 def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters, fixed_parameters)
 def writeout_description(solution_time, solution, dataset, trainable_parameters, fixed_parameters)
 ```
+
+`_observables` is required **only when some dataset column measures a derived
+quantity** rather than a state. A model whose every measured column is a state
+(each column declaring `observes: <state>`) does not need it.
 
 Key to the shapes: `Nts` = number of time steps, `Ny` = number of state
 variables, `N_col` = number of columns in the dataset including time.
@@ -53,6 +58,35 @@ variables, `N_col` = number of columns in the dataset including time.
 Returns a list/array of derivatives for **every** integrated variable, in the
 config's variable order. Every integrated variable must have a derivative defined
 and returned.
+
+### `_observables`
+
+Returns a **dict** mapping each name in `model.observables` to the trajectory of
+that quantity, shape `[Nts]`.
+
+```python
+def _observables(solution, trainable_parameters, fixed_parameters):
+        O = solution[:, 0]
+        A = solution[:, 4]
+        return {"Po": (0.9 * A + 0.1 * O) ** 4}
+```
+
+Why it exists: the dataset holds *observables*, which are usually a non-invertible
+function of the state — an open probability, a relative percentage, a prevalence.
+A column can then declare `observes: Po`, and the link from data to model is an
+exact name match instead of something only recoverable by reading the loss.
+
+Rules:
+
+- the returned keys must equal `model.observables` exactly — no more, no fewer;
+- a name must not collide with a state, parameter or fixed parameter;
+- `_compute_loss_problem` and `writeout_description` both read the quantity from
+  here rather than recomputing the algebra, so the two cannot drift;
+- a quantity the RHS also needs (a reaction rate, say) stays in its own helper,
+  which `_observables` calls. Do not duplicate it.
+
+It is pseudocode like the rest of the file: `/pfit-jax` inlines it into the
+generated loss, so no framework code calls it.
 
 ### `_compute_loss_problem`
 

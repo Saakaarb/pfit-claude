@@ -44,21 +44,31 @@ def user_defined_system(t, y, trainable_parameters, fixed_parameters, dataset, t
         return np.array([v1, v2, dv1dt, dv2dt, dkdt, dc1dt])
 
 
-def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
+def _observables(solution, trainable_parameters, fixed_parameters):
+        """The measured quantities, keyed by the names in model.observables.
 
-        c2 = trainable_parameters['c2']
-        m1 = trainable_parameters['m1']
-
+        `x1` is measured directly (the displacement column declares
+        `observes: x1`), so only the reconstructed contact force is named here.
+        """
         x1 = solution[:, 0]
         x2 = solution[:, 1]
         v1 = solution[:, 2]
         k  = solution[:, 4]
         c1 = solution[:, 5]
 
-        # reconstruct the two measured channels from the trajectory
+        # reconstruct the measured force channel from the trajectory
         Fs = k * (x2 - x1)
-        F_sim = np.abs(Fs - c1 * np.abs(v1) * np.sign(v1))
-        s_sim = x1
+        return {"contact_force": np.abs(Fs - c1 * np.abs(v1) * np.sign(v1))}
+
+
+def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
+
+        c2 = trainable_parameters['c2']
+        m1 = trainable_parameters['m1']
+
+        F_sim = _observables(
+            solution, trainable_parameters, fixed_parameters)["contact_force"]
+        s_sim = solution[:, 0]
 
         # column 0 of the data is force in kN; the model works in newtons
         F_exp = 1000.0 * dataset[:, 0]
@@ -74,15 +84,9 @@ def _compute_loss_problem(solution_time, solution, dataset, trainable_parameters
 
 def writeout_description(solution_time, solution, dataset, trainable_parameters, fixed_parameters):
 
-        x1 = solution[:, 0]
-        x2 = solution[:, 1]
-        v1 = solution[:, 2]
-        k  = solution[:, 4]
-        c1 = solution[:, 5]
-
-        Fs = k * (x2 - x1)
-        F_sim = np.abs(Fs - c1 * np.abs(v1) * np.sign(v1))
-        s_sim = x1
+        F_sim = _observables(
+            solution, trainable_parameters, fixed_parameters)["contact_force"]
+        s_sim = solution[:, 0]
 
         F_exp = 1000.0 * dataset[:, 0]
         s_exp = dataset[:, 1]

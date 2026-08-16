@@ -1,5 +1,9 @@
 experiments:
   - data_file: NMC_SOC80_M2_normalized_converted_units.csv
+    columns:
+      - {name: time, units: s}
+      - {name: temperature, units: K, observes: T}
+      - {name: self_heating_rate, units: K/s, observes: heat_rate}
 
 model:
   trainable_parameters:
@@ -14,6 +18,8 @@ model:
   fixed_parameters:
     - {name: T_ignite, value: 485.0}
     - {name: kb, value: 1.380649e-23}
+  observables:
+    - {name: heat_rate}
   integrated_variables:
     - {name: c1, init_val: 1.0}
     - {name: c2, init_val: 0.04}
