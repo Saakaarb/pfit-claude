@@ -19,8 +19,10 @@ must be *true* of the inputs.
 ### Dataset (CSV)
 
 - **Comma-delimited plain text.** Tab/space-delimited or Excel files fail.
-- **No header row.** `dtype=float` turns a text header into `NaN` and corrupts
-  the data; the first row must already be numbers.
+- **A header row is optional.** It is detected (a first row that does not parse
+  as numbers) and skipped on load by `lib/utils/dataset_io.py`, which is the same
+  function the fit uses. Without one, nothing in the file records what its
+  columns mean.
 - **Column 0 is time, monotonically increasing.** It is the integration/save grid.
 - **Rectangular.** Every row must have the same number of columns.
 - **No accidental blank cells.** Missing values become `NaN`, which makes the

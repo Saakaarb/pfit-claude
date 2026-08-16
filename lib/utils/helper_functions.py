@@ -7,6 +7,7 @@ from functools import partial
 from lib.algorithms.PSO.classes import FitParamsPSO
 from lib.algorithms.DE.classes import FitParamsDE
 from lib.algorithms.NODE.classes import FitParamsNODE
+from lib.utils.dataset_io import load_dataset
 from lib.utils.yamlread import YAMLReader, read_input_file
 from pathlib import Path
 import importlib.util
@@ -293,8 +294,7 @@ def fit_generic_system(path_to_input: Path, path_to_output_dir: Path, generated_
         experiments_data = []
         for i, exp in enumerate(input_reader.experiments):
             dataset_path = session_path / Path(input_reader.user_input_dirname) / Path(exp['filename'])
-            with open(dataset_path, 'r', encoding='utf-8-sig') as f:
-                all_data = np.genfromtxt(f, dtype=float, delimiter=',')
+            all_data = load_dataset(dataset_path)
             experiments_data.append({
                 't_eval':  all_data[:, 0],
                 'dataset': all_data[:, 1:],
@@ -486,8 +486,7 @@ def fit_gradient_only_system(path_to_input: Path, path_to_output_dir: Path, gene
         experiments_data = []
         for i, exp in enumerate(input_reader.experiments):
             dataset_path = session_path / Path(input_reader.user_input_dirname) / Path(exp['filename'])
-            with open(dataset_path, 'r', encoding='utf-8-sig') as f:
-                all_data = np.genfromtxt(f, dtype=float, delimiter=',')
+            all_data = load_dataset(dataset_path)
             experiments_data.append({
                 't_eval':  all_data[:, 0],
                 'dataset': all_data[:, 1:],
