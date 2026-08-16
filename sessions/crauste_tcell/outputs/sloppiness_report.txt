@@ -1,0 +1,36 @@
+Sloppiness / identifiability report
+============================================================
+trainable parameters : 12  (delta_EL, delta_LM, delta_NE, mu_EE, mu_LE, mu_LL, mu_N, mu_P, mu_PE, mu_PL, rho_E, rho_P)
+experiments          : 1
+loss at best fit     : 0.984367   (|grad|_inf = 0.023)
+Hessian method       : finite-difference   (log10-parameter space)
+
+Eigenvalue spectrum of the loss Hessian (Fisher / sloppiness spectrum):
+  lambda_1  = +2.8177e+04   (normalised +1.00e+00)
+  lambda_2  = +2.1238e+02   (normalised +7.54e-03)
+  lambda_3  = +1.4154e+01   (normalised +5.02e-04)
+  lambda_4  = +1.3087e+01   (normalised +4.64e-04)
+  lambda_5  = +1.1524e+01   (normalised +4.09e-04)
+  lambda_6  = +5.2545e+00   (normalised +1.86e-04)
+  lambda_7  = +9.2525e-01   (normalised +3.28e-05)
+  lambda_8  = +5.6340e-01   (normalised +2.00e-05)
+  lambda_9  = +4.0061e-02   (normalised +1.42e-06)
+  lambda_10 = +1.7534e-05   (normalised +6.22e-10)
+  lambda_11 = +4.2537e-08   (normalised +1.51e-12)
+  lambda_12 = -4.9271e-07   (normalised -1.75e-11)
+
+spread over identifiable modes : 5.85 orders of magnitude
+non-identifiable (flat) directions (normalised < 1e-06) : 3  <- effectively lambda=0 (spectrum spans >6 decades)
+VERDICT              : SLOPPY / NON-IDENTIFIABLE  (3 flat direction(s) despite 5.8-decade identifiable spread)
+
+STIFFEST direction (best-constrained combination):
+   rho_P(-0.98), rho_E(-0.19), delta_EL(+0.06), mu_PL(+0.04)
+SLOPPIEST direction (least-constrained combination):
+   mu_P(-1.00), rho_P(-0.00), delta_NE(+0.00), rho_E(-0.00)
+
+Note: the stiffest/sloppiest directions are combinations of parameters
+(eigenvectors); they are NOT a per-parameter identifiability verdict.
+
+Caveats: local quadratic measure at the optimum; Hessian of the framework
+RMSE loss (spread & eigenvectors match the Gauss-Newton FIM; absolute scale
+is noise-model dependent); valid only at a converged fit.

@@ -1,0 +1,76 @@
+VALIDATION REPORT - sessions/crauste_tcell
+
+Critical Errors
+---------------
+None detected.
+
+Warnings
+--------
+1. The loss is a noise-weighted RMSE, so it is centred on ~1 rather than
+   bounded in [0, 1]. `_compute_loss_problem` divides each residual by that
+   point's reported standard deviation (dataset columns 4-7) instead of by the
+   column peak, so a fit at the measurement noise level scores ~1 and a poor
+   candidate scores in the hundreds. This is deliberate: the four observables
+   span 74 to 175825 cells and their reported sigmas span 64 to 23855, so peak
+   scaling would let EarlyEffector own the fit. Nothing breaks - adam's update
+   is normalised, so the loss scale does not change its step size - but the
+   reported loss must be read as a chi-like statistic, not as a fraction.
+   To use the framework-standard [0, 1] convention instead, replace the
+   `sigma_safe` division with the per-column `np.nanmax` scaling from
+   staggered_data.md.
+
+2. The data is very sparse relative to the parameter count: 21 measurements
+   total for 12 trainable parameters, and Naive is measured at only two time
+   points (t = 4 and t = 6 days) while two parameters (mu_N, delta_NE) govern
+   its decay. Expect wide confidence directions rather than a failed fit.
+
+3. Pathogen is unobserved and its initial value (1.0) is an assumption, not a
+   measurement. It is also what pins the scale of the whole pathogen subsystem:
+   the substitution P -> c*P with (rho_P, delta_NE, rho_E) -> c*(rho_P,
+   delta_NE, rho_E) leaves both measured equations unchanged, so only P(0) = 1
+   distinguishes those parameter sets. If that initial value is wrong, three
+   parameters absorb the error.
+
+Recommendations
+---------------
+[R1] integrator: Kvaerno5 -> Kvaerno5 (no change; implicit is correct here)
+     Evidence: the RHS contains no switch of any kind - no where/abs/sign/
+          clip/min/max - so smoothness is not in question. Sampling the
+          Jacobian over the parameter box (log-uniform, 2e5 draws) against a
+          state enclosure taken from the data (populations 0 to 3.5e5,
+          Pathogen 0 to 10) gives max|Re lambda(J)| = 1.53e+03 /day, so an
+          explicit method needs t_span * that = 4.3e+04 steps for stability
+          over the 28-day span. The accuracy limit is far lower: the fastest
+          term the equations admit is mu_N <= 74/day, giving 28 / (1/74) =
+          2.1e+03 steps. The gap between the two is ~20x, and it is present
+          over the whole interval rather than at isolated instants.
+     Why: an explicit solver's step would be pinned by the stability limit for
+          the entire solve at ~20x the steps accuracy needs, whereas the
+          implicit method's step is set by accuracy alone. Kvaerno5 is the
+          highest-order validated implicit solver in lib/LLM/api/diffrax.md,
+          which is what pays back the per-step Newton cost. Caveat: this bound
+          is a sample, not a two-sided enclosure, and the Bendixson measure on
+          the same box is 5.0e+06 /day - a factor 3000 higher - because the
+          Jacobian is strongly non-normal (d(dE/dt)/dP = delta_NE*N + rho_E*E
+          reaches 1.8e+07 while the return coupling d(dP/dt)/dE = -mu_PE*P is
+          at most 1.4e-07). Transient growth can therefore force smaller
+          explicit steps than the spectrum suggests, which only strengthens the
+          verdict.
+     Edit: none - gradient_opt.integrator is already Kvaerno5.
+
+[R9] Four parameters reach the data only through an unobserved state
+     Evidence: rho_P, mu_P, mu_PE and mu_PL appear nowhere except the Pathogen
+          equation (rho_P*P*P - mu_P*P - mu_PE*E*P - mu_PL*L*P), and Pathogen
+          is not one of the four measured columns. They influence the residuals
+          only through the products delta_NE*N*P and rho_E*E*P in the Naive and
+          EarlyEffector equations. mu_LE is similarly weak: its bound tops out
+          at 1.0e-08, so the term mu_LE*E*L reaches at most ~0.05x delta_LM*L
+          at the observed magnitudes over most of its range.
+     Why: these will show up as near-zero eigenvalues in the post-fit
+          sloppiness report, and no amount of extra iterations will sharpen
+          them. The fix, if the spectrum confirms it, is to fix mu_LE and
+          mu_PE at zero and refit with 10 parameters - not to widen the search.
+     Edit: none now; re-read outputs/sloppiness_report.txt after the fit and
+          move the flat directions to model.fixed_parameters.
+
+Number of critical errors: 0

@@ -1,0 +1,112 @@
+VALIDATION REPORT - sessions/fujita_egf
+
+Critical Errors
+---------------
+None detected.
+
+Warnings
+--------
+1. The three initial concentrations are fixed, but the source model estimates
+   them. `init_EGFR`, `init_AKT` and `init_S6` are trainable parameters in the
+   published problem; the framework cannot fit an initial condition (get_y0
+   reads only init_val), so they are pinned at 2.265e+07, 3.327e-03 and
+   2.059e+02 here. Two consequences: this fit has three fewer degrees of
+   freedom than the published one, so its objective value is a bound on - not a
+   reproduction of - the benchmark's; and each of the three observable scaling
+   parameters is now anchored by the pool size it was previously free to trade
+   against.
+
+2. Runtime. The population stage is population_size x num_iters x experiments
+   = 300 x 30 x 16 = 144,000 solves of a stiff 12-state system, and the
+   gradient stage adds 1,000 iterations x 16 experiments of forward-plus-adjoint
+   solves. This session is one to two orders of magnitude more expensive than
+   any existing one in sessions/. Consider running the population stage once and
+   thereafter seeding with fit_gradient_only.py.
+
+3. Cross-experiment aggregation is an unweighted mean over the 16 experiments
+   (see project_context.md), and the four ramp datasets carry 11 points each
+   against 8 for the steps and pulses. Because every per-experiment loss is
+   noise-weighted and therefore centred on ~1, the mean is not distorted by
+   magnitude - but the ramps do carry ~38% more residuals each, which the mean
+   does not correct for.
+
+4. Like the other sigma-weighted sessions, the loss is a chi-like statistic
+   centred on ~1 rather than bounded in [0, 1]: `_compute_loss_problem` divides
+   by dataset columns 3-5, the reported per-point standard deviations, which
+   range from 0.01 to 0.3 across the record. Nothing breaks; read the reported
+   loss as noise multiples.
+
+Recommendations
+---------------
+[R1] integrator: Kvaerno5 -> Kvaerno5 (no change; implicit is mandatory here)
+     Evidence: two axes. (a) Stiffness: sampling the Jacobian over the
+          parameter box (log-uniform, 1e5 draws, state enclosure EGFR/pEGFR/
+          EGF_EGFR 0 to 2.3e+07, Akt species 0 to 3.33e-03, S6 species 0 to
+          2.06e+02, EGF 0 to 30) gives max|Re lambda(J)| = 6.04e+06 /s, so an
+          explicit method needs 3600 s x that = 2.2e+10 steps for stability
+          alone. The responsible term is structural and needs no sampling:
+          d(dpEGFR_Akt/dt)/dpEGFR_Akt = -(reaction_2_k2 + reaction_3_k1), and
+          reaction_2_k2 reaches 4.15e+06 /s at the top of its box. That mode is
+          slaved, not merely fast: the ratio |f|/|df/dC| =
+          |k2f*Akt*pEGFR - (k2r+k3)*C| / (k2r+k3) collapses once the complex
+          reaches quasi-equilibrium while the denominator stays at 4e+06, which
+          is exactly the case an implicit method converts into larger steps.
+          (b) Smoothness: the RHS has one switch, np.where(t <= EGF_end, ...),
+          and it is one-way - t increases monotonically, so it is crossed once
+          per solve, and only in the 6 pulse experiments (at t = 60 s, which is
+          also a sample time). The 10 step and ramp experiments never cross it.
+     Why: few one-way discontinuities cost a handful of collapsed steps at a
+          single instant; the stiffness would pin an explicit step over the
+          entire 3600 s. Kvaerno5 is the highest-order validated implicit
+          solver in lib/LLM/api/diffrax.md, which is what amortises the Newton
+          cost over the ~1e2-1e4 steps accuracy actually needs.
+     Edit: none - gradient_opt.integrator is already Kvaerno5.
+
+[R10] initial_timestep: 1.0e-06 -> 1.0e-08
+     Evidence: the fastest timescale the box admits is 1/(reaction_2_k2 max) =
+          1/4.15e+06 = 2.4e-07 s, and the sampled spectrum agrees (1.65e-07 s).
+          The configured first step of 1.0e-06 s is 4 to 6 times longer than
+          that, so at the stiff corner of the box the controller must reject
+          and shrink before it takes its first accepted step.
+     Why: every rejected step is a full implicit solve charged to a candidate
+          that has not yet produced a single output point, and the population
+          stage pays it 144,000 times. Starting inside the fastest mode removes
+          the rejection cascade. max_steps = 100,000 needs no change: with the
+          fast mode slaved, the accuracy limit after the initial transient is
+          set by the data, whose fastest motion is pEGFR_tot rising from 0 to
+          0.91 over the first 60 s interval - about 60 steps' worth over the
+          span, leaving the ceiling as headroom for the transient and the pulse
+          switch.
+     Edit: gradient_opt.initial_timestep -> 1.0e-08
+
+[R3] reaction_2_k2 bounds: [4.15e+02, 4.15e+06] -> [4.15e+03, 4.15e+05]
+     Evidence: this one parameter sets the stiffness of the whole system - it
+          is the only entry reaching 1e+06 in the sampled spectrum, and the
+          per-solve cost of the implicit method scales with how much of the
+          initial transient must be resolved. The box is currently the source
+          value 4.147e+04 mapped to [v/100, v*100]; narrowing to [v/10, v*10]
+          keeps the source value centred with a decade of slack either side.
+     Why: the top decade of this parameter's range is where solves are most
+          expensive and least likely to be optimal, and the population stage
+          samples it uniformly in log space - roughly a quarter of the
+          population sits above 4.15e+05 at every iteration.
+     Edit: model.trainable_parameters, reaction_2_k2 entry ->
+          min_val: 4.15e+03, max_val: 4.15e+05
+
+[R9] Sixteen parameters against three observed columns
+     Evidence: 16 trainable parameters versus 3 observed columns x 3 = 9, so
+          the count trigger fires. Structurally: each scaling parameter enters
+          only as a product with a pool that is itself fixed by assumption
+          (scaling_pS6_tot * pS6 with S6(0) = 205.9; scaling_pAkt_tot *
+          (pAkt + pAkt_S6) with Akt(0) = 3.33e-03), and reaction_5_k1 appears
+          only as reaction_5_k1*S6*pAkt, so it trades directly against that
+          same fixed pool.
+     Why: expect the post-fit sloppiness spectrum to show flat directions
+          pairing each scaling with the rate constants feeding its pool. The
+          remedy is a reparameterisation - fit the products - not more
+          iterations. The 16 experiments are what makes the problem tractable
+          at all: the dose and stimulus-shape variation is the only thing
+          separating binding from catalysis.
+     Edit: none now; re-read outputs/sloppiness_report.txt after the fit.
+
+Number of critical errors: 0

@@ -1,0 +1,40 @@
+Sloppiness / identifiability report
+============================================================
+trainable parameters : 16  (reaction_1_k1, reaction_1_k2, reaction_2_k1, reaction_2_k2, reaction_3_k1, reaction_4_k1, reaction_5_k1, reaction_5_k2, reaction_6_k1, reaction_7_k1, reaction_8_k1, reaction_9_k1, EGFR_turnover, scaling_pEGFR_tot, scaling_pAkt_tot, scaling_pS6_tot)
+experiments          : 16
+loss at best fit     : 2.93303   (|grad|_inf = 0.003)
+Hessian method       : finite-difference   (log10-parameter space)
+
+Eigenvalue spectrum of the loss Hessian (Fisher / sloppiness spectrum):
+  lambda_1  = +2.8614e+02   (normalised +1.00e+00)
+  lambda_2  = +8.2028e+01   (normalised +2.87e-01)
+  lambda_3  = +2.8139e+01   (normalised +9.83e-02)
+  lambda_4  = +1.2506e+01   (normalised +4.37e-02)
+  lambda_5  = +8.4344e+00   (normalised +2.95e-02)
+  lambda_6  = +3.0037e+00   (normalised +1.05e-02)
+  lambda_7  = +1.4281e+00   (normalised +4.99e-03)
+  lambda_8  = +8.4901e-01   (normalised +2.97e-03)
+  lambda_9  = +5.5456e-01   (normalised +1.94e-03)
+  lambda_10 = +4.3965e-01   (normalised +1.54e-03)
+  lambda_11 = +1.7249e-01   (normalised +6.03e-04)
+  lambda_12 = +1.3567e-01   (normalised +4.74e-04)
+  lambda_13 = +9.0620e-03   (normalised +3.17e-05)
+  lambda_14 = -3.7478e-06   (normalised -1.31e-08)
+  lambda_15 = -4.2098e-05   (normalised -1.47e-07)
+  lambda_16 = -6.7036e-04   (normalised -2.34e-06)
+
+spread over identifiable modes : 4.50 orders of magnitude
+non-identifiable (flat) directions (normalised < 1e-06) : 2  <- effectively lambda=0 (spectrum spans >6 decades)
+VERDICT              : SLOPPY / NON-IDENTIFIABLE  (2 flat direction(s) despite 4.5-decade identifiable spread)
+
+STIFFEST direction (best-constrained combination):
+   reaction_5_k1(-0.38), scaling_pS6_tot(-0.37), reaction_4_k1(+0.35), reaction_3_k1(-0.33)
+SLOPPIEST direction (least-constrained combination):
+   reaction_3_k1(-0.82), reaction_2_k1(+0.46), reaction_2_k2(-0.35), reaction_5_k2(+0.01)
+
+Note: the stiffest/sloppiest directions are combinations of parameters
+(eigenvectors); they are NOT a per-parameter identifiability verdict.
+
+Caveats: local quadratic measure at the optimum; Hessian of the framework
+RMSE loss (spread & eigenvectors match the Gauss-Newton FIM; absolute scale
+is noise-model dependent); valid only at a converged fit.

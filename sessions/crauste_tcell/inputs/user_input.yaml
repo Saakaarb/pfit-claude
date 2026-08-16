@@ -1,0 +1,83 @@
+# CD8 T-cell immune response, Crauste et al., Cell Systems 4(3):306-317 (2017).
+#
+# One experiment. The four observables are the cell-population states measured
+# directly, but they are sampled raggedly (Naive at 2 time points, Memory at 5,
+# EarlyEffector and LateEffector at 7 each), so data.csv is a union time grid
+# with blank cells where an observable was not measured.
+#
+# data.csv columns:
+#   0 time [days]
+#   1-4  Naive, EarlyEffector, LateEffector, Memory   [cell counts]
+#   5-8  the per-point measurement standard deviations, same order
+#
+# The measurements begin at day 4 but the initial conditions are defined at
+# day 0, so initial_time is set to 0.0 and the solver integrates the first four
+# days before the first residual is taken.
+
+experiments:
+  - data_file: data.csv
+    columns:
+      - {name: time, units: days}
+      - {name: Naive, units: cells, observes: Naive}
+      - {name: EarlyEffector, units: cells, observes: EarlyEffector}
+      - {name: LateEffector, units: cells, observes: LateEffector}
+      - {name: Memory, units: cells, observes: Memory}
+      - {name: Naive_sd, units: cells, uncertainty_of: Naive}
+      - {name: EarlyEffector_sd, units: cells, uncertainty_of: EarlyEffector}
+      - {name: LateEffector_sd, units: cells, uncertainty_of: LateEffector}
+      - {name: Memory_sd, units: cells, uncertainty_of: Memory}
+
+model:
+  # Ranges are the source model's value v mapped to [v/100, v*100]
+  # (pfit-new step 5). Every one spans four decades, hence logscale everywhere.
+  trainable_parameters:
+    - {name: delta_EL, min_val: 5.18e-03, max_val: 5.18e+01, logscale: true}
+    - {name: delta_LM, min_val: 2.26e-04, max_val: 2.26e+00, logscale: true}
+    - {name: delta_NE, min_val: 1.19e-04, max_val: 1.19e+00, logscale: true}
+    - {name: mu_EE, min_val: 3.91e-07, max_val: 3.91e-03, logscale: true}
+    - {name: mu_LE, min_val: 1.00e-12, max_val: 1.00e-08, logscale: true}
+    - {name: mu_LL, min_val: 8.12e-08, max_val: 8.12e-04, logscale: true}
+    - {name: mu_N, min_val: 7.40e-03, max_val: 7.40e+01, logscale: true}
+    - {name: mu_P, min_val: 1.00e-07, max_val: 1.00e-03, logscale: true}
+    - {name: mu_PE, min_val: 1.37e-12, max_val: 1.37e-08, logscale: true}
+    - {name: mu_PL, min_val: 3.63e-07, max_val: 3.63e-03, logscale: true}
+    - {name: rho_E, min_val: 5.07e-03, max_val: 5.07e+01, logscale: true}
+    - {name: rho_P, min_val: 1.26e-03, max_val: 1.26e+01, logscale: true}
+  integrated_variables:
+    - {name: Naive, init_val: 8090.0}
+    - {name: EarlyEffector, init_val: 0.0}
+    - {name: LateEffector, init_val: 0.0}
+    - {name: Memory, init_val: 0.0}
+    - {name: Pathogen, init_val: 1.0}
+
+population_opt:
+  population_size: 600
+  num_iters: 30
+  processors: 16
+  algorithm: DE
+  random_seed: 0
+  stepsize_rtol: 1.0e-06
+  stepsize_atol: [1.0e-02, 1.0e-02, 1.0e-02, 1.0e-02, 1.0e-08]
+
+gradient_opt:
+  num_iters: 1000
+  stepsize_rtol: 1.0e-08
+  stepsize_atol: [1.0e-04, 1.0e-04, 1.0e-04, 1.0e-04, 1.0e-10]
+  initial_timestep: 1.0e-06
+  initial_time: 0.0
+  # 5000 rather than 100000. Accuracy over the 28-day span needs ~2100 steps
+  # (the fastest term the equations admit is mu_N <= 74/day). The Pathogen
+  # equation grows quadratically, so a large part of the search box blows up in
+  # finite time, and every such candidate burned the full 100000 steps on the
+  # stiff solver before returning error_loss - the first DE iteration had not
+  # finished after 9 minutes. Failing those fast costs good candidates nothing.
+  max_steps: 5000
+  integrator: Kvaerno5
+  gradient_optimizer: adam
+  init_value_lr: 1.0e-03
+  end_value_lr: 1.0e-05
+  transition_steps_lr: 200
+  decay_rate_lr: 0.9
+
+output:
+  write_results: true

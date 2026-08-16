@@ -1,0 +1,28 @@
+Sloppiness / identifiability report
+============================================================
+trainable parameters : 4  (eps1, eps2, q, f)
+experiments          : 1
+loss at best fit     : 0.980966   (|grad|_inf = 0.014)
+Hessian method       : finite-difference   (log10-parameter space)
+
+Eigenvalue spectrum of the loss Hessian (Fisher / sloppiness spectrum):
+  lambda_1  = +1.2598e+05   (normalised +1.00e+00)
+  lambda_2  = +2.6575e+03   (normalised +2.11e-02)
+  lambda_3  = +1.1058e+01   (normalised +8.78e-05)
+  lambda_4  = -4.2513e-03   (normalised -3.37e-08)
+
+spread over identifiable modes : 4.06 orders of magnitude
+non-identifiable (flat) directions (normalised < 1e-06) : 1  <- effectively lambda=0 (spectrum spans >6 decades)
+VERDICT              : SLOPPY / NON-IDENTIFIABLE  (1 flat direction(s) despite 4.1-decade identifiable spread)
+
+STIFFEST direction (best-constrained combination):
+   q(+0.80), eps1(-0.59), f(+0.08), eps2(-0.03)
+SLOPPIEST direction (least-constrained combination):
+   eps2(+1.00), q(+0.03), eps1(-0.00), f(-0.00)
+
+Note: the stiffest/sloppiest directions are combinations of parameters
+(eigenvectors); they are NOT a per-parameter identifiability verdict.
+
+Caveats: local quadratic measure at the optimum; Hessian of the framework
+RMSE loss (spread & eigenvectors match the Gauss-Newton FIM; absolute scale
+is noise-model dependent); valid only at a converged fit.

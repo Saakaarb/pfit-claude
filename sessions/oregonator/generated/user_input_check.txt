@@ -1,0 +1,99 @@
+VALIDATION REPORT - sessions/oregonator
+
+Critical Errors
+---------------
+None detected.
+
+Warnings
+--------
+1. The initial conditions are the exact generating state, including the
+   unobserved Y. init_val gives X = 0.778383715217, Y = 0.267086592467,
+   Z = 0.208522420421, which is the noise-free state the synthetic trajectory
+   was started from - not a measurement. A real experiment could not supply
+   Y(0) at all, and would know X(0) and Z(0) only to within the noise. This
+   makes the recovery test optimistic on that axis; if the point of the run is
+   to measure what the framework can do from realistic information, perturb the
+   two observed values by their sigma and treat Y(0) as an unknown the fit
+   cannot see.
+
+2. X is noise-dominated over most of the record: 198 of 300 samples fall below
+   the reported sigma of 0.0169 (the channel's range is -0.0445 to 0.858, the
+   negative values being noise on a state whose true minimum is 8.1e-04). The
+   information about X therefore lives in the ~1/3 of samples inside the
+   relaxation spikes, which is realistic for a Pt-electrode trace but means the
+   effective sample count for that channel is far below 300. Z is better
+   conditioned: 46 of 300 below its sigma of 0.00635.
+
+3. Regime 1 applies (t0 = t_eval[0] = 0), so solution[0] is exactly y0 and the
+   gap to data row 0 is an irreducible loss floor. It is small - X 0.7784 vs
+   0.7826 (0.25 sigma) and Z 0.2085 vs 0.2120 (0.55 sigma) - and is purely the
+   noise realisation on the first sample, so it is expected rather than a
+   defect. It does put a floor of order 0.4/sqrt(300) on the achievable loss.
+
+4. The loss is a noise-weighted RMSE centred on ~1 rather than bounded in
+   [0, 1]. Because both sigmas are constant per channel, this is identical to
+   the standard per-column peak-scaled RMSE up to the factor 0.02, so nothing
+   about the search behaviour differs - only the reported number's meaning.
+
+5. Scoring caveat for a synthetic recovery test: the generating values sit at
+   the geometric centre of every seeded [v/100, v*100] box by construction, and
+   log-scaled sampling is uniform in that coordinate. Recovery therefore
+   measures the search's ability to refine a centred target, not to find an
+   off-centre one.
+
+Recommendations
+---------------
+[R1] integrator: Kvaerno5 -> Kvaerno5 (no change; implicit is mandatory here)
+     Evidence: the model is already in singularly-perturbed form, so the
+          structural argument settles it without any eigenvalue computation and
+          names the responsible parameter: eps2 * dY/dt = -q*Y - X*Y + f*Z,
+          with eps2 bounded below by 4.0e-06. The Y mode is slaved, not merely
+          fast - d(dY/dt)/dY = -(q + X)/eps2 stays at 2.35e+05 at the stiff
+          corner while dY/dt itself collapses as Y settles onto the
+          quasi-steady state Y* = f*Z/(q + X), which is the textbook signature
+          of a mode an implicit method converts into larger steps. An explicit
+          method would need 30 * 2.35e+05 = 7.1e+06 steps for stability over
+          the record. The RHS contains no switch of any kind.
+     Why: the stiffness is global - it constrains every step over all 30 time
+          units, and there is no adaptive escape from it. Kvaerno5 is the
+          highest-order validated implicit solver in lib/LLM/api/diffrax.md,
+          which matters most here because the step is accuracy-limited and a
+          higher order buys a proportionally larger one.
+     Edit: none - gradient_opt.integrator is already Kvaerno5.
+
+[R10] max_steps: 200000 -> 1.0e+06
+     Evidence: t_span / tau_min, with tau_min taken from the equations rather
+          than the data because the data's is a sampling artifact - the CSV's
+          fastest observed motion gives tau_min = 0.050 (t_span/tau = 600
+          steps), while the RHS admits eps2/(q + X) = 4.3e-06 at the stiff
+          corner. That corner needs 7.1e+06 steps; the box centre
+          (eps2 = 4e-04) needs 6.4e+04. The configured 200,000 sits between the
+          two, and 25% of the log-uniform eps2 range lies below 4e-05, where
+          the requirement exceeds it.
+     Why: a candidate that exhausts max_steps returns error_loss, which is
+          indistinguishable from a genuinely bad parameter set - so the current
+          ceiling silently deletes the small-eps2 quarter of the box from the
+          search rather than reporting it. Since eps2 is one of the four
+          parameters being fitted, truncating its range by solver failure is
+          exactly the worst-case-over-the-bounds failure cold_start.md warns
+          about. 1.0e+06 covers the box down to eps2 ~ 2.6e-05 and keeps the
+          per-candidate ceiling an order of magnitude below the stiff-corner
+          estimate, which is the right direction given that the estimate
+          assumes the smallest step for the entire span.
+     Edit: gradient_opt.max_steps -> 1000000
+
+[R9] q is weakly identifiable from this record
+     Evidence: q enters only as (q*Y - X*Y) in the X equation and -q*Y in the
+          Y equation, so it is always in competition with X, and it matters
+          only while X < q. The true X minimum is 8.1e-04 - a factor 20 below
+          the reported noise sigma of 0.0169 - and 198 of 300 samples sit below
+          that sigma, so the part of the trajectory that constrains q is buried
+          in noise. Its box spans four decades (8.0e-06 to 8.0e-02).
+     Why: expect q to appear as the flattest direction in the post-fit
+          sloppiness spectrum, and expect its fitted value to be poorly
+          recovered even when eps1, eps2 and f are recovered well. That is a
+          property of the record, not of the optimizer - the fix would be a
+          log-scaled or higher-resolution X channel, not more iterations.
+     Edit: none now; re-read outputs/sloppiness_report.txt after the fit.
+
+Number of critical errors: 0

@@ -1,0 +1,276 @@
+# EGF/EGFR -> Akt -> S6 signalling, Fujita et al., Sci. Signal. 3(132):ra56 (2010).
+#
+# Sixteen experiments: the same parameter set fitted simultaneously to six
+# sustained EGF doses, the same six doses applied as a 60 s pulse, and four EGF
+# ramp rates.
+#
+# The EGF stimulus differs per experiment but the framework passes no
+# per-experiment scalars to the RHS, so the three stimulus descriptors are
+# carried as zero-derivative states (EGF_0, EGF_rate, EGF_end) whose initial
+# values are overridden per experiment. The RHS reconstructs
+#     EGF(t) = EGF_0 + EGF_rate * t   for t <= EGF_end,   0 afterwards.
+# For the step and ramp conditions EGF_end is the end of the record, so only
+# the six pulse conditions actually switch, and they switch at t = 60 s -
+# which is also a measurement time.
+#
+# Each CSV has columns:
+#   0 time [s]
+#   1-3  pEGFR_tot, pAkt_tot, pS6_tot   [a.u., scaled immunoblot intensity]
+#   4-6  the per-point measurement standard deviations, same order
+
+experiments:
+  - data_file: step_00_1.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 0.1, EGF_rate: 0.0, EGF_end: 3600.0}
+  - data_file: step_00_3.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 0.3, EGF_rate: 0.0, EGF_end: 3600.0}
+  - data_file: step_01_0.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 1.0, EGF_rate: 0.0, EGF_end: 3600.0}
+  - data_file: step_03_0.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 3.0, EGF_rate: 0.0, EGF_end: 3600.0}
+  - data_file: step_10_0.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 10.0, EGF_rate: 0.0, EGF_end: 3600.0}
+  - data_file: step_30_0.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 30.0, EGF_rate: 0.0, EGF_end: 3600.0}
+  - data_file: pulse_00_1.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 0.1, EGF_rate: 0.0, EGF_end: 60.0}
+  - data_file: pulse_00_3.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 0.3, EGF_rate: 0.0, EGF_end: 60.0}
+  - data_file: pulse_01_0.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 1.0, EGF_rate: 0.0, EGF_end: 60.0}
+  - data_file: pulse_03_0.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 3.0, EGF_rate: 0.0, EGF_end: 60.0}
+  - data_file: pulse_10_0.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 10.0, EGF_rate: 0.0, EGF_end: 60.0}
+  - data_file: pulse_30_0.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 30.0, EGF_rate: 0.0, EGF_end: 60.0}
+  - data_file: ramp_8_3Enegative06.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 0.0, EGF_rate: 8.333333333333334e-06, EGF_end: 3600.0}
+  - data_file: ramp_8_3Enegative05.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 0.0, EGF_rate: 8.333333333333333e-05, EGF_end: 3600.0}
+  - data_file: ramp_8_3Enegative04.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 0.0, EGF_rate: 8.333333333333333e-04, EGF_end: 3600.0}
+  - data_file: ramp_8_3Enegative03.csv
+    columns:
+      - {name: time, units: s}
+      - {name: pEGFR, units: au, observes: obs_pEGFR}
+      - {name: pAkt, units: au, observes: obs_pAkt}
+      - {name: pS6, units: au, observes: obs_pS6}
+      - {name: pEGFR_sd, units: au, uncertainty_of: pEGFR}
+      - {name: pAkt_sd, units: au, uncertainty_of: pAkt}
+      - {name: pS6_sd, units: au, uncertainty_of: pS6}
+    initial_conditions: {EGF_0: 0.0, EGF_rate: 8.333333333333333e-03, EGF_end: 3600.0}
+
+model:
+  # The thirteen kinetic parameters use the source model's value v mapped to
+  # [v/100, v*100] (pfit-new step 5); all span four decades, so logscale.
+  #
+  # The three observable scaling factors have no source value here. Their
+  # ranges are derived from the data and the initial conditions instead: each
+  # observable peaks near 1.0 a.u., and the species it reports is bounded above
+  # by its own total pool (Akt(0) = 3.3e-03, S6(0) = 2.06e+02,
+  # EGFR(0) = 2.27e+07), which sets the lower end of each scaling. The upper
+  # end is left far above that so a small phosphorylated fraction stays
+  # reachable. Flagged as derived, not known.
+  trainable_parameters:
+    - {name: reaction_1_k1, min_val: 3.72e-05, max_val: 3.72e-01, logscale: true}
+    - {name: reaction_1_k2, min_val: 2.63e-05, max_val: 2.63e-01, logscale: true}
+    - {name: reaction_2_k1, min_val: 1.03e-05, max_val: 1.03e-01, logscale: true}
+    - {name: reaction_2_k2, min_val: 4.15e+02, max_val: 4.15e+06, logscale: true}
+    - {name: reaction_3_k1, min_val: 4.55e-03, max_val: 4.55e+01, logscale: true}
+    - {name: reaction_4_k1, min_val: 3.08e-04, max_val: 3.08e+00, logscale: true}
+    - {name: reaction_5_k1, min_val: 2.96e-08, max_val: 2.96e-04, logscale: true}
+    - {name: reaction_5_k2, min_val: 4.04e-06, max_val: 4.04e-02, logscale: true}
+    # max_val raised x100 off the [v/100, v*100] rule: run 1 clipped this at
+    # 9.21e-04 exactly (S6 in outputs/fit_diagnosis.txt).
+    - {name: reaction_6_k1, min_val: 9.21e-08, max_val: 9.21e-02, logscale: true}
+    - {name: reaction_7_k1, min_val: 1.19e-04, max_val: 1.19e+00, logscale: true}
+    - {name: reaction_8_k1, min_val: 9.41e-06, max_val: 9.41e-02, logscale: true}
+    - {name: reaction_9_k1, min_val: 2.73e-04, max_val: 2.73e+00, logscale: true}
+    - {name: EGFR_turnover, min_val: 1.45e-05, max_val: 1.45e-01, logscale: true}
+    - {name: scaling_pEGFR_tot, min_val: 1.0e-08, max_val: 1.0e-02, logscale: true}
+    - {name: scaling_pAkt_tot, min_val: 1.0e+01, max_val: 1.0e+05, logscale: true}
+    # max_val raised x1000: run 1 clipped this at 1.0e+03 exactly, in the same
+    # direction as reaction_6_k1 (S6 in outputs/fit_diagnosis.txt).
+    - {name: scaling_pS6_tot, min_val: 1.0e-03, max_val: 1.0e+06, logscale: true}
+  fixed_parameters:
+    # EGFR is produced at a constant rate and degraded first-order with the same
+    # turnover constant, so this literal is the EGFR level the receptor pool
+    # relaxes to. It comes from the rate law itself, not from a fit.
+    - {name: EGFR_setpoint, value: 68190.0}
+  observables:
+    - {name: obs_pEGFR}
+    - {name: obs_pAkt}
+    - {name: obs_pS6}
+  integrated_variables:
+    # The last three are not species: they carry this experiment's stimulus
+    # descriptors and have zero derivative.
+    - {name: EGFR, init_val: 22650805.5977911}
+    - {name: pEGFR, init_val: 0.0}
+    - {name: pEGFR_Akt, init_val: 0.0}
+    - {name: Akt, init_val: 0.00332683237159935}
+    - {name: pAkt, init_val: 0.0}
+    - {name: S6, init_val: 205.86301335244}
+    - {name: pAkt_S6, init_val: 0.0}
+    - {name: pS6, init_val: 0.0}
+    - {name: EGF_EGFR, init_val: 0.0}
+    - {name: EGF_0, init_val: 0.0}
+    - {name: EGF_rate, init_val: 0.0}
+    - {name: EGF_end, init_val: 3600.0}
+
+population_opt:
+  population_size: 300
+  # 60 rather than 30: run 1's DE was still improving at iteration 25 of 30
+  # (S5 in outputs/fit_diagnosis.txt).
+  num_iters: 60
+  processors: 16
+  algorithm: DE
+  random_seed: 0
+  stepsize_rtol: 1.0e-05
+  stepsize_atol: [1.0e-01, 1.0e-03, 1.0e-09, 1.0e-09, 1.0e-09,
+                  1.0e-04, 1.0e-09, 1.0e-04, 1.0e-01,
+                  1.0e-06, 1.0e-06, 1.0e-06]
+
+gradient_opt:
+  # 5000 rather than 1000: run 1's gradient stage was still descending, and
+  # accelerating, at iteration 999, and the Hessian at its exit point had four
+  # negative eigenvalues (S7 in outputs/fit_diagnosis.txt).
+  num_iters: 5000
+  stepsize_rtol: 1.0e-07
+  stepsize_atol: [1.0e-03, 1.0e-05, 1.0e-11, 1.0e-11, 1.0e-11,
+                  1.0e-06, 1.0e-11, 1.0e-06, 1.0e-03,
+                  1.0e-06, 1.0e-06, 1.0e-06]
+  # 1.0e-08 rather than 1.0e-06: the fastest timescale the parameter box
+  # admits is 1/reaction_2_k2 = 2.4e-07 s, so a longer first step is rejected
+  # before the solve produces anything (R10 in generated/user_input_check.txt).
+  initial_timestep: 1.0e-08
+  initial_time: 0.0
+  max_steps: 100000
+  integrator: Kvaerno5
+  gradient_optimizer: adam
+  init_value_lr: 1.0e-03
+  end_value_lr: 1.0e-05
+  transition_steps_lr: 200
+  decay_rate_lr: 0.9
+
+output:
+  write_results: true
