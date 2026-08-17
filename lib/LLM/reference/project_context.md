@@ -1,6 +1,6 @@
 ---
 topic: What this project is, how a session is laid out, and how to run it
-consumed_by: [pfit-skeleton, pfit-new, pfit-check, pfit-jax, ad-hoc work]
+consumed_by: [pfit-new, pfit-check, pfit-jax, ad-hoc work]
 generated: false
 owns: >
   Project purpose, the stage pipeline, session directory layout, the
@@ -49,9 +49,6 @@ The user supplies three things: the data CSV(s), a description of the system
 (paper, pasted equations, or prose), and answers to the clarification rounds.
 They are never asked to hand-author `user_input.yaml`.
 
-`/pfit-skeleton` is a side path, not a stage: it rebuilds `user_model.py` from a
-config that already exists.
-
 ## Session layout
 
 ```
@@ -60,7 +57,7 @@ sessions/<session_name>/
 │   ├── user_input.yaml       <- written by /pfit-new; user tunes it thereafter
 │   └── <data>.csv            <- USER PROVIDES: time-series data
 ├── generated/
-│   ├── user_model.py         <- created by /pfit-new (populated), or /pfit-skeleton (stub)
+│   ├── user_model.py         <- created by /pfit-new
 │   ├── user_input_check.txt  <- created by /pfit-check
 │   └── generated_script.py   <- created by /pfit-jax
 └── outputs/                  <- created by fit_parameters.py

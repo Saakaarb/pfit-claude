@@ -2,9 +2,7 @@ Start a new fitting session: produce user_input.yaml and a populated user_model.
 
 **This is the only entry point.** It works whether or not the user has a paper.
 A source document, when there is one, is a *pre-fill* for the interview below —
-never a different procedure. Use `/pfit-skeleton` only when a
-`user_input.yaml` already exists and the user wants the model stub regenerated
-from it.
+never a different procedure.
 
 The user is never asked to hand-author `user_input.yaml`. The config's
 `trainable_parameters` and `integrated_variables` orderings are load-bearing and
@@ -30,9 +28,9 @@ the reference files below.
 
 Worked example: `lib/utils/user_model_sample_populated.py`.
 
-## The four required inputs
+## The five required inputs
 
-A session cannot be specified without all four. Where they come from — a paper, a
+A session cannot be specified without all five. Where they come from — a paper, a
 snippet the user typed, a mix — does not matter; a paper is simply more likely to
 carry all of them. Establish which are present **before** starting the interview,
 and handle each absence by its own rule:
@@ -43,6 +41,7 @@ and handle each absence by its own rule:
 | 2 | **The loss formulation** | **Propose one** from the declared dataset columns (see below), and have the user confirm it. |
 | 3 | **The parameter ranges** | If the source publishes values, use them: `[v/100, v*100]`, four decades centred on the published value. Otherwise the **user must supply them** — do not invent ranges and proceed. |
 | 4 | **The dataset** | **Fatal.** Stop and ask for the CSV(s). Never generate data. |
+| 5 | **The initial conditions** | The **user must supply them**, for every state. They are never fitted and cannot be read off the data, so a guess here is a permanent error in the fit. Where a state is unobserved, say plainly that its value is an assumption. If the true state at the first sample is genuinely unknown, propose starting the solve earlier (`initial_time`) rather than inventing a value. |
 
 ### Proposing a loss (input 2)
 
@@ -70,7 +69,7 @@ Ask for (if not given): the **session name**, the **data file(s)** already
 present in `sessions/<session>/inputs/`, and **a source, if one exists** — a URL,
 a local path, pasted equations, or nothing at all.
 
-Check the four required inputs above and report which are missing before going
+Check the five required inputs above and report which are missing before going
 further. Do not ask the user to produce a source they do not have, and do not ask
 them to write any YAML.
 

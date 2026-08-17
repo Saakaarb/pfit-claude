@@ -1,6 +1,6 @@
 ---
 topic: The user_input.yaml format — every section, field, default and valid value
-consumed_by: [pfit-skeleton, pfit-new, pfit-check, pfit-jax]
+consumed_by: [pfit-new, pfit-check, pfit-jax]
 generated: false
 owns: >
   The YAML schema, which fields are required vs optional, their defaults, where

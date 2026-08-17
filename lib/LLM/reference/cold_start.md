@@ -1,6 +1,6 @@
 ---
 topic: The cold-start invariant — the agent never has the solution when it makes setup choices
-consumed_by: [pfit-skeleton, pfit-new, pfit-check, pfit-jax, pfit-diagnose]
+consumed_by: [pfit-new, pfit-check, pfit-jax, pfit-diagnose]
 generated: false
 owns: >
   The definition of a solution artifact, the setup/diagnosis phase split and
@@ -52,7 +52,7 @@ The invariant is a phase rule, not a blanket ban on reading `outputs/`:
 
 | Phase | Skills | May read |
 |---|---|---|
-| **Setup** | `/pfit-skeleton`, `/pfit-new`, `/pfit-check`, `/pfit-jax` | equations, dataset, bounds. **No solution artifact of any session.** |
+| **Setup** | `/pfit-new`, `/pfit-check`, `/pfit-jax` | equations, dataset, bounds. **No solution artifact of any session.** |
 | **Diagnosis** | `/pfit-diagnose` | additionally, **this session's own** `outputs/` |
 
 Diagnosis is not an exception to the invariant. What it reads is the record of

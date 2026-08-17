@@ -291,7 +291,6 @@ SOLUTION_ARTIFACTS = [
 # runs after a fit and reads that fit's own record, which is evidence about the
 # optimizer's behaviour rather than a reference answer.
 SETUP_COMMANDS = [
-    "pfit-skeleton.md",
     "pfit-new.md",
     "pfit-check.md",
     "pfit-jax.md",

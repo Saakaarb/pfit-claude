@@ -1,6 +1,6 @@
 ---
 topic: The three user functions — their contract, conventions, and how to generate a skeleton
-consumed_by: [pfit-skeleton, pfit-new, pfit-check, pfit-jax]
+consumed_by: [pfit-new, pfit-check, pfit-jax]
 generated: false
 owns: >
   Function names and signatures, the pseudocode conventions, what each function
@@ -14,8 +14,7 @@ owns: >
 pseudocode**, not JAX. It is never executed as-is; `/pfit-jax` translates it
 (see `jax_translation.md`).
 
-Templates: `lib/utils/user_model_sample_unpopulated.py` (skeleton) and
-`lib/utils/user_model_sample_populated.py` (the Robertson system, populated).
+Template: `lib/utils/user_model_sample_populated.py` (the Robertson system).
 
 ## Names and signatures
 
@@ -113,27 +112,3 @@ Returns an array to be written to `result_solution_expN.csv`. The useful shape
 is `[time | data columns | solution columns]`, sized for plotting data against
 fit. It must NOT loop over multiple datasets.
 
-## Generating a skeleton (used by /pfit-skeleton)
-
-Build the skeleton from `lib/utils/user_model_sample_unpopulated.py`, using the
-config to populate:
-
-- trainable parameter names from `model.trainable_parameters`, with a
-  comment giving their vector order;
-- fixed parameter names from `model.fixed_parameters`;
-- integrated variable names and initial values from
-  `model.integrated_variables`.
-
-Rules:
-
-- **Do not leave any function empty.** Provide stubs with comments showing what
-  the user must fill in.
-- **Preserve every comment** from the template.
-- Add `import numpy as np` at the top.
-- Output pure Python — no boilerplate prose, no markdown fences.
-- When the config has multiple `experiments` blocks, add a comment below each
-  function's argument list: `# dataset and t_eval represent ONE experiment's
-  data; the framework calls this function once per experiment`.
-
-A fully-populated model (used by `/pfit-new`) follows the same contract,
-with the ODE right-hand side implemented exactly as the source specifies.
