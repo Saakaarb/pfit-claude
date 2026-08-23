@@ -30,7 +30,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from lib.utils.dataset_io import load_dataset, read_header  # noqa: E402
+from lib.utils.dataset_io import (  # noqa: E402
+    has_trailing_delimiter, load_dataset, read_header)
 
 logger = logging.getLogger("check_dataset")
 
@@ -194,7 +195,9 @@ def report(check: str, ok: bool | None, message: str) -> bool:
 
 def check_experiment(name: str, data: np.ndarray, init_time: float | None,
                      max_idx: int | None, whole: bool = False,
-                     n_states: int | None = None) -> tuple[int, int | None]:
+                     n_states: int | None = None,
+                     path: Path | None = None,
+                     n_declared: int | None = None) -> tuple[int, int | None]:
     """Run the per-experiment checks. Returns (failures, column count or None)."""
     failures = 0
 
@@ -213,11 +216,34 @@ def check_experiment(name: str, data: np.ndarray, init_time: float | None,
         return failures, n_cols
 
     # D2 - a trailing comma on every row appends a phantom all-NaN column, which
-    # both inflates the observable count and injects NaN (feeding D3).
-    trailing = bool(np.all(np.isnan(data[:, -1])))
-    failures += report("D2", not trailing,
-                       f"{name}: last column all-NaN = {trailing}"
-                       + (" - looks like a trailing delimiter on every row" if trailing else ""))
+    # both inflates the observable count and injects NaN (feeding D3). Decided
+    # from the raw text: an all-NaN last column is NOT evidence of this, because
+    # an observable absent from one record of a multi-record set is expressed
+    # exactly that way.
+    # A row ending in a delimiter is textually IDENTICAL whether it is a typo or
+    # a genuinely unmeasured final observable, so the raw text cannot separate
+    # them. What separates them is arity: a typo yields one more column than the
+    # config declares, an unmeasured observable yields exactly as many.
+    trailing = has_trailing_delimiter(path) if path is not None else False
+    phantom = trailing and n_declared is not None and n_cols > n_declared
+    if n_declared is None:
+        report("D2", None if not trailing else False,
+               f"{name}: rows end with a delimiter = {trailing}; with no column "
+               "declaration to compare against, this may be a phantom column or "
+               "a legitimately unmeasured last observable")
+        failures += 1 if trailing else 0
+    else:
+        failures += report("D2", not phantom,
+                           f"{name}: rows end with a delimiter = {trailing}, file has "
+                           f"{n_cols} column(s) against {n_declared} declared"
+                           + (" - the extra one is a phantom from the trailing delimiter"
+                              if phantom else ""))
+
+    empty = [i for i in range(n_cols) if bool(np.all(np.isnan(data[:, i])))]
+    if empty:
+        logger.info("D2 INFO  %s: column(s) %s hold no measurements at all - "
+                    "valid when that observable was not recorded in this record, "
+                    "and skipped by a nan-safe loss", name, empty)
 
     # D3 - NaN anywhere. Deliberate under staggered_data.md, fatal otherwise; the
     # cross-check against the loss body happens in check_session.
@@ -494,7 +520,8 @@ def check_session(session_dir: Path) -> int:
             continue
 
         exp_failures, n_cols = check_experiment(filename, data, init_time, max_idx,
-                                                whole, n_states)
+                                                whole, n_states, path,
+                                                len(experiment.get("columns") or []) or None)
         failures += exp_failures
 
         columns = experiment.get("columns") or []

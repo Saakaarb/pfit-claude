@@ -25,7 +25,8 @@ value is never blank or non-numeric.
 
 import numpy as np
 
-__all__ = ["has_header", "read_header", "load_dataset"]
+__all__ = ["has_header", "read_header", "load_dataset",
+           "has_trailing_delimiter"]
 
 
 def _fields(line: str) -> list[str]:
@@ -78,3 +79,22 @@ def load_dataset(path) -> np.ndarray:
         skip = 1 if _is_header_line(handle.readline()) else 0
         handle.seek(0)
         return np.genfromtxt(handle, dtype=float, delimiter=",", skip_header=skip)
+
+
+def has_trailing_delimiter(path) -> bool:
+    """
+    True when the file's data rows end with a delimiter, appending a phantom
+    empty column.
+
+    Read from the raw text rather than inferred from an all-NaN last column.
+    An entirely unmeasured last column is legitimate -- it is how an observable
+    absent from one record of a multi-record set is expressed -- so inferring
+    from the loaded array reports that valid layout as a defect.
+    """
+    with open(path, "r", encoding="utf-8-sig") as handle:
+        lines = [line.rstrip("\n\r") for line in handle if line.strip()]
+    if not lines:
+        return False
+    if _is_header_line(lines[0]):
+        lines = lines[1:]
+    return bool(lines) and all(line.rstrip().endswith(",") for line in lines)
