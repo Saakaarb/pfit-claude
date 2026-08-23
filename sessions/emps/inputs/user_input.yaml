@@ -1,0 +1,99 @@
+# Electro-Mechanical Positioning System (EMPS) - A. Janot, M. Gautier and
+# M. Brunot, "Data Set and Reference Models of EMPS", Workshop on Nonlinear
+# System Identification Benchmarks, Eindhoven 2019.
+# Data: nonlinearbenchmark.org, DATA_EMPS.mat (24841 points, dt = 1 ms).
+#
+# A prismatic joint of the kind used in robots and machine tools: a motor drives
+# a mass along a linear axis against viscous and dry friction.
+#
+#   dq/dt   = v
+#   M*dv/dt = gtau*vir(t) - Fv*v - Fc*sign(v) - OF
+#
+# The motor voltage vir(t) is an exogenous recorded signal (data column 2),
+# interpolated inside the RHS. gtau converts it to a force at the load side.
+#
+# Why this session exists: sign(v) is a CHATTERING discontinuity - the
+# trajectory can re-cross it, unlike the one-way switch in fujita_egf. The
+# velocity reverses 7 times in this record. Meanwhile Fv/M ~ 2.1 rad/s against a
+# 24.84 s span, so there is no fast mode at all. That combination - non-smooth
+# and demonstrably non-stiff - is the one branch of tuning_rules.md R1 that no
+# other session reaches, and it is the branch that calls for an EXPLICIT solver.
+#
+# Only the identification record is fitted. validation_pulses.csv is the
+# benchmark's separate test record (larger, pulsed excitation) and is
+# deliberately NOT an experiment here.
+
+experiments:
+  - data_file: identification.csv
+    columns:
+      - {name: time, units: s}
+      - {name: position, units: m, observes: q}
+      - {name: motor_voltage, units: V}
+
+model:
+  # The reference model of Janot et al. publishes M = 95.1089, Fv = 203.5034,
+  # Fc = 20.3935, OF = -3.1648, so the first three take [v/100, v*100].
+  #
+  # OF is NEGATIVE, so logscale is impossible - a non-positive bound on a
+  # log-scaled parameter is a hard error, and no log box can straddle zero. It
+  # therefore gets a linear range symmetric about zero at 100x its magnitude,
+  # which keeps the sign free at the cost of coarser early resolution.
+  trainable_parameters:
+    - {name: M, min_val: 9.51e-01, max_val: 9.51e+03, logscale: true}
+    - {name: Fv, min_val: 2.04e+00, max_val: 2.04e+04, logscale: true}
+    - {name: Fc, min_val: 2.04e-01, max_val: 2.04e+03, logscale: true}
+    - {name: OF, min_val: -3.16e+02, max_val: 3.16e+02, logscale: false}
+  fixed_parameters:
+    # Drive gain, supplied with the dataset (gtau in DATA_EMPS.mat). Measured
+    # hardware calibration, not a fitted quantity.
+    - {name: gtau, value: 35.1507}
+    # Width of the regularised friction switch, tanh(v/v_eps) in place of
+    # sign(v). Set to the measurement's own velocity resolution: the position
+    # quantum is ~1e-07 m and the sample interval 1 ms, so below 1e-04 m/s the
+    # encoder cannot tell motion from rest. Fixed, not fitted - it is a property
+    # of the instrument, and fitting it would let the optimiser trade physical
+    # friction against numerical smoothing.
+    - {name: v_eps, value: 1.0e-04}
+  integrated_variables:
+    # q(0) is MEASURED: data row 0 of identification.csv, i.e. the axis starts
+    # at its origin. v(0) = 0 is an ASSUMPTION - the velocity is never measured,
+    # but the record begins with the axis at rest, so zero is well justified
+    # here rather than merely convenient.
+    - {name: q, init_val: 7.45e-06}
+    - {name: v, init_val: 0.0}
+
+population_opt:
+  population_size: 100
+  num_iters: 30
+  processors: 8
+  algorithm: DE
+  random_seed: 0
+  stepsize_rtol: 1.0e-05
+  stepsize_atol: [1.0e-08, 1.0e-07]
+
+gradient_opt:
+  num_iters: 1000
+  stepsize_rtol: 1.0e-07
+  stepsize_atol: [1.0e-10, 1.0e-09]
+  initial_timestep: 1.0e-05
+  initial_time: 0.0
+  # Raised well above the default: each sign(v) crossing forces the controller
+  # to collapse its step, and there are 7 of them.
+  max_steps: 100000
+  # Implicit, and it must be, now that sign(v) is regularised to tanh(v/v_eps).
+  # The draft said Dopri5 on the grounds that a discontinuity defeats an
+  # implicit inner solve; smoothing removes the discontinuity and converts it
+  # into a fast mode instead. The friction term's own timescale is
+  # M*v_eps/Fc, which is 4.7e-04 s at the reference values and reaches 4.7e-08 s
+  # at the corner of the box (M small, Fc large) - on top of the slaved v mode
+  # at Fv/M up to 2.1e+04 /s. Both are smooth and slaved, which is exactly what
+  # an implicit method converts into larger steps.
+  integrator: Kvaerno5
+  gradient_optimizer: adam
+  init_value_lr: 1.0e-03
+  end_value_lr: 1.0e-05
+  transition_steps_lr: 200
+  decay_rate_lr: 0.9
+
+output:
+  write_results: true

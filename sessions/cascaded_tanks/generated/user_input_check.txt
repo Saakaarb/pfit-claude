@@ -1,0 +1,84 @@
+VALIDATION REPORT - sessions/cascaded_tanks
+
+Critical Errors
+---------------
+None detected.
+
+Warnings
+--------
+1. 47 of 1024 samples (4.6%) sit at exactly y = 10.000, and 52 (5.1%) above
+   9.9. That is the level sensor and the tank overflow saturating together, and
+   the model being fitted is the benchmark's baseline, which deliberately does
+   not represent either. Those samples are therefore unreachable by any
+   parameter set: the model can exceed 10, the data cannot. This puts a floor on
+   the achievable loss and will bias the fit as it trades peak error against the
+   rest of the record. Expect a systematic one-sided residual at every peak, and
+   read it as a model-structure gap rather than a fit failure.
+
+2. x1(0) = 5.0 is an assumption, not a measurement. Only x2 is observed
+   (D10 confirms init_val 5.205 matches data row 0 exactly), and this is
+   regime 1 - the solve starts at the first save point, so solution[0] IS y0
+   and any error in x1(0) cannot be absorbed by the parameters. The benchmark
+   names "the unknown initial values of the states" as one of its four
+   challenges precisely because it must be estimated, which this framework
+   cannot do. The cost is an initial transient error decaying with the upper
+   tank's own time constant.
+
+3. L3 reports level_lower with 23% of samples in the lowest decile of its range
+   and 10% in the highest, i.e. the record spends much of its time against both
+   rails rather than in the middle. The upper rail is warning 1; the lower rail
+   means a large share of the residual comes from the region where sqrt(x2) is
+   least sensitive to k3.
+
+Recommendations
+---------------
+[R1] integrator: Dopri5 -> Kvaerno5
+     Evidence: the Jacobian is lower-triangular,
+          J = [[-k1/(2*sqrt(x1)), 0], [k2/(2*sqrt(x1)), -k3/(2*sqrt(x2))]],
+          so its eigenvalues are exactly the two diagonal entries - no
+          eigenvalue estimation or sampling is needed. Both are of the form
+          "the state limits its own rate", and the slavedness test is decisive:
+          for x1, f = -k1*sqrt(x1) + k4*u tends to 0 as the tank reaches
+          quasi-equilibrium while df/dx1 = -k1/(2*sqrt(x1)) stays at a finite
+          nonzero value. The ratio collapses while the derivative does not:
+          that is a slaved mode, which is exactly what an implicit method
+          converts into larger steps.
+          Whether it is FAST enough to matter depends on where in the box you
+          are, and the box spans both regimes: at the derived estimate
+          k1 ~ 2e-02 the upper tank's timescale is 2*sqrt(5)/k1 = 224 s, slower
+          than the data's own tau_min of 34 s (non-stiff); at the top of the box
+          k1 = 10 it is 0.45 s, a 75x separation (stiff). The accuracy limit is
+          only t_span/tau_min = 4092/34 = 120 steps, while explicit stability at
+          the top corner needs 4092 * 2.94 = 1.2e+04 - a 100x gap.
+     Why: R1 is explicit that a box which admits the slaved corner at all is the
+          "stiffness unknown" case, not a tie, and that case goes to implicit.
+          The population search visits the whole box, so with Dopri5 the entire
+          high-k1 region would be integrated at the stability limit and much of
+          it would exhaust max_steps, scoring error_loss - indistinguishable
+          from a genuinely bad parameter set. Implicit on the non-stiff part of
+          the box merely costs ~3-10x per step. This overrides the explicit
+          choice drafted in the config, which was argued from the physically
+          expected parameter values rather than from the bounds.
+          With Kvaerno5 the step becomes accuracy-limited, so max_steps = 10000
+          needs no change: it is ~80x the 120 steps accuracy requires, leaving
+          headroom for candidates that drain a tank toward the sqrt kink.
+     Edit: gradient_opt.integrator -> Kvaerno5
+
+[R9] (k1, k4) is a near-flat direction; expect ~3 of 4 parameters constrained
+     Evidence: 4 trainable parameters against 1 observed column x 3 = 3, so the
+          count trigger fires. Structurally, the substitution k1 -> a*k1,
+          k4 -> a*k4 leaves the upper tank's quasi-steady level unchanged, since
+          k1*sqrt(x1) = k4*u gives sqrt(x1) = (k4/k1)*u. The only route by which
+          x1 reaches the observed x2 is the term k2*sqrt(x1), which is therefore
+          also unchanged. All that changes is how quickly x1 settles - and at
+          the derived estimate that settling takes 224 s against a record of
+          4092 s, so it is nearly invisible in y.
+     Why: expect the post-fit sloppiness report to show one near-zero
+          eigenvalue whose eigenvector pairs k1 with k4, and expect their
+          individual fitted values to be poorly determined while the ratio
+          k4/k1 and the products reaching x2 are well determined. The fix is a
+          reparameterisation to (k4/k1, k2*k4/k1, k3) - not more iterations,
+          since a flat direction has nothing to descend.
+     Edit: none now; re-read outputs/sloppiness_report.txt after the fit.
+
+Number of critical errors: 0

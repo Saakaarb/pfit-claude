@@ -1,0 +1,118 @@
+VALIDATION REPORT - sessions/emps
+
+Critical Errors
+---------------
+None detected.
+
+Warnings
+--------
+1. `np.sign` is not in lib/LLM/api/jax.md, though `jnp.sign` does exist in the
+   pinned jax 0.6.2 (verified by introspection). The digest lists 24 jnp names
+   and sign is not among them; neither is `maximum`, which sessions/cascaded_
+   tanks needs for its clamped square root. The digest declares itself the only
+   authority - "anything not in them does not exist in the pinned versions" -
+   so as written it cannot answer the question this model asks. Nothing is
+   broken and the translation will work, but the digest's curated function list
+   is incomplete rather than authoritative. Fix by adding sign/maximum/minimum
+   to the include list in tools/gen_api_context.yaml and regenerating; this is a
+   tooling change, outside this session.
+
+2. Runtime. The record is 24841 rows, so every candidate solve carries 24841
+   save points, and the population stage runs population_size x num_iters =
+   100 x 30 = 3000 of them, each collapsing its step at 7 velocity reversals.
+   If that proves too slow, decimating the CSV to 5 ms still resolves the
+   physical time constant M/Fv = 0.467 s by a factor of 93, and 4969 rows is
+   ample for 4 parameters. Decimation discards real measurements, so it is a
+   deliberate trade rather than a free win.
+
+3. v(0) = 0 is an assumption - the velocity is never measured. It is well
+   justified here (the record begins with the axis at its origin at rest, and
+   q(0) matches data row 0 exactly per D10), but this is regime 1, so an error
+   in it would be an irreducible loss floor rather than something the
+   parameters could absorb.
+
+RESOLUTION APPLIED (second pass)
+--------------------------------
+R1's conflict was resolved by changing the MODEL, not the box: sign(v) is now
+tanh(v/v_eps) with v_eps = 1.0e-04 m/s fixed, the measurement's own velocity
+resolution. R3 was NOT applied - M and Fv keep their four-decade boxes.
+
+Consequences, re-derived:
+- the RHS is now smooth everywhere, so the chattering axis of R1 falls away;
+- the friction term contributes a new timescale M*v_eps/Fc: 4.7e-04 s at the
+  reference values, 4.7e-08 s at the corner (M small, Fc large), 4.7 s at the
+  opposite corner. That is on top of the slaved v mode at Fv/M up to
+  2.1e+04 /s;
+- both new modes are smooth and slaved, so `integrator` moved Dopri5 ->
+  Kvaerno5. An explicit method would now be stability-limited at ~5e+08 steps
+  at the stiff corner;
+- stepsize_atol on v is 1.0e-07 (population) and 1.0e-09 (gradient), i.e. 1e-03
+  and 1e-05 of the smoothing width, so the transition layer is resolved;
+- parameters recovered here are only approximately comparable to the published
+  reference values, since the model is no longer the published one.
+
+R3 below is therefore superseded and is retained only as the record of the
+alternative that was not taken. R1 stands as the analysis that forced the
+choice; its "keep Dopri5" verdict was conditional on R3 and no longer applies.
+
+Recommendations
+---------------
+[R3] Narrow the M and Fv boxes to [v/10, v*10]
+     Evidence: only the RATIO Fv/M enters the Jacobian, whose eigenvalues are
+          exactly 0 and -Fv/M (J = [[0, 1], [0, -Fv/M]], since sign(v) has zero
+          derivative away from v = 0). Both parameters currently carry the
+          [v/100, v*100] box, so their ratio spans EIGHT decades:
+          Fv/M in [2.1e-04, 2.1e+04] /s, against a physical reference value of
+          203.5/95.1 = 2.14 /s. At the top corner an explicit method needs
+          24.84 * 2.15e+04 = 5.3e+05 steps for stability; at the reference value
+          it needs 53. Narrowing both to one decade caps the ratio at 214 /s and
+          the step count at 5.3e+03.
+     Why: this is the whole reason the solver choice is contested (see R1). The
+          eight-decade ratio box is an artifact of applying the four-decade rule
+          independently to two parameters that only ever appear as a quotient -
+          it is not a statement about the hardware. Narrowing it removes the
+          stiff corner, leaves the problem purely non-smooth, and makes the
+          explicit solver unambiguously correct.
+     Edit: model.trainable_parameters, M entry  -> min_val: 9.51e+00, max_val: 9.51e+02
+           model.trainable_parameters, Fv entry -> min_val: 2.04e+01, max_val: 2.04e+03
+
+[R1] integrator: Dopri5 -> keep Dopri5, but only if R3 is applied
+     Evidence: two axes, and as the box stands they conflict.
+          Non-smoothness: sign(v) is a CHATTERING switch, not a one-way one -
+          the velocity reverses 7 times in this record, and each reversal
+          re-crosses it. An implicit inner solve cannot converge across a
+          discontinuity for ANY max_steps, so raising it is not a remedy.
+          Stiffness: the v mode IS slaved - f_v = (F - Fv*v)/M tends to 0 as the
+          velocity reaches quasi-equilibrium F/Fv while df_v/dv = -Fv/M stays
+          finite - and over the current box that mode reaches 2.1e+04 /s.
+          Stiff AND chattering is the one case R1 says neither family handles,
+          and it instructs saying so plainly rather than picking a lesser evil.
+          The conflict is a property of the BOX, not of the machine: at the
+          reference values the mode is 2.14 /s, entirely benign.
+     Why: with R3 applied there is no fast slaved mode left (worst case 214 /s,
+          5.3e+03 explicit steps against max_steps = 100000), so the stiffness
+          axis falls away and the remaining non-smoothness points squarely at an
+          explicit method - the branch of R1 no other session in this repo
+          reaches. Without R3 the honest answer is that neither Dopri5 nor
+          Kvaerno5 is right and the model would have to change instead:
+          replacing sign(v) with tanh(v / v_eps) over a physically meaningful
+          velocity width would restore the implicit solver the stiff corner
+          demands, at the cost of no longer fitting the published reference
+          model. R3 is the cheaper resolution and preserves the comparison.
+     Edit: none, conditional on R3 being applied.
+
+[R10] tau_min from the data is not usable here; size max_steps from the equations
+     Evidence: |y| / |dy/dt| on the position column returns 6.98e-04 s, implying
+          3.56e+04 steps. That number is an artifact: the axis starts at
+          q = 7.45e-06, essentially zero, so the ratio collapses near the origin
+          for reasons that have nothing to do with how fast the system moves.
+          The physically meaningful timescale is M/Fv = 0.467 s at the reference
+          values, i.e. 53 steps over the 24.84 s record for accuracy.
+     Why: max_steps = 100000 is already ~19x the 5.3e+03 that explicit stability
+          needs once R3 is applied, which is the right direction for a ceiling
+          given the step collapse at each of the 7 reversals. No change needed -
+          this entry exists to record that the data-derived tau_min was
+          considered and rejected, so the ceiling is not mistaken for arbitrary.
+     Edit: none.
+
+Number of critical errors: 0
