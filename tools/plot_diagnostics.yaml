@@ -1,0 +1,157 @@
+# Configuration for tools/plot_diagnostics.py.
+#
+# Two figures per session: the two-stage loss trajectory, and the fitted model
+# against the measured data. Unlike tools/plot_fits.py, which replots the
+# stored result_solution_expN.csv at the data's own time points, this tool
+# re-integrates user_model.py at the fitted parameters on a dense grid, so a
+# system with sharp transients is drawn as a curve rather than as a polyline
+# through a handful of samples.
+#
+# Sessions that have not been fitted are skipped with a warning.
+
+output_dir_name: outputs
+loss_figure_name: loss_curves.png
+fit_figure_name: fit_result.png
+
+# Dense re-integration of the fitted model.
+dense_points: 2000
+dense_solver: Radau
+dense_rtol: 1.0e-10
+dense_atol: 1.0e-12
+
+# Categorical slots from the validated reference palette (light mode).
+# Slots 1-4 pass every hard gate on the adjacent pairlist; aqua and yellow sit
+# below 3:1 contrast, so every series carries a direct label (the relief rule).
+palette:
+  series_1: "#2a78d6"   # blue
+  series_2: "#eb6834"   # orange
+  series_3: "#1baf7a"   # aqua
+  series_4: "#eda100"   # yellow
+  stage_1: "#2a78d6"    # population search
+  stage_2: "#eb6834"    # gradient refinement
+  data_ink: "#1b1b1b"
+  grid: "#d8d8d4"
+  text_secondary: "#5c5c56"
+
+sessions:
+  - name: crauste_tcell
+    title: "crauste_tcell - CD8 T-cell response (Crauste et al. 2017)"
+    time_label: "time (days)"
+    loss_label: "loss (residual / measurement sigma)"
+    # The measurements start at day 4 but integration starts at day 0.
+    dense_from_initial_time: true
+    panels:
+      - title: "Observed cell populations"
+        ylabel: "cells"
+        yscale: log
+        # The measurements span 74 to 175825 cells; the fitted Naive curve
+        # decays to ~1e-05 by day 28, far below anything measured.
+        ylim: [1.0e+01, 1.0e+06]
+        series:
+          - {label: "Naive", state: 0, data_col: 1, sigma_col: 5, color: series_1}
+          - {label: "EarlyEffector", state: 1, data_col: 2, sigma_col: 6, color: series_2}
+          - {label: "LateEffector", state: 2, data_col: 3, sigma_col: 7, color: series_3}
+          - {label: "Memory", state: 3, data_col: 4, sigma_col: 8, color: series_4}
+      - title: "Pathogen (never measured)"
+        ylabel: "pathogen load"
+        yscale: log
+        series:
+          - {label: "Pathogen", state: 4, data_col: null, sigma_col: null, color: series_1}
+
+  - name: cascaded_tanks
+    title: "cascaded_tanks - two tanks with overflow (Schoukens et al. 2016)"
+    time_label: "time (s)"
+    loss_label: "loss (peak-normalised RMSE)"
+    # No uncertainty columns in this record - the benchmark quotes an output SNR
+    # of ~40 dB, not per-point sigmas - so there are no error bars to claim.
+    caption: "dots = measurements, line = fit; e_RMS 0.606 V on this record"
+    dense_from_initial_time: false
+    panels:
+      - title: "Lower tank level - the fitted observable"
+        ylabel: "level (V)"
+        yscale: linear
+        direct_labels: false
+        series:
+          - {label: "measured / fitted", state: 1, data_col: 1, sigma_col: null, color: series_1}
+      - title: "Upper tank level (never measured)"
+        ylabel: "level (V)"
+        yscale: linear
+        series:
+          - {label: "x1", state: 0, data_col: null, sigma_col: null, color: series_3}
+      - title: "Residual (fit - measurement)"
+        ylabel: "level error (V)"
+        yscale: linear
+        residual: true
+        direct_labels: false
+        series:
+          - {label: "residual", state: 1, data_col: 1, sigma_col: null, color: series_4}
+      - title: "Pump voltage (exogenous input)"
+        ylabel: "voltage (V)"
+        yscale: linear
+        direct_labels: false
+        series:
+          - {label: "u", state: null, data_col: 2, sigma_col: null, color: series_2}
+
+  - name: emps
+    title: "emps - electro-mechanical positioning system (Janot et al. 2019)"
+    time_label: "time (s)"
+    loss_label: "loss (peak-normalised RMSE)"
+    caption: "dots = measurements, line = fit; 2.9 mm RMSE on a 246 mm stroke"
+    # Read the framework's own stored solution rather than re-integrating. The
+    # data grid is already 24841 points, and scipy's Radau on this stiff
+    # regularised RHS with an interpolated input is both slow (~90 s) and
+    # disagreed with the reported loss. `state` now indexes the stored file's
+    # columns: 0 time, 1 measured, 2 simulated position, 3 simulated velocity,
+    # 4 motor voltage.
+    use_stored_solution: true
+    dense_from_initial_time: false
+    panels:
+      - title: "Axis position - the fitted observable"
+        ylabel: "position (m)"
+        yscale: linear
+        direct_labels: false
+        series:
+          - {label: "measured / fitted", state: 2, data_col: 1, sigma_col: null, color: series_1}
+      - title: "Residual (fit - measurement)"
+        ylabel: "position error (m)"
+        yscale: linear
+        residual: true
+        direct_labels: false
+        series:
+          - {label: "residual", state: 2, data_col: 1, sigma_col: null, color: series_4}
+      - title: "Velocity (never measured) - reverses 7 times"
+        ylabel: "velocity (m/s)"
+        yscale: linear
+        series:
+          - {label: "v", state: 3, data_col: null, sigma_col: null, color: series_3}
+      - title: "Motor voltage (exogenous input)"
+        ylabel: "voltage (V)"
+        yscale: linear
+        direct_labels: false
+        series:
+          - {label: "vir", state: null, data_col: 2, sigma_col: null, color: series_2}
+
+  - name: oregonator
+    title: "oregonator - Belousov-Zhabotinsky relaxation oscillator"
+    time_label: "time (dimensionless)"
+    loss_label: "loss (residual / measurement sigma)"
+    dense_from_initial_time: false
+    panels:
+      # Linear, not log: the 2% noise drives X slightly negative (min -0.044),
+      # which a log axis cannot show at all, and X and Z peak within a factor
+      # of 3 of each other so a log axis buys nothing here.
+      - title: "Recorded species"
+        ylabel: "concentration"
+        yscale: linear
+        # Both curves return to ~0 between spikes, so end-of-curve labels
+        # collide. Blue and orange both clear 3:1 contrast, so the legend alone
+        # is sufficient identity here.
+        direct_labels: false
+        series:
+          - {label: "X (HBrO2)", state: 0, data_col: 1, sigma_col: 3, color: series_1}
+          - {label: "Z (oxidised catalyst)", state: 2, data_col: 2, sigma_col: 4, color: series_2}
+      - title: "Y (bromide, never measured)"
+        ylabel: "concentration"
+        yscale: log
+        series:
+          - {label: "Y", state: 1, data_col: null, sigma_col: null, color: series_3}

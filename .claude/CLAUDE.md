@@ -73,5 +73,6 @@ Each command file is procedure only and names the reference files it requires.
 | `tools/check_dataset.py` | measures a session's dataset CSVs against the structural requirements the loader and diffrax impose but do not enforce; `/pfit-check` runs it. Reports facts only — severity is owned by `validation_rules.md` |
 | `tools/live_fit_monitor.py` | CLI for the same view, to watch a fit started in another terminal (the fit entry points raise it themselves) |
 | `tools/plot_fits.py` | replots every fitted session's simulation against its data, from the stored `result_solution_expN.csv` |
+| `tools/plot_diagnostics.py` | per-session loss trajectory and fit figures, re-integrating `user_model.py` at the fitted parameters on a dense grid so sharp transients are drawn as curves; configured per session in `tools/plot_diagnostics.yaml` |
 | `tools/stiffness_bench.py` | benchmarks stiffness estimators over a parameter box against systems of known character; the evidence behind R1's choice of the matrix measure |
 | `tests/` | suite; `pytest -m "not slow"` skips the full fits |
