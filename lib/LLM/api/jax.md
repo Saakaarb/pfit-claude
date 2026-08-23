@@ -59,6 +59,15 @@ The generated code translates numpy pseudocode to these. A numpy function absent
 | `jnp.arange` | `(start, stop=None, step=None, dtype=None, device=None)` |
 | `jnp.interp` | `(x, xp, fp, left=None, right=None, period=None)` |
 
+**nonsmooth**
+
+| Name | Signature |
+|---|---|
+| `jnp.sign` | `(x)` |
+| `jnp.maximum` | `(*args, out=None, where=None)` |
+| `jnp.minimum` | `(*args, out=None, where=None)` |
+| `jnp.tanh` | `(x)` |
+
 ## Gotchas (curated — these are the ones that bite)
 
 - `jax.config.update('jax_enable_x64', True)` must appear before any array is created. Without it every solve silently runs in float32 and stiff integrations lose accuracy.

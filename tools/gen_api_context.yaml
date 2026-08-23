@@ -119,6 +119,12 @@ jax:
     reductions: [mean, sum, max, min, sqrt, square, abs, log, log10, exp]
     nan_safe: [isnan, nan_to_num, nanmax, nanmean, nansum, where]
     array: [array, concatenate, stack, clip, zeros, ones, arange, interp]
+    # Non-smooth and clamping primitives. A friction law needs `sign`, and any
+    # square root of a state needs `maximum` to keep a candidate parameter set
+    # from putting NaN into the loss. Omitting them made the digest silent on
+    # the one question a non-smooth model has to ask, while still claiming to be
+    # the only authority on what exists.
+    nonsmooth: [sign, maximum, minimum, tanh]
   transforms: [jit, grad, value_and_grad, vmap, pmap]
   notes:
     - "`jax.config.update('jax_enable_x64', True)` must appear before any array
