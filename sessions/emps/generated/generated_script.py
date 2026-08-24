@@ -1,3 +1,4 @@
+# pfit-sources: user_model.py=2d55ef7192a8cacf user_input.yaml=72edc8653d8fe0a8
 import jax
 import jax.numpy as jnp
 import diffrax

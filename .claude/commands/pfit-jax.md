@@ -38,7 +38,19 @@ packages, regenerate first:
 5. Verify it imports, per the verification command in `jax_translation.md`. On
    failure, fix and retry up to 3 times.
 
-6. Tell the user the outcome:
+6. **Stamp it.** Once it imports cleanly, run
+
+   ```bash
+   ./venv/bin/python3 tools/stamp_script.py <session_name> --write
+   ```
+
+   This records a content hash of the model and the config the script was
+   translated from. Without it nothing can later tell whether the script still
+   matches the model: the fit imports the script and never reads the model, so a
+   later edit would be fitted as the previous version, silently. Do not skip
+   this, and do not write the stamp by hand.
+
+7. Tell the user the outcome:
    - success: "generated_script.py created and verified. Run
      `./venv/bin/python3 fit_parameters.py <session_name>` to start optimization."
    - otherwise: show the error and the relevant section of the generated script.

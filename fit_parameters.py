@@ -8,6 +8,7 @@ from pathlib import Path
 # the JAX backend initializes. YAMLReader and live_view are import-safe (no jax
 # dependency).
 from lib.utils.live_view import attach as attach_live_view
+from lib.utils.source_stamp import verify_stamp
 from lib.utils.yamlread import YAMLReader, read_input_file
 
 
@@ -41,6 +42,30 @@ def resolve_session_dir() -> Path:
     session_dir = session_dirs[0]
     print(f"No session_dir provided. Using most recently created session: {session_dir}")
     return session_dir
+
+
+def warn_if_script_is_stale(session_dir: Path) -> None:
+    """
+    Print a warning when the generated script disagrees with its sources.
+
+    This module imports `generated_script.py` and never reads `user_model.py`,
+    so an out-of-date script fits the previous version of the equations and the
+    run looks entirely normal. /pfit-run blocks on this; a direct invocation
+    would otherwise have no guard at all.
+
+    Advisory by design: a warning, never a refusal. Deciding that a stale script
+    is acceptable is the user's call, and this is not the layer to overrule it.
+    """
+    try:
+        ok, detail = verify_stamp(session_dir)
+    except Exception:
+        return
+    if ok is False:
+        print("=" * 72)
+        print(f"WARNING: {detail}")
+        print("The fit is about to run the OLD translation. Re-run /pfit-jax "
+              "unless you intend this.")
+        print("=" * 72)
 
 
 def resolve_device_count(session_dir: Path) -> int:
@@ -127,6 +152,7 @@ if __name__ == "__main__":
         )
 
     session_dir = resolve_session_dir()
+    warn_if_script_is_stale(session_dir)
 
     # Expose exactly the requested number of CPU devices to JAX. This MUST happen
     # before JAX initializes its backend, so it is set here — from the jax-free

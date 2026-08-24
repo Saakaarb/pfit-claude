@@ -6,7 +6,8 @@ import numpy as np
 
 # Reuse the session/device resolution logic from the full two-stage entry point.
 # jax is imported lazily (inside run_driver) so XLA device count can be set first.
-from fit_parameters import resolve_session_dir, resolve_device_count
+from fit_parameters import (resolve_session_dir, resolve_device_count,
+                            warn_if_script_is_stale)
 from lib.utils.live_view import attach as attach_live_view
 from lib.utils.yamlread import YAMLReader
 
@@ -98,6 +99,7 @@ if __name__ == "__main__":
         )
 
     session_dir = resolve_session_dir()
+    warn_if_script_is_stale(session_dir)
 
     # Expose the requested number of CPU devices to JAX before the backend
     # initializes. (NODE itself is single-point, but we keep this consistent

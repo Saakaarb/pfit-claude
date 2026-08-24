@@ -70,6 +70,8 @@ Each command file is procedure only and names the reference files it requires.
 | `lib/utils/user_input_sample.yaml` | worked config |
 | `sessions/` | every session, worked and in-progress alike; a fit is run against one of these. **Not agent input** — the skills take their templates from `lib/utils/*_sample*`, never from a session |
 | `tools/gen_api_context.py` | regenerates the API digests |
+| `lib/utils/source_stamp.py` | records in `generated_script.py` which sources it was translated from, as content hashes; read by the fit entry points |
+| `tools/stamp_script.py` | writes or verifies that stamp; `/pfit-jax` runs it with `--write` |
 | `tools/check_dataset.py` | measures a session's dataset CSVs against the structural requirements the loader and diffrax impose but do not enforce; `/pfit-check` runs it. Reports facts only — severity is owned by `validation_rules.md` |
 | `tools/live_fit_monitor.py` | CLI for the same view, to watch a fit started in another terminal (the fit entry points raise it themselves) |
 | `tools/plot_fits.py` | replots every fitted session's simulation against its data, from the stored `result_solution_expN.csv` |
