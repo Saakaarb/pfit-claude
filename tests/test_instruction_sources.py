@@ -289,7 +289,9 @@ SOLUTION_ARTIFACTS = [
 
 # The skills that make setup choices. /pfit-diagnose is deliberately absent: it
 # runs after a fit and reads that fit's own record, which is evidence about the
-# optimizer's behaviour rather than a reference answer.
+# optimizer's behaviour rather than a reference answer. /pfit-run is absent for
+# the same reason -- it produces that record, and reporting what it just wrote
+# is not deriving a setup choice from a stored answer.
 SETUP_COMMANDS = [
     "pfit-new.md",
     "pfit-check.md",

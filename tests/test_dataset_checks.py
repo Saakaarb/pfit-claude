@@ -325,3 +325,143 @@ def test_matching_observables_pass(tmp_path):
     code, out = run_tool(session, tmp_path)
     assert not failed_ids(out), out
     assert code == 0
+
+
+# ---------------------------------------------------------------------------
+# source stamping: the fit imports generated_script.py and never reads
+# user_model.py, so nothing else can tell whether the two still agree
+# ---------------------------------------------------------------------------
+
+from lib.utils.source_stamp import (  # noqa: E402
+    normalized_hash, read_stamp, verify_stamp, write_stamp)
+
+
+def build_stamped_session(tmp_path, model_body="        return 1.0\n"):
+    session = tmp_path / "stamped"
+    (session / "inputs").mkdir(parents=True)
+    (session / "generated").mkdir(parents=True)
+    (session / "inputs" / "user_input.yaml").write_text("experiments:\n  - data_file: d.csv\n")
+    (session / "generated" / "user_model.py").write_text(
+        "def _compute_loss_problem(a, b, dataset, c, d):\n" + model_body)
+    (session / "generated" / "generated_script.py").write_text(
+        "import jax\n\ndef _compute_loss_problem(constants, params):\n    return 1.0\n")
+    write_stamp(session)
+    return session
+
+
+def test_a_fresh_stamp_verifies(tmp_path):
+    ok, detail = verify_stamp(build_stamped_session(tmp_path))
+    assert ok is True, detail
+
+
+def test_editing_the_model_breaks_the_stamp(tmp_path):
+    session = build_stamped_session(tmp_path)
+    model = session / "generated" / "user_model.py"
+    model.write_text(model.read_text().replace("return 1.0", "return 2.0"))
+    ok, detail = verify_stamp(session)
+    assert ok is False and "user_model.py" in detail
+
+
+def test_editing_the_config_breaks_the_stamp(tmp_path):
+    session = build_stamped_session(tmp_path)
+    config = session / "inputs" / "user_input.yaml"
+    config.write_text(config.read_text() + "gradient_opt:\n  max_steps: 99\n")
+    ok, detail = verify_stamp(session)
+    assert ok is False and "user_input.yaml" in detail
+
+
+def test_a_comment_only_edit_does_not_break_the_stamp(tmp_path):
+    """Timestamps flagged these; content should not. Otherwise the check gets
+    ignored for crying wolf."""
+    session = build_stamped_session(tmp_path)
+    model = session / "generated" / "user_model.py"
+    model.write_text(model.read_text() + "\n# explanatory note\n\n")
+    ok, detail = verify_stamp(session)
+    assert ok is True, detail
+
+
+def test_touching_the_script_does_not_make_a_stale_one_verify(tmp_path):
+    """The failure mode mtime comparison cannot see."""
+    session = build_stamped_session(tmp_path)
+    model = session / "generated" / "user_model.py"
+    model.write_text(model.read_text().replace("return 1.0", "return 5.0"))
+    (session / "generated" / "generated_script.py").touch()
+    ok, _ = verify_stamp(session)
+    assert ok is False
+
+
+def test_an_unstamped_script_is_undecided_rather_than_passing(tmp_path):
+    session = build_stamped_session(tmp_path)
+    script = session / "generated" / "generated_script.py"
+    script.write_text("\n".join(
+        l for l in script.read_text().splitlines() if not l.startswith("# pfit-sources:")))
+    ok, detail = verify_stamp(session)
+    assert ok is None and "no source stamp" in detail
+
+
+def test_stamping_twice_does_not_accumulate_lines(tmp_path):
+    session = build_stamped_session(tmp_path)
+    write_stamp(session)
+    write_stamp(session)
+    script = (session / "generated" / "generated_script.py").read_text()
+    assert script.count("# pfit-sources:") == 1
+    assert read_stamp(session / "generated" / "generated_script.py") is not None
+
+
+def test_the_hash_ignores_comments_and_blank_lines(tmp_path):
+    a = tmp_path / "a.py"; b = tmp_path / "b.py"
+    a.write_text("x = 1\ny = 2\n")
+    b.write_text("# lead\nx = 1   # trailing\n\n\ny = 2\n")
+    assert normalized_hash(a) == normalized_hash(b)
+
+
+# ---------------------------------------------------------------------------
+# readiness: gradient-only requires a stored design point to seed from
+# ---------------------------------------------------------------------------
+
+READY_TOOL = REPO_ROOT / "tools" / "check_ready.py"
+
+
+def build_runnable_session(tmp_path, with_seed: bool):
+    session = tmp_path / "runnable"
+    (session / "inputs").mkdir(parents=True)
+    (session / "generated").mkdir(parents=True)
+    (session / "outputs").mkdir(parents=True)
+    (session / "inputs" / "user_input.yaml").write_text("experiments:\n  - data_file: d.csv\n")
+    (session / "generated" / "user_model.py").write_text("x = 1\n")
+    (session / "generated" / "generated_script.py").write_text("y = 2\n")
+    (session / "outputs" / "de_fitting.log").write_text("1, 1.0, 0.1\n")
+    if with_seed:
+        (session / "outputs" / "final_design_point.csv").write_text("1.0,2.0\n")
+    return session
+
+
+def run_ready(session, tmp_path, mode="full"):
+    result = subprocess.run(
+        [PYTHON, str(READY_TOOL), str(session), "--mode", mode,
+         "--log-file", str(tmp_path / "ready.log")],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+    )
+    return result.returncode, result.stdout
+
+
+def test_gradient_only_without_a_seed_is_blocked(tmp_path):
+    """fit_gradient_only.py raises FileNotFoundError without it; better to say
+    so in the pre-flight than in a traceback."""
+    session = build_runnable_session(tmp_path, with_seed=False)
+    code, out = run_ready(session, tmp_path, mode="gradient-only")
+    assert "R6" in failed_ids(out), out
+    assert code == 1
+
+
+def test_gradient_only_with_a_seed_is_allowed(tmp_path):
+    session = build_runnable_session(tmp_path, with_seed=True)
+    code, out = run_ready(session, tmp_path, mode="gradient-only")
+    assert "R6" not in failed_ids(out), out
+
+
+def test_a_full_fit_does_not_require_a_seed(tmp_path):
+    """The same session that blocks gradient-only must still allow a full fit."""
+    session = build_runnable_session(tmp_path, with_seed=False)
+    code, out = run_ready(session, tmp_path, mode="full")
+    assert "R6" not in failed_ids(out), out

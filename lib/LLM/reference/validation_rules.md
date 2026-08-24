@@ -106,6 +106,36 @@ How to read them:
 - **L4**: experiment losses are averaged unweighted, so a scale spread is a
   weighting nobody chose.
 
+## Readiness checks
+
+Applied by `/pfit-run` immediately before a fit, measured by
+
+```bash
+./venv/bin/python3 tools/check_ready.py <session> --mode full
+./venv/bin/python3 tools/check_ready.py <session> --mode gradient-only
+```
+
+The mode must match the entry point about to be used, because R6's severity depends on it.
+
+| id | Requirement | Severity | What happens if violated |
+|---|---|---|---|
+| R1 | `inputs/user_input.yaml` exists | critical | there is no session to run |
+| R2 | `generated/user_model.py` exists | critical | nothing to translate or fit |
+| R3 | `generated_script.py`'s source stamp matches the current `user_model.py` and `user_input.yaml` | critical | **the fit imports the script and never reads the model.** A stale script fits the previous version of the equations, completes normally, and reports parameters for a model you no longer have |
+| R4 | the validation report is newer than the config and the model | warning | `/pfit-check` last ran against different inputs, so its verdict may not describe what is about to run |
+| R5 | the last validation reported zero critical errors | critical | those errors were never resolved |
+| R6 | `outputs/final_design_point.csv` exists | **critical under `--mode gradient-only`**, informational under `--mode full` | it is the seed `fit_gradient_only.py` reads, and it raises `FileNotFoundError` without one. Logs alone are not enough: a run that died before writing a design point leaves logs but no seed. A full fit overwrites both |
+
+R3 compares **content**, not timestamps. `/pfit-jax` stamps the script it writes
+with a hash of each source taken after stripping comments and blank lines, so the
+check is immune to `touch`, to a clone or copy that flattens every modification
+time, and to comment-only edits that cannot change the translation.
+
+A script written before stamping existed carries no stamp. R3 then falls back to
+modification times **and says that it did** — a fallback that can be defeated by
+any of the above, so treat a passing mtime comparison as weaker evidence than a
+passing stamp. Re-running `/pfit-jax` replaces it with a real one.
+
 ## Config checks
 
 ### API validity (check against the generated digests, never from memory)

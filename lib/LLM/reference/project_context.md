@@ -1,6 +1,6 @@
 ---
 topic: What this project is, how a session is laid out, and how to run it
-consumed_by: [pfit-new, pfit-check, pfit-jax, ad-hoc work]
+consumed_by: [pfit-new, pfit-check, pfit-jax, pfit-run, ad-hoc work]
 generated: false
 owns: >
   Project purpose, the stage pipeline, session directory layout, the
@@ -49,9 +49,7 @@ for them. Either way it writes `user_input.yaml` and `user_model.py` **together*
 which is what guarantees their orderings agree.
 
 ```
-/pfit-new  ->  /pfit-check  ->  /pfit-jax
-  ->  ./venv/bin/python3 fit_parameters.py <session_name>
-  ->  /pfit-diagnose
+/pfit-new  ->  /pfit-check  ->  /pfit-jax  ->  /pfit-run  ->  /pfit-diagnose
 ```
 
 The user supplies three things: the data CSV(s), a description of the system
