@@ -10,6 +10,8 @@ there, not from memory.
 |---|---|---|
 | `lib/LLM/reference/cold_start.md` | the invariant, and which artifacts diagnosis may read | yes |
 | `lib/LLM/reference/diagnosis_rules.md` | every evidence source, symptom rule and the report format | yes |
+| `lib/LLM/reference/run_history.md` | selecting one run and reading its immutable snapshots | yes |
+| `lib/LLM/reference/result_plotting.md` | required figure generation, inspection and citation | yes |
 | `lib/LLM/reference/tuning_rules.md` | the evidence rule, the entry format, the do-not-recommend list, the apply policy | yes |
 | `lib/LLM/reference/yaml_format.md` | field schema and defaults, to propose a valid edit | yes |
 | `lib/LLM/api/diffrax.md` | the ONLY authority on `integrator` names | when the diagnosis touches the solver |
@@ -20,18 +22,28 @@ there, not from memory.
 
 ## Steps
 
-1. Ask the user for the session name if not given as an argument.
+1. Read the session and optional run ID (`/pfit-diagnose <session> <run_id>`).
+   Ask for the session if absent. Resolve the requested run, or the latest run
+   if unspecified, once per `run_history.md`; state and retain its exact path.
 
-2. Confirm the session has been fitted: `sessions/<session>/outputs/` must
+2. Confirm the session has been fitted: `sessions/<session>/outputs/<run_id>/` must
    contain at least a stage-1 log or `NODE_fitting.log`. If it does not, stop and
    tell the user to run the fit first — there is nothing to diagnose. If only
    `final_design_point.csv` exists, say which artifacts are missing and that the
    diagnosis is correspondingly limited.
 
-3. Read `inputs/user_input.yaml`, `generated/user_model.py`, and **every**
-   artifact in `outputs/` that `diagnosis_rules.md` lists. Do not stop at the
+3. Read the selected run's `snapshot/inputs/user_input.yaml`,
+   `snapshot/generated/user_model.py`, and **every** artifact in its directory
+   that `diagnosis_rules.md` lists. Do not stop at the
    first one that explains the outcome — S6 in particular is only separable by
    combining the NODE log with the bounds.
+
+   **Inspect saved fit plots before reaching a verdict.** Follow
+   `result_plotting.md` to generate missing or stale plots, then open and
+   inspect every experiment/observable panel. Record figure paths and visual
+   findings in the report, supported by residual calculations. If plotting is
+   blocked, explicitly limit the diagnosis; do not declare a successful fit
+   without inspecting its curves.
 
 4. Compute, do not eyeball:
    - first and last `best_cost` per stage, and the iteration at which each
@@ -51,17 +63,21 @@ there, not from memory.
    possibilities. Where the evidence genuinely cannot separate two causes, say so
    and name the cheapest discriminating experiment.
 
-6. Write the report to `sessions/<session>/outputs/fit_diagnosis.txt` in the
+6. Write the report to `sessions/<session>/outputs/<run_id>/fit_diagnosis.txt` in the
    format `diagnosis_rules.md` defines.
+
+   Identify the run ID and seed source in the report. For a gradient-only run,
+   follow the recorded seed-source chain to find population-stage evidence;
+   label its originating run explicitly. Do not mix unrelated runs or mutable working inputs.
 
 7. Summarise the verdict in chat, then ask which findings to apply (by id, `all`,
    or `none`). Apply only what the user names, per the apply policy in
-   `tuning_rules.md`.
+   `tuning_rules.md`. Edit only the working session files, never the snapshot.
 
 8. If anything was applied, tell the user what to re-run:
    - config-only changes to `gradient_opt`, or a gradient-stage finding, and stage 1
-     already found a good basin → `fit_gradient_only.py <session>` reuses the
-     existing seed point.
+     already found a good basin → `fit_gradient_only.py <session> --seed-run <run_id>`
+     reuses this diagnosed run's seed point in a new run directory.
    - a changed `integrator`, bounds, `logscale`, or population settings →
      `fit_parameters.py <session>` (a full re-fit; the old basin is no longer
      valid).

@@ -311,15 +311,18 @@ regions. Say it is a robustness/speed trade, not a correctness one.
 
 ### R7 — Gradient optimizer
 
-- `lbfgs` (default) for a smooth, well-normalised loss. Say nothing.
-- Recommend `adam` when gradients are expected to be noisy: NaN-masked data,
-  non-smooth RHS, or loose refinement tolerances. If recommending `adam`, you
-  must also recommend an iteration count and an LR schedule (start ~1e-3, end
-  ~1e-5) in the same entry — `adam` with L-BFGS-sized iteration counts does
-  nothing.
+- `adam` is the default for new sessions. Always write
+  `gradient_optimizer: adam` explicitly; the parser's fallback when omitted is
+  still `lbfgs`. Start with `num_iters = 1000`, `init_value_lr = 5e-3`,
+  `transition_steps_lr = 100`, `end_value_lr = 1e-5`, and
+  `decay_rate_lr = 0.9`. Include the iteration count and LR schedule together.
+- Recommend `lbfgs` as an alternative for a smooth, well-normalised loss when
+  the model is expected to match the data well. Start with `num_iters = 50`.
+- Prefer `adam` for noisier datasets or when gradients are expected to be
+  irregular. Explain the model/data evidence for any proposed switch.
 
-  Set the count from the learning rate, not from a fixed number:
-  **`num_iters` >= `1 / init_value_lr`**, which is 1000 at the recommended
+  Check the count against the learning rate:
+  **`num_iters` >= `1 / init_value_lr`**, which is 200 at the recommended
   starting rate. The reason is that adam's step is normalized — it moves about
   `lr` per iteration in the `[-1, 1]` scaled parameter space whatever the
   gradient magnitude — so `num_iters * init_value_lr` is the distance it can

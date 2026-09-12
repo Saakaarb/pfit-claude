@@ -2,7 +2,7 @@
 
 The integration tests all follow the same shape: copy a committed session
 fixture into a tmp directory, optionally patch a handful of settings in
-user_input.yaml, and run a fit. Copying matters — a fit deletes and rewrites
+user_input.yaml, and run a fit. Copying matters — a fit creates timestamped run directories under
 `outputs/`, so running against the committed fixture in place would dirty the
 repo and make tests order-dependent.
 """

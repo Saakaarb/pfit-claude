@@ -22,51 +22,51 @@ The generated code translates numpy pseudocode to these. A numpy function absent
 
 **reductions**
 
-| Name | Signature |
-|---|---|
-| `jnp.mean` | `(a, axis=None, dtype=None, out=None, keepdims=False, where=None)` |
-| `jnp.sum` | `(a, axis=None, dtype=None, out=None, keepdims=False, initial=None, where=None, promote_integers=True)` |
-| `jnp.max` | `(a, axis=None, out=None, keepdims=False, initial=None, where=None)` |
-| `jnp.min` | `(a, axis=None, out=None, keepdims=False, initial=None, where=None)` |
-| `jnp.sqrt` | `(x)` |
-| `jnp.square` | `(x)` |
-| `jnp.abs` | `(x)` |
-| `jnp.log` | `(x)` |
-| `jnp.log10` | `(x)` |
-| `jnp.exp` | `(x)` |
+| Name | Signature | Inputs / dtype contract |
+|---|---|---|
+| `jnp.mean` | `(a, axis=None, dtype=None, out=None, keepdims=False, where=None)` | `a`: ArrayLike. `where`: ArrayLike boolean mask or None. `dtype`: DTypeLike or None; output dtype matches floating inputs, otherwise promotes non-floating inputs to float32/float64. |
+| `jnp.sum` | `(a, axis=None, dtype=None, out=None, keepdims=False, initial=None, where=None, promote_integers=True)` | `a`: ArrayLike. `initial`/`where`: ArrayLike or None; `where` is a broadcast-compatible mask. `dtype`: DTypeLike or None; integer inputs promote to widest available integer unless `promote_integers=False` or `dtype` is set. |
+| `jnp.max` | `(a, axis=None, out=None, keepdims=False, initial=None, where=None)` | `a`: ArrayLike. `initial`/`where`: ArrayLike or None; `where` is a broadcast-compatible boolean mask and requires `initial`. |
+| `jnp.min` | `(a, axis=None, out=None, keepdims=False, initial=None, where=None)` | `a`: ArrayLike. `initial`/`where`: ArrayLike or None; `where` is a broadcast-compatible boolean mask and requires `initial`. |
+| `jnp.sqrt` | `(x)` | `x`: ArrayLike real or complex. Negative real inputs return NaN; complex inputs return complex. |
+| `jnp.square` | `(x)` | `x`: ArrayLike numeric. Output follows JAX type-promotion rules. |
+| `jnp.abs` | `(x)` | `x`: ArrayLike numeric. Complex input returns real magnitude. |
+| `jnp.log` | `(x)` | `x`: ArrayLike numeric. Integers/bools are promoted to inexact dtype; negative real inputs return NaN. |
+| `jnp.log10` | `(x)` | `x`: ArrayLike numeric. Integers/bools are promoted to inexact dtype; negative real inputs return NaN. |
+| `jnp.exp` | `(x)` | `x`: ArrayLike numeric. Integers/bools are promoted to inexact dtype. |
 
 **nan safe**
 
-| Name | Signature |
-|---|---|
-| `jnp.isnan` | `(x)` |
-| `jnp.nan_to_num` | `(x, copy=True, nan=0.0, posinf=None, neginf=None)` |
-| `jnp.nanmax` | `(a, axis=None, out=None, keepdims=False, initial=None, where=None)` |
-| `jnp.nanmean` | `(a, axis=None, dtype=None, out=None, keepdims=False, where=None)` |
-| `jnp.nansum` | `(a, axis=None, dtype=None, out=None, keepdims=False, initial=None, where=None)` |
-| `jnp.where` | `(condition, x=None, y=None, size=None, fill_value=None)` |
+| Name | Signature | Inputs / dtype contract |
+|---|---|---|
+| `jnp.isnan` | `(x)` | `x`: ArrayLike numeric. Returns bool Array. |
+| `jnp.nan_to_num` | `(x, copy=True, nan=0.0, posinf=None, neginf=None)` | `x`: ArrayLike. `nan`, `posinf`, `neginf`: ArrayLike replacements or None. Inexact inputs are sanitized; non-inexact inputs are returned unmodified. |
+| `jnp.nanmax` | `(a, axis=None, out=None, keepdims=False, initial=None, where=None)` | `a`: ArrayLike. `initial`/`where`: ArrayLike or None; `where` is a broadcast-compatible boolean mask. |
+| `jnp.nanmean` | `(a, axis=None, dtype=None, out=None, keepdims=False, where=None)` | `a`: ArrayLike. `where`: ArrayLike boolean mask or None. `dtype`: DTypeLike or None. |
+| `jnp.nansum` | `(a, axis=None, dtype=None, out=None, keepdims=False, initial=None, where=None)` | `a`: ArrayLike. `initial`/`where`: ArrayLike or None; `where` is a broadcast-compatible boolean mask. `dtype`: DTypeLike or None. |
+| `jnp.where` | `(condition, x=None, y=None, size=None, fill_value=None)` | `condition`: broadcast-compatible boolean ArrayLike. Three-argument form needs `x` and `y` ArrayLike, broadcast-compatible, typecast-compatible; result dtype is `jnp.result_type(x, y)`. |
 
 **array**
 
-| Name | Signature |
-|---|---|
-| `jnp.array` | `(object, dtype=None, copy=True, order='K', ndmin=0, device=None)` |
-| `jnp.concatenate` | `(arrays, axis=0, dtype=None)` |
-| `jnp.stack` | `(arrays, axis=0, out=None, dtype=None)` |
-| `jnp.clip` | `(arr=None, min=None, max=None, a=Deprecated, a_min=Deprecated, a_max=Deprecated)` |
-| `jnp.zeros` | `(shape, dtype=None, device=None)` |
-| `jnp.ones` | `(shape, dtype=None, device=None)` |
-| `jnp.arange` | `(start, stop=None, step=None, dtype=None, device=None)` |
-| `jnp.interp` | `(x, xp, fp, left=None, right=None, period=None)` |
+| Name | Signature | Inputs / dtype contract |
+|---|---|---|
+| `jnp.array` | `(object, dtype=None, copy=True, order='K', ndmin=0, device=None)` | `object`: any array-convertible object. `dtype`: DTypeLike or None; inferred from input when omitted. |
+| `jnp.concatenate` | `(arrays, axis=0, dtype=None)` | `arrays`: ndarray, JAX Array, or sequence of ArrayLike with matching shapes except along `axis`. `dtype`: DTypeLike or None; omitted dtype follows type promotion. |
+| `jnp.stack` | `(arrays, axis=0, out=None, dtype=None)` | `arrays`: ndarray, JAX Array, or sequence of ArrayLike with matching shapes. `dtype`: DTypeLike or None; omitted dtype follows type promotion. |
+| `jnp.clip` | `(arr=None, min=None, max=None, a=Deprecated, a_min=Deprecated, a_max=Deprecated)` | `arr`, `min`, `max`: ArrayLike or None; bounds must be broadcast-compatible with `arr`. |
+| `jnp.zeros` | `(shape, dtype=None, device=None)` | `shape`: shape-like. `dtype`: DTypeLike or None; defaults to float32/float64 depending on `jax_enable_x64`. |
+| `jnp.ones` | `(shape, dtype=None, device=None)` | `shape`: shape-like. `dtype`: DTypeLike or None; defaults to float32/float64 depending on `jax_enable_x64`. |
+| `jnp.arange` | `(start, stop=None, step=None, dtype=None, device=None)` | `start`/`stop`: ArrayLike or DimSize. `step`: ArrayLike or None. `dtype`: DTypeLike or None; omitted dtype follows promotion of start/stop/step. |
+| `jnp.interp` | `(x, xp, fp, left=None, right=None, period=None)` | `x`, `xp`, `fp`: ArrayLike; `xp` must be 1-D sorted and `fp.shape == xp.shape`. `left`/`right`: ArrayLike, 'extrapolate', or None. `period`: ArrayLike or None. |
 
 **nonsmooth**
 
-| Name | Signature |
-|---|---|
-| `jnp.sign` | `(x)` |
-| `jnp.maximum` | `(*args, out=None, where=None)` |
-| `jnp.minimum` | `(*args, out=None, where=None)` |
-| `jnp.tanh` | `(x)` |
+| Name | Signature | Inputs / dtype contract |
+|---|---|---|
+| `jnp.sign` | `(x)` | `x`: ArrayLike real or complex. Returns same shape and dtype as `x`. |
+| `jnp.maximum` | `(*args, out=None, where=None)` | `x`, `y`: ArrayLike scalars/arrays; inputs must share shape or be broadcast-compatible. Result follows JAX type promotion and propagates NaN. |
+| `jnp.minimum` | `(*args, out=None, where=None)` | `x`, `y`: ArrayLike scalars/arrays; inputs must share shape or be broadcast-compatible. Result follows JAX type promotion and propagates NaN. |
+| `jnp.tanh` | `(x)` | `x`: ArrayLike numeric. Integers/bools are promoted to inexact dtype; complex inputs return complex. |
 
 ## Gotchas (curated — these are the ones that bite)
 

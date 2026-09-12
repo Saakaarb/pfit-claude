@@ -125,6 +125,38 @@ jax:
     # the one question a non-smooth model has to ask, while still claiming to be
     # the only authority on what exists.
     nonsmooth: [sign, maximum, minimum, tanh]
+  # Compact contracts from the JAX docs. Signatures are still introspected from
+  # the installed pinned package; these notes add the missing parameter and
+  # result dtype rules the generated signature alone does not expose.
+  input_types:
+    mean: "`a`: ArrayLike. `where`: ArrayLike boolean mask or None. `dtype`: DTypeLike or None; output dtype matches floating inputs, otherwise promotes non-floating inputs to float32/float64."
+    sum: "`a`: ArrayLike. `initial`/`where`: ArrayLike or None; `where` is a broadcast-compatible mask. `dtype`: DTypeLike or None; integer inputs promote to widest available integer unless `promote_integers=False` or `dtype` is set."
+    max: "`a`: ArrayLike. `initial`/`where`: ArrayLike or None; `where` is a broadcast-compatible boolean mask and requires `initial`."
+    min: "`a`: ArrayLike. `initial`/`where`: ArrayLike or None; `where` is a broadcast-compatible boolean mask and requires `initial`."
+    sqrt: "`x`: ArrayLike real or complex. Negative real inputs return NaN; complex inputs return complex."
+    square: "`x`: ArrayLike numeric. Output follows JAX type-promotion rules."
+    abs: "`x`: ArrayLike numeric. Complex input returns real magnitude."
+    log: "`x`: ArrayLike numeric. Integers/bools are promoted to inexact dtype; negative real inputs return NaN."
+    log10: "`x`: ArrayLike numeric. Integers/bools are promoted to inexact dtype; negative real inputs return NaN."
+    exp: "`x`: ArrayLike numeric. Integers/bools are promoted to inexact dtype."
+    isnan: "`x`: ArrayLike numeric. Returns bool Array."
+    nan_to_num: "`x`: ArrayLike. `nan`, `posinf`, `neginf`: ArrayLike replacements or None. Inexact inputs are sanitized; non-inexact inputs are returned unmodified."
+    nanmax: "`a`: ArrayLike. `initial`/`where`: ArrayLike or None; `where` is a broadcast-compatible boolean mask."
+    nanmean: "`a`: ArrayLike. `where`: ArrayLike boolean mask or None. `dtype`: DTypeLike or None."
+    nansum: "`a`: ArrayLike. `initial`/`where`: ArrayLike or None; `where` is a broadcast-compatible boolean mask. `dtype`: DTypeLike or None."
+    where: "`condition`: broadcast-compatible boolean ArrayLike. Three-argument form needs `x` and `y` ArrayLike, broadcast-compatible, typecast-compatible; result dtype is `jnp.result_type(x, y)`."
+    array: "`object`: any array-convertible object. `dtype`: DTypeLike or None; inferred from input when omitted."
+    concatenate: "`arrays`: ndarray, JAX Array, or sequence of ArrayLike with matching shapes except along `axis`. `dtype`: DTypeLike or None; omitted dtype follows type promotion."
+    stack: "`arrays`: ndarray, JAX Array, or sequence of ArrayLike with matching shapes. `dtype`: DTypeLike or None; omitted dtype follows type promotion."
+    clip: "`arr`, `min`, `max`: ArrayLike or None; bounds must be broadcast-compatible with `arr`."
+    zeros: "`shape`: shape-like. `dtype`: DTypeLike or None; defaults to float32/float64 depending on `jax_enable_x64`."
+    ones: "`shape`: shape-like. `dtype`: DTypeLike or None; defaults to float32/float64 depending on `jax_enable_x64`."
+    arange: "`start`/`stop`: ArrayLike or DimSize. `step`: ArrayLike or None. `dtype`: DTypeLike or None; omitted dtype follows promotion of start/stop/step."
+    interp: "`x`, `xp`, `fp`: ArrayLike; `xp` must be 1-D sorted and `fp.shape == xp.shape`. `left`/`right`: ArrayLike, 'extrapolate', or None. `period`: ArrayLike or None."
+    sign: "`x`: ArrayLike real or complex. Returns same shape and dtype as `x`."
+    maximum: "`x`, `y`: ArrayLike scalars/arrays; inputs must share shape or be broadcast-compatible. Result follows JAX type promotion and propagates NaN."
+    minimum: "`x`, `y`: ArrayLike scalars/arrays; inputs must share shape or be broadcast-compatible. Result follows JAX type promotion and propagates NaN."
+    tanh: "`x`: ArrayLike numeric. Integers/bools are promoted to inexact dtype; complex inputs return complex."
   transforms: [jit, grad, value_and_grad, vmap, pmap]
   notes:
     - "`jax.config.update('jax_enable_x64', True)` must appear before any array

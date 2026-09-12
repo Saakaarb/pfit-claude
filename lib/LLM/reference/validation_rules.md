@@ -124,7 +124,7 @@ The mode must match the entry point about to be used, because R6's severity depe
 | R3 | `generated_script.py`'s source stamp matches the current `user_model.py` and `user_input.yaml` | critical | **the fit imports the script and never reads the model.** A stale script fits the previous version of the equations, completes normally, and reports parameters for a model you no longer have |
 | R4 | the validation report is newer than the config and the model | warning | `/pfit-check` last ran against different inputs, so its verdict may not describe what is about to run |
 | R5 | the last validation reported zero critical errors | critical | those errors were never resolved |
-| R6 | `outputs/final_design_point.csv` exists | **critical under `--mode gradient-only`**, informational under `--mode full` | it is the seed `fit_gradient_only.py` reads, and it raises `FileNotFoundError` without one. Logs alone are not enough: a run that died before writing a design point leaves logs but no seed. A full fit overwrites both |
+| R6 | a completed seed run's `final_design_point.csv` exists (legacy flat output supported) | **critical under `--mode gradient-only`**, informational under `--mode full` | it is the seed `fit_gradient_only.py` reads, and it raises `FileNotFoundError` without one. Logs alone are not enough: a run that died before writing a design point leaves logs but no seed. Both run modes preserve prior artifacts and create new run directories |
 
 R3 compares **content**, not timestamps. `/pfit-jax` stamps the script it writes
 with a hash of each source taken after stripping comments and blank lines, so the
@@ -212,10 +212,11 @@ warning so the user can decide.
 **Optimizer choice governs iteration count and learning rate** — inspect
 `gradient_optimizer`:
 
-- `lbfgs` (default) is quasi-Newton: it takes large curvature-informed steps, so
+- `lbfgs` is quasi-Newton: it takes large curvature-informed steps, so
   a small `num_iters` (tens, even <10) is fine, and it performs its own line
   search, so the LR fields are irrelevant to it.
-- `adam` is first-order and takes a **normalized** step: its update is
+- `adam` (the default proposed for new sessions) is first-order and takes a
+  **normalized** step: its update is
   `lr * m/(sqrt(v)+eps)`, and where the gradient sign is consistent that factor
   tends to ±1, so each step moves about `lr` in the scaled parameter space
   **regardless of the gradient's magnitude**. Since the framework scales every
@@ -223,13 +224,14 @@ warning so the user can decide.
   `num_iters * init_value_lr`.
 
   Warn if `num_iters < 1 / init_value_lr`, and state the implied travel
-  distance. At the recommended `init_value_lr = 1e-3` that floor is **1000**;
-  `num_iters = 200` would move only 0.2 in a coordinate whose full range is 2,
+  distance. At the recommended `init_value_lr = 5e-3` that floor is **200**;
+  `num_iters = 40` would move only 0.2 in a coordinate whose full range is 2,
   which cannot cross a basin. An annealing schedule lowers the real total below
   `num_iters * init_value_lr`, so treat the floor as optimistic.
 
   Also warn if `init_value_lr` > ~1e-2 (adam oscillates or diverges on the stiff
-  ODE loss surface). Suggest starting near 1e-3 and annealing to ~1e-5.
+  ODE loss surface). The starting proposal is 1000 iterations, an initial rate
+  of 5e-3, transition steps of 100, and annealing to ~1e-5.
 
   Clearing the floor is necessary, not sufficient: it bounds how far adam
   *could* move, not whether it converged. The exit-gradient ratio is the only

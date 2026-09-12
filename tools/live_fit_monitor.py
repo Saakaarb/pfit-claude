@@ -62,11 +62,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=DEFAULT_CONFIG,
                         help="path to the YAML config (default: beside this script)")
+    parser.add_argument("--run", help="run ID or directory; pair with an explicit session")
+    parser.add_argument("--session", help="session name or path")
     parser.add_argument("--log-file", default=os.path.join(SCRIPT_DIR, "live_fit_monitor.log"),
                         help="path to the log file")
     args = parser.parse_args()
 
     config = live_view.load_config(args.config)
+    if args.run:
+        config["run"] = args.run
+    if args.session:
+        config["session"] = args.session
 
     interactive = sys.stdout.isatty() and config.get("renderer", "terminal") == "terminal"
     setup_logging(args.log_file, to_stdout=not interactive)

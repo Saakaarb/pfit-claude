@@ -47,7 +47,7 @@ from memory.
    distribute across each observable's range, and the spread across experiments.
    Report what bears on this session — a loss whose channels differ by orders of
    magnitude, or an observable whose samples all sit in one decile of its range,
-   is worth raising even when every D check passes.
+   is worth raising even when every check passes.
 
 4. **Validate.** Apply every check in `validation_rules.md`. For the optimizer
    settings, read the actual numbers out of the config and evaluate each threshold
@@ -63,16 +63,14 @@ from memory.
 7. **Recommend.** Once there are no critical errors, gather the evidence listed
    in `tuning_rules.md` and apply its rules to produce the Recommendations
    section. Read the dataset CSVs and the RHS for this — the recommendations come
-   from the model and the data, not from the config alone. Emit nothing you cannot
-   attach evidence to.
+   from the model and the data, not from the config alone.
 
 8. Write the final report to
    `sessions/<session_name>/generated/user_input_check.txt`.
 
 9. Tell the user the outcome:
    - clean: "Validation passed. Run `/pfit-jax` to generate the JAX optimization code."
-   - otherwise: list the unresolved critical errors and ask them to fix those
-     manually before re-running `/pfit-check`.
+   - otherwise: list the unresolved critical errors and ask them to make decisions on those before re-running `/pfit-check`.
 
 10. If there are recommendations, list them and ask which to apply (by rule id,
     `all`, or `none`). Apply only what the user names, following the apply policy

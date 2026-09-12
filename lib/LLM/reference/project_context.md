@@ -34,7 +34,8 @@ plain Python — it is not run by the model.
 Parameters are fitted in two stages:
 
 1. **Population / zero-order search** (PSO or DE) — global exploration.
-2. **Gradient-based refinement** (NODE: L-BFGS or Adam via optax) — local polish,
+2. **Gradient-based refinement** (NODE: Adam by default for new sessions,
+   with L-BFGS as an alternative, via optax) — local polish,
    seeded from the best point of stage 1.
 
 Stage boundaries matter for tolerances: the global search may run at looser ODE
@@ -67,30 +68,43 @@ sessions/<session_name>/
 │   ├── user_model.py         <- created by /pfit-new
 │   ├── user_input_check.txt  <- created by /pfit-check
 │   └── generated_script.py   <- created by /pfit-jax
-└── outputs/                  <- created by fit_parameters.py
-    ├── final_design_point.csv
-    ├── result_solution_exp1.csv   <- one file per experiment
-    ├── pso_fitting.log  (or de_fitting.log)
-    ├── NODE_fitting.log
-    ├── run_stdout.log            <- only when the live view runs; see below
-    ├── sloppiness_report.txt
-    └── sloppiness_spectrum.png
+└── outputs/
+    └── <run_id>/                 <- new UTC timestamp + suffix for every run
+        ├── run_manifest.json
+        ├── snapshot/             <- original config, execution config, data, code
+        ├── final_design_point.csv
+        ├── result_solution_exp1.csv   <- one file per experiment
+        ├── pso_fitting.log  (or de_fitting.log)
+        ├── NODE_fitting.log
+        ├── <session_name>_fit.png
+        ├── run_stdout.log        <- when the terminal live view runs
+        ├── sloppiness_report.txt
+        └── sloppiness_spectrum.png
 ```
 
-The directory names are overridable via the `paths` section.
+The directory names are overridable via the `paths` section. Both run modes
+create new directories and preserve all older artifacts. See `run_history.md`
+for snapshots, audit metadata, explicit run selection and seed lineage.
+
+After full and gradient-only fits, `/pfit-run` must generate, save, and inspect
+measured-versus-fitted plots for every experiment and fitted observable before
+reporting the workflow complete. `/pfit-diagnose` must inspect and reference
+these figures. See `result_plotting.md` for the shared procedure. Direct Python
+entry-point calls do not automatically perform this plotting step.
 
 ## The live view
 
 Run on a terminal, `fit_parameters.py` and `fit_gradient_only.py` raise a live
 plot of best-so-far loss against iteration for both stages, reading the
 iteration logs as they are written. While it is up the pipeline's own console
-output is captured to `outputs/run_stdout.log` — it would otherwise fight the
+output is captured to `outputs/<run_id>/run_stdout.log` — it would otherwise fight the
 in-place redraw — and the last lines are echoed back when the view comes down,
 so the fitted parameters still land in the terminal.
 
 It is display only: it never writes into a session and cannot affect a fit.
-Off a terminal (piped, `nohup`, cron, the pytest suite) it does not engage at
-all and the output is exactly what it always was. `PFIT_LIVE=0` disables it for
+Off a terminal (piped, `nohup`, cron, the pytest suite), the live view does not
+engage and console output remains on stdout/stderr. Iteration logs, diagnostics,
+and results are still saved inside the run directory. `PFIT_LIVE=0` disables it for
 one run; `auto_attach: false` in `tools/live_fit_monitor.yaml` disables it for
 good. That same file configures it, and `tools/live_fit_monitor.py` shows the
 same view for a fit already running in another terminal.
@@ -128,8 +142,8 @@ equally.
 
 ## Post-fit diagnostics (automatic)
 
-Every gradient-based run writes `outputs/sloppiness_report.txt` and
-`outputs/sloppiness_spectrum.png`. It eigendecomposes the Hessian of the loss at
+Every gradient-based run writes `outputs/<run_id>/sloppiness_report.txt` and
+`outputs/<run_id>/sloppiness_spectrum.png`. It eigendecomposes the Hessian of the loss at
 the best fit in log-parameter space — the Fisher-information / "sloppiness"
 spectrum (Gutenkunst et al. 2007; Hass et al. 2019) — and reports:
 
@@ -152,7 +166,7 @@ converged optimum. Implementation: `lib/utils/sloppiness.py`.
 Re-run stand-alone on a completed session without re-fitting:
 
 ```bash
-./venv/bin/python3 analyze_fit.py <session_name>
+./venv/bin/python3 analyze_fit.py <session_name> --run <run_id>
 ```
 
 ## Reproducibility

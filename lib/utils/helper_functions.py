@@ -448,10 +448,9 @@ def fit_gradient_only_system(path_to_input: Path, path_to_output_dir: Path, gene
     more iterations, or tighter tolerances) without repeating the expensive
     PSO/DE search.
 
-    Unlike ``fit_generic_system`` this does NOT wipe the output directory — the
-    population-search logs and the ``final_design_point.csv`` that seeds this run
-    are preserved. Only the NODE outputs (``NODE_fitting.log``,
-    ``result_solution_expN.csv``, ``final_design_point.csv``) are overwritten.
+    The entry point provides a fresh run directory and a copied seed. Prior
+    population logs and design points remain in their original run; outputs
+    written here belong only to this refinement attempt.
 
     Parameters
     ----------

@@ -3,7 +3,7 @@
 Plot every fitted session's simulation against its measured data.
 
 Reads outputs/result_solution_expN.csv from each session listed in
-plot_fits.yaml and writes one figure per session. Sessions that have not been
+plot_fits.yaml and writes one figure inside each selected run directory. Sessions that have not been
 fitted yet are skipped with a warning, so the config can list the whole set.
 
 Usage:
@@ -17,6 +17,8 @@ import logging
 import os
 import re
 import sys
+import shutil
+from pathlib import Path
 
 import matplotlib
 
@@ -28,6 +30,8 @@ import yaml
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 DEFAULT_CONFIG = os.path.join(SCRIPT_DIR, "plot_fits.yaml")
+sys.path.insert(0, REPO_ROOT)
+from lib.utils.run_store import resolve_run
 
 logger = logging.getLogger("plot_fits")
 
@@ -57,6 +61,10 @@ def experiment_files(outputs_dir: str) -> list[str]:
 
 def nrmse(measured: np.ndarray, simulated: np.ndarray) -> float:
     """Peak-normalised RMSE, as a percentage of the data's own range."""
+    mask = np.isfinite(measured) & np.isfinite(simulated)
+    measured, simulated = measured[mask], simulated[mask]
+    if not measured.size:
+        return float("nan")
     scale = np.max(np.abs(measured))
     if scale == 0:
         scale = 1.0
@@ -66,7 +74,8 @@ def nrmse(measured: np.ndarray, simulated: np.ndarray) -> float:
 def plot_session(session: dict, style: dict, out_dir: str, dpi: int) -> str | None:
     name = session["name"]
     root = os.path.join(REPO_ROOT, session["root"])
-    outputs_dir = os.path.join(root, "outputs")
+    outputs_dir = str(resolve_run(root, session.get("run")))
+    out_dir = outputs_dir
 
     if not os.path.isdir(outputs_dir):
         logger.warning("%s: no outputs/ directory - not fitted yet, skipping", name)
@@ -131,8 +140,7 @@ def plot_session(session: dict, style: dict, out_dir: str, dpi: int) -> str | No
                     "check the column mapping in the config",
                     name, row + 1, panel["label"], d_idx, s_idx, data.shape[1],
                 )
-                ax.set_axis_off()
-                continue
+                raise ValueError(f"Invalid plot column mapping for {name}: {panel}")
 
             measured, simulated = data[:, d_idx], data[:, s_idx]
             x_meas, x_sim = data[:, xd_idx], data[:, xs_idx]
@@ -206,10 +214,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=DEFAULT_CONFIG,
                         help="path to the YAML config (default: beside this script)")
+    parser.add_argument("--session", help="only plot this configured session")
+    parser.add_argument("--run", help="run ID or directory; requires --session")
     parser.add_argument("--log-file", default=os.path.join(SCRIPT_DIR, "plot_fits.log"),
                         help="path to the log file")
     args = parser.parse_args()
 
+    if args.run and not args.session:
+        parser.error("--run requires --session")
     setup_logging(args.log_file)
     logger.info("reading config from %s", args.config)
 
@@ -221,9 +233,22 @@ def main() -> int:
     style = config["style"]
 
     written, skipped = [], []
-    for session in config["sessions"]:
+    selected = [s for s in config["sessions"] if not args.session or s["name"] == args.session]
+    if not selected:
+        logger.error("No matching session in plotting config")
+        return 1
+    for session in selected:
+        if args.run:
+            session = dict(session, run=args.run)
         try:
             path = plot_session(session, style, out_dir, dpi)
+            if path:
+                destination = Path(path).parent
+                (destination / "plot_fits.yaml").write_text(yaml.safe_dump(
+                    dict(config, sessions=[session]), sort_keys=False))
+                script_copy = destination / "plot_fits_script.py"
+                if Path(__file__).resolve() != script_copy.resolve():
+                    shutil.copyfile(__file__, script_copy)
         except Exception:
             logger.exception("%s: failed to plot", session.get("name", "?"))
             skipped.append(session.get("name", "?"))
@@ -233,8 +258,8 @@ def main() -> int:
     logger.info("plotted %d session(s): %s", len(written), ", ".join(written) or "none")
     if skipped:
         logger.warning("skipped %d session(s): %s", len(skipped), ", ".join(skipped))
-    logger.info("figures in %s", out_dir)
-    return 0
+    logger.info("figures saved in the selected run directories")
+    return 1 if skipped else 0
 
 
 if __name__ == "__main__":

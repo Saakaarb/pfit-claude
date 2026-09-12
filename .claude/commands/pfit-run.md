@@ -18,6 +18,9 @@ here, before anything is spent.
 | `lib/LLM/reference/project_context.md` | the entry points, the session layout, what lands in `outputs/`, the live view, reproducibility | yes |
 | `lib/LLM/reference/validation_rules.md` | the severity of each readiness id | yes |
 | `lib/LLM/reference/cold_start.md` | this step starts the fit; it does not read another session's results | yes |
+| `lib/LLM/reference/runtime_intervention.md` | monitoring and user-approved intervention during a slow global search | yes |
+| `lib/LLM/reference/run_history.md` | run allocation, snapshots and seed selection | yes |
+| `lib/LLM/reference/result_plotting.md` | mandatory saved plots after both run modes | yes |
 | `lib/LLM/reference/diagnosis_rules.md` | ONLY to hand off at the end — do not diagnose here | conditional |
 
 ## Invocation
@@ -40,12 +43,13 @@ point and the user's last change was confined to the gradient settings.
 
    - **full** (`fit_parameters.py`) — both stages. Required after any change to
      the model, the bounds, `logscale`, the integrator or the population
-     settings, because the previous basin is no longer valid. Overwrites
-     `outputs/`.
+     settings, because the previous basin is no longer valid. Creates a new
+     `outputs/<run_id>/`; all earlier runs remain intact.
    - **gradient-only** (`fit_gradient_only.py`) — refinement alone, seeded from
-     `outputs/final_design_point.csv`. Correct only when the global search
+     `outputs/<seed_run_id>/final_design_point.csv`. Correct only when the global search
      already landed in a good basin and the change was confined to the gradient
-     settings. Preserves the existing stage-1 logs and the seed point.
+     settings. Copies the seed into a new run and records its source; earlier
+     stage-1 logs and design points stay in their original run.
 
    State which you are using and why. If the user asked for gradient-only on a
    session with no stored design point, do not silently fall back to a full fit —
@@ -69,6 +73,10 @@ point and the user's last change was confined to the gradient settings.
    one to be strict about: re-running `/pfit-jax` costs seconds, and skipping it
    invalidates the entire run.
 
+   Also check `output.write_results: true`, required for post-fit plots. If
+   disabled, report and resolve that setting before running, then regenerate
+   and repeat readiness checks.
+
 4. **Start it** — the entry point chosen in step 3, not always the first one.
    Run in the background so the session is not blocked:
 
@@ -77,25 +85,33 @@ point and the user's last change was confined to the gradient settings.
    ./venv/bin/python3 fit_gradient_only.py <session_name>     # refinement only
    ```
 
-   `fit_gradient_only.py` seeds from `outputs/final_design_point.csv` and refuses
+   `fit_gradient_only.py` seeds from `outputs/<seed_run_id>/final_design_point.csv` and refuses
    to start without it, so R6 must report that file present before you choose it.
    It preserves the previous stage-1 logs and the seed point; the full fit
-   overwrites the outputs directory.
+   creates a separate timestamped directory, preserving previous runs.
 
-   State up front that this can take minutes for a small system and hours for a
+   State up front that this can take minutes for a small system and longer for a
    stiff one, and that the first iteration includes JIT compilation and is not
    representative of the rest. A gradient-only re-run skips the global search
    entirely, so it is typically minutes where the full fit was hours.
 
-5. **While it runs**, do not speculate about the outcome and do not predict a
-   result. If asked for progress, read the iteration logs in `outputs/` and
-   report the actual numbers.
+   Record the exact `Run artifacts:` directory printed at launch. Use it for
+   every subsequent read, plot and report; do not reselect latest mid-workflow.
+   For gradient-only, accept an optional `--seed-run <run_id-or-path>`, resolve
+   it during pre-flight, and pass the same selection to the entry point.
+
+5. **While it runs**, actively monitor process status and logs according to
+   `runtime_intervention.md`; do not wait for the user to request progress.
+   If excessive failed-solve work is suspected, offer the documented stop,
+   archive, adjust, regenerate, and restart procedure with a concrete proposed
+   limit. Act only after authorization. Report actual progress and distinguish
+   suspected causes from established facts; do not predict the fit outcome.
 
 6. **When it finishes**, report, from the files rather than from expectation:
 
    - the final cost from each stage, and the iteration at which each stopped
      improving materially;
-   - the fitted parameters from `outputs/final_design_point.csv`;
+   - the fitted parameters from `outputs/<run_id>/final_design_point.csv`;
    - where the per-experiment trajectories were written.
 
    Flag either of these if present, without diagnosing further:
@@ -103,19 +119,22 @@ point and the user's last change was confined to the gradient settings.
    - **a cost flat at a large value from the first iteration** — candidates are
      not integrating at all, so nothing was fitted; the causes are in
      `diagnosis_rules.md`;
-   - **`outputs/fitting_error.txt`** — the run raised; quote the error.
+   - **`outputs/<run_id>/fitting_error.txt`** — the run raised; quote the error.
 
-7. **Plot before judging.** Run `tools/plot_fits.py` if the session is listed in
-   its config, or say that it needs adding. A loss value is not a verdict, and
-   for a multi-experiment session the averaged loss hides which record fitted
-   badly.
+7. **Generate, save, and inspect plots — mandatory.** Follow
+   `result_plotting.md` for every experiment and fitted observable. Create the
+   session's plotting config if absent, save `outputs/<run_id>/<session>_fit.png`,
+   check the plotting log and open the figure. Link it in the result summary.
+   If plotting fails, report the blocker and the workflow as incomplete.
 
-8. Hand off: "Run `/pfit-diagnose <session_name>` for a verdict on this fit."
+8. Hand off: "Run `/pfit-diagnose <session_name> <run_id>` for a verdict on this fit."
    Do not diagnose here — that procedure reads evidence this one does not gather.
 
 ## Rules
 
-- Never start a fit with a failing blocking check to "see what happens".
-- Never edit `user_model.py`, the config or the data to make a run start. Report
-  what is wrong and let the user decide.
+- Never start a fit with a failing blocking check.
+- Never edit `user_model.py`, the config or the data to bypass a failing
+  pre-flight. Config changes during the user-approved runtime intervention are
+  allowed only after the current process has stopped, followed by regeneration
+  and readiness checks as specified in `runtime_intervention.md`.
 - Never report a result you have not read out of a file.

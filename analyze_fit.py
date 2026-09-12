@@ -1,15 +1,16 @@
 """
 Stand-alone post-processing of a completed pfit-claude session: compute the
 sloppiness / identifiability diagnostics of Hass et al. (2019) for an existing
-fit (uses outputs/final_design_point.csv).
+fit (uses the selected run's final_design_point.csv and snapshots).
 
 The same analysis runs automatically at the end of every gradient-based fit
 (see lib/utils/sloppiness.py, wired into helper_functions.py). This script just
 lets you (re)run it on any session after the fact.
 
 Usage:
-    venv/bin/python3 analyze_fit.py <session_name>
+    venv/bin/python3 analyze_fit.py <session_name> --run <run_id>
 """
+import argparse
 import os
 import sys
 import importlib.util
@@ -23,6 +24,8 @@ import jax.numpy as jnp
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lib.utils.helper_functions import get_input_reader, CreatedClass
 from lib.utils.sloppiness import run_sloppiness_analysis
+from lib.utils.run_store import resolve_run, run_sources, run_config
+from lib.utils.dataset_io import load_dataset
 
 
 def resolve_session_dir(argv) -> Path:
@@ -40,25 +43,31 @@ def resolve_session_dir(argv) -> Path:
 
 
 def main():
-    session = resolve_session_dir(sys.argv)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("session", nargs="?")
+    parser.add_argument("--run", help="run ID or directory; default: latest run")
+    args = parser.parse_args()
+    session = resolve_session_dir([sys.argv[0], args.session] if args.session else [sys.argv[0]])
+    output = resolve_run(session, args.run)
+    sources = run_sources(output, session)
+    print(f"Run: {output}")
     print(f"Analysing session: {session.name}")
 
     # load the session's generated script
-    gen_path = session / "generated" / "generated_script.py"
+    gen_path = sources / "generated" / "generated_script.py"
     spec = importlib.util.spec_from_file_location("generated_script", gen_path)
     gen = importlib.util.module_from_spec(spec)
     sys.modules["generated_script"] = gen
     spec.loader.exec_module(gen)
 
     # rebuild the framework problem object
-    input_reader = get_input_reader(str(session / "inputs" / "user_input.yaml"))
+    input_reader = get_input_reader(str(run_config(output, session)))
     input_reader.check_name_uniqueness()
-    input_reader.output_dir = session / "outputs"
+    input_reader.output_dir = output
     experiments = []
     for exp in input_reader.experiments:
-        dpath = session / input_reader.user_input_dirname / exp["filename"]
-        with open(dpath, "r", encoding="utf-8-sig") as f:
-            data = np.genfromtxt(f, dtype=float, delimiter=",")
+        dpath = sources / input_reader.user_input_dirname / exp["filename"]
+        data = load_dataset(dpath)
         experiments.append({"t_eval": data[:, 0], "dataset": data[:, 1:],
                             "y0": jnp.array(input_reader.get_y0(len(experiments)))})
     prob = CreatedClass(experiments, input_reader, gen._compute_loss_problem, gen._write_problem_result)
@@ -74,12 +83,12 @@ def main():
     lo, hi = np.array(lo), np.array(hi)
 
     # best-fit physical params -> scaled [-1,1] search coordinate
-    theta = np.atleast_1d(np.loadtxt(session / "outputs" / "final_design_point.csv"))
+    theta = np.atleast_1d(np.loadtxt(output / "final_design_point.csv"))
     u = np.where(np.array(is_log).astype(bool), np.log10(theta), theta)
     scaled_best = 2.0 * (u - lo) / (hi - lo) - 1.0
 
     run_sloppiness_analysis(gen._compute_loss_problem, prob.constants_list, scaled_best,
-                            input_reader.trainable_parameter_names, session / "outputs")
+                            input_reader.trainable_parameter_names, output)
 
 
 if __name__ == "__main__":

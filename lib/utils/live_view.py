@@ -32,6 +32,8 @@ import sys
 import threading
 import time
 from pathlib import Path
+from lib.utils.run_store import resolve_run, output_root
+import json
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = REPO_ROOT / "tools" / "live_fit_monitor.yaml"
@@ -195,7 +197,7 @@ def stage1_log_path(outputs_dir) -> tuple[str | None, str]:
 def newest_log_mtime(outputs_dir) -> float:
     """Most recent mtime across the three iteration logs, or 0."""
     stamps = [
-        _mtime(os.path.join(outputs_dir, name)) for name in STAGE1_LOGS + (STAGE2_LOG,)
+        _mtime(os.path.join(outputs_dir, name)) for name in STAGE1_LOGS + (STAGE2_LOG, "run_manifest.json")
     ]
     return max(stamps) if stamps else 0.0
 
@@ -211,6 +213,15 @@ def read_error_text(outputs_dir) -> str:
         return ""
 
 
+
+def monitor_output(session_dir, run=None):
+    try:
+        return str(resolve_run(session_dir, run))
+    except FileNotFoundError:
+        if run:
+            raise
+        return str(output_root(session_dir))
+
 def discover_session(search_roots: list[str]) -> str | None:
     """Session directory whose iteration logs were written most recently."""
     best_path, best_stamp = None, 0.0
@@ -220,7 +231,7 @@ def discover_session(search_roots: list[str]) -> str | None:
             continue
         for entry in sorted(os.listdir(root_abs)):
             session_dir = os.path.join(root_abs, entry)
-            outputs_dir = os.path.join(session_dir, "outputs")
+            outputs_dir = monitor_output(session_dir)
             if not os.path.isdir(outputs_dir):
                 continue
             stamp = newest_log_mtime(outputs_dir)
@@ -552,7 +563,7 @@ def follow(session_dir, config: dict, stop_event=None, stream=None, interactive=
     (which knows when the fit function returned) rather than inferred from
     outputs/, so the view stays up through the post-fit diagnostics.
     """
-    outputs_dir = os.path.join(session_dir, "outputs")
+    outputs_dir = config.get("run_output_dir") or monitor_output(session_dir, config.get("run"))
     session_name = os.path.basename(os.path.normpath(str(session_dir)))
     attached = stop_event is not None
 
@@ -615,6 +626,9 @@ def follow(session_dir, config: dict, stop_event=None, stream=None, interactive=
             complete_now = (
                 os.path.isfile(design_point) and _mtime(design_point) >= log_stamp - 1.0
             )
+            manifest_path = Path(outputs_dir) / "run_manifest.json"
+            if manifest_path.is_file():
+                complete_now = json.loads(manifest_path.read_text()).get("status") == "completed"
             complete_since = complete_since if complete_now else None
             if complete_now and complete_since is None:
                 complete_since = time.time()
@@ -687,7 +701,7 @@ def wait_for_session(config: dict, announce=None) -> str | None:
     announced = False
     while True:
         session_dir = resolve_session(config)
-        if session_dir and newest_log_mtime(os.path.join(session_dir, "outputs")):
+        if session_dir and newest_log_mtime(monitor_output(session_dir, config.get("run"))):
             return session_dir
         if time.time() > deadline:
             return session_dir
@@ -756,17 +770,16 @@ def attach(session_dir, output_dir, config=None):
     The fit's own console output would fight the in-place redraw, so it is
     captured to outputs/run_stdout.log at the file-descriptor level -- which
     catches writes from C extensions too -- and the last lines are echoed back
-    once the view comes down. Yields None (and changes nothing) when the live
-    view is disabled or stdout is not a terminal.
+    once the view comes down. When the view is disabled or stdout is not a
+    terminal, yields None and leaves console streams untouched.
     """
     config = config if isinstance(config, dict) else load_config(config)
-    if not _enabled(config):
-        yield None
-        return
-
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     log_path = output_dir / "run_stdout.log"
+    if not _enabled(config):
+        yield None
+        return
 
     sys.stdout.flush()
     sys.stderr.flush()
@@ -781,6 +794,7 @@ def attach(session_dir, output_dir, config=None):
         except Exception:
             pass
 
+    config = dict(config, run_output_dir=str(output_dir))
     stop_event = threading.Event()
     thread = threading.Thread(
         target=_follow_quietly,

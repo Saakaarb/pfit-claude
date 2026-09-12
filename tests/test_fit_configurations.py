@@ -20,6 +20,7 @@ import sys
 
 import numpy as np
 import pytest
+from lib.utils.run_store import resolve_run
 
 from tests.conftest import DECAY_TRUE_PARAMS, REPO_ROOT, set_setting
 
@@ -38,7 +39,7 @@ def assert_recovers_truth(result, rtol=0.05):
 
 def read_final_design_point(session):
     return np.atleast_1d(
-        np.genfromtxt(session / "outputs" / "final_design_point.csv", delimiter=",")
+        np.genfromtxt(resolve_run(session) / "final_design_point.csv", delimiter=",")
     )
 
 
@@ -55,14 +56,14 @@ def test_differential_evolution_recovers_true_parameters(make_session, run_fit):
     """algorithm: DE — the entire FitParamsDE class was previously unexecuted."""
     session = make_session("decay_session", population={"algorithm": "DE"})
     assert_recovers_truth(run_fit(session))
-    assert (session / "outputs" / "de_fitting.log").exists()
-    assert not (session / "outputs" / "pso_fitting.log").exists()
+    assert (resolve_run(session) / "de_fitting.log").exists()
+    assert not (resolve_run(session) / "pso_fitting.log").exists()
 
 
 def test_pso_writes_its_own_log(make_session, run_fit):
     session = make_session("decay_session")
     run_fit(session)
-    log = (session / "outputs" / "pso_fitting.log").read_text()
+    log = (resolve_run(session) / "pso_fitting.log").read_text()
     assert "Total number of PSO iterations" in log
     # one CSV row per iteration
     rows = [l for l in log.splitlines() if l and l[0].isdigit()]
@@ -86,7 +87,7 @@ def test_adam_gradient_optimizer_runs_and_improves(make_session, run_fit):
                   "init_value_lr": 1e-2, "end_value_lr": 1e-4},
     )
     assert_recovers_truth(run_fit(session), rtol=0.15)
-    assert (session / "outputs" / "NODE_fitting.log").exists()
+    assert (resolve_run(session) / "NODE_fitting.log").exists()
 
 
 def test_unsupported_gradient_optimizer_degrades_to_the_population_result(
@@ -105,7 +106,7 @@ def test_unsupported_gradient_optimizer_degrades_to_the_population_result(
     assert np.all(np.isfinite(np.asarray(result, dtype=float)))
     assert "Error in NODE training" in capsys.readouterr().out
     # PSO alone gets close but the gradient stage never ran, so no NODE log
-    assert not (session / "outputs" / "NODE_fitting.log").exists()
+    assert not (resolve_run(session) / "NODE_fitting.log").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -141,9 +142,9 @@ def test_multi_experiment_writes_one_result_file_per_experiment(make_session, ru
     session = make_session("decay_multiexp")
     run_fit(session)
 
-    exp1 = np.genfromtxt(session / "outputs" / "result_solution_exp1.csv", delimiter=",")
-    exp2 = np.genfromtxt(session / "outputs" / "result_solution_exp2.csv", delimiter=",")
-    assert not (session / "outputs" / "result_solution_exp3.csv").exists()
+    exp1 = np.genfromtxt(resolve_run(session) / "result_solution_exp1.csv", delimiter=",")
+    exp2 = np.genfromtxt(resolve_run(session) / "result_solution_exp2.csv", delimiter=",")
+    assert not (resolve_run(session) / "result_solution_exp3.csv").exists()
 
     # each file must reflect ITS OWN initial condition (1.0 vs 2.0 for A)
     assert exp1[0, 3] == pytest.approx(1.0, abs=1e-6)
@@ -156,7 +157,7 @@ def test_multi_experiment_solution_tracks_both_datasets(make_session, run_fit):
     run_fit(session)
 
     for name in ("result_solution_exp1.csv", "result_solution_exp2.csv"):
-        arr = np.genfromtxt(session / "outputs" / name, delimiter=",")
+        arr = np.genfromtxt(resolve_run(session) / name, delimiter=",")
         data_a, sol_a = arr[:, 1], arr[:, 3]
         rel_err = np.abs(sol_a - data_a).max() / np.abs(data_a).max()
         assert rel_err < 0.02, f"{name}: solution does not track the data"
@@ -190,7 +191,7 @@ def test_fit_writes_the_expected_output_files(make_session, run_fit):
     session = make_session("decay_session")
     result = run_fit(session)
 
-    outputs = session / "outputs"
+    outputs = resolve_run(session)
     for name in ("final_design_point.csv", "result_solution_exp1.csv",
                  "pso_fitting.log", "NODE_fitting.log",
                  "sloppiness_report.txt", "sloppiness_spectrum.png"):
@@ -206,7 +207,7 @@ def test_sloppiness_report_describes_a_well_determined_fit(make_session, run_fit
     session = make_session("decay_session")
     run_fit(session)
 
-    report = (session / "outputs" / "sloppiness_report.txt").read_text()
+    report = (resolve_run(session) / "sloppiness_report.txt").read_text()
     assert "k1" in report and "k2" in report
     assert "eigen" in report.lower()
 
@@ -216,19 +217,20 @@ def test_write_results_off_suppresses_solution_files(make_session, run_fit):
     set_setting(session / "inputs" / "user_input.yaml", "output", "write_results", False)
 
     run_fit(session)
-    assert (session / "outputs" / "final_design_point.csv").exists()
-    assert not (session / "outputs" / "result_solution_exp1.csv").exists()
+    assert (resolve_run(session) / "final_design_point.csv").exists()
+    assert not (resolve_run(session) / "result_solution_exp1.csv").exists()
 
 
-def test_outputs_directory_is_wiped_between_runs(make_session, run_fit):
-    """fit_parameters clears outputs/, so results can't be mistaken for fresh ones."""
+def test_legacy_outputs_are_preserved_between_runs(make_session, run_fit):
+    """New runs preserve old flat artifacts and write into a distinct directory."""
     session = make_session("decay_session")
     outputs = session / "outputs"
     outputs.mkdir(exist_ok=True)
     (outputs / "stale_artifact.txt").write_text("from an older run")
 
     run_fit(session)
-    assert not (outputs / "stale_artifact.txt").exists()
+    assert (outputs / "stale_artifact.txt").read_text() == "from an older run"
+    assert resolve_run(session) != outputs
 
 
 # ---------------------------------------------------------------------------
@@ -255,7 +257,7 @@ def test_gradient_only_refines_an_existing_design_point(make_session):
     assert_recovers_truth(result, rtol=0.10)
     # the population-stage artifacts must be preserved, not wiped
     assert (outputs / "pso_fitting.log").read_text() == "from the previous run\n"
-    assert (outputs / "NODE_fitting.log").exists()
+    assert (resolve_run(session) / "NODE_fitting.log").exists()
 
 
 def test_gradient_only_rejects_a_wrong_length_seed(make_session):
@@ -270,7 +272,7 @@ def test_gradient_only_rejects_a_wrong_length_seed(make_session):
     reader = get_input_reader(session / "inputs" / "user_input.yaml")
     with pytest.raises(ValueError, match="init_guess has 3 entries"):
         gradient_only_driver(session, reader)
-    assert (outputs / "fitting_error.txt").exists()
+    assert (resolve_run(session) / "fitting_error.txt").exists()
 
 
 def test_analyze_fit_reruns_diagnostics_on_a_completed_session(make_session, run_fit):
@@ -278,7 +280,7 @@ def test_analyze_fit_reruns_diagnostics_on_a_completed_session(make_session, run
     session = make_session("decay_session")
     run_fit(session)
 
-    report = session / "outputs" / "sloppiness_report.txt"
+    report = resolve_run(session) / "sloppiness_report.txt"
     report.unlink()
 
     result = subprocess.run(
@@ -293,7 +295,7 @@ def test_analyze_fit_reruns_diagnostics_on_a_completed_session(make_session, run
 # error and interruption paths
 # ---------------------------------------------------------------------------
 
-def test_stop_flag_halts_the_gradient_stage_and_returns_the_seed(make_session):
+def test_stop_flag_halts_the_gradient_stage_and_returns_the_seed(make_session, monkeypatch):
     """A stop_fitting.flag must interrupt cleanly, not crash.
 
     Regression test: train_NODE used to initialise best_result to None, so a flag
@@ -301,8 +303,7 @@ def test_stop_flag_halts_the_gradient_stage_and_returns_the_seed(make_session):
     with "too many indices for array: array is 0-dimensional". The interrupted
     run must instead degrade to the unrefined starting point.
 
-    The gradient-only entry point is used because fit_parameters wipes outputs/
-    at startup, which would delete the flag before it could be seen.
+    Inject the flag into the newly allocated run before optimization starts.
     """
     from fit_gradient_only import run_driver as gradient_only_driver
     from lib.utils.helper_functions import get_input_reader
@@ -312,7 +313,16 @@ def test_stop_flag_halts_the_gradient_stage_and_returns_the_seed(make_session):
     outputs.mkdir(exist_ok=True)
     seed = np.array([0.6, 0.5])
     np.savetxt(outputs / "final_design_point.csv", seed, delimiter=",")
-    (outputs / "stop_fitting.flag").write_text("stop")
+    from contextlib import contextmanager
+    from lib.utils.run_store import new_run
+    import fit_gradient_only
+    @contextmanager
+    def stopped_run(*args, **kwargs):
+        with new_run(*args, **kwargs) as (run, snapshot):
+            (run / "stop_fitting.flag").write_text("stop")
+            yield run, snapshot
+    monkeypatch.setattr(fit_gradient_only, "new_run", stopped_run)
+
 
     reader = get_input_reader(session / "inputs" / "user_input.yaml")
     result = gradient_only_driver(session, reader)
@@ -323,8 +333,7 @@ def test_stop_flag_halts_the_gradient_stage_and_returns_the_seed(make_session):
 def test_stop_flag_halts_the_population_search(make_session):
     """optimize_function must check the flag between iterations and break.
 
-    Called directly (rather than through a full fit) because fit_parameters
-    deletes outputs/ — and the flag with it — before the search starts.
+    Called directly to isolate the population loop from run allocation.
     """
     from lib.utils.helper_functions import optimize_function
 
@@ -368,7 +377,7 @@ def test_missing_data_file_writes_an_error_report(make_session, run_fit):
 
     with pytest.raises(Exception):
         run_fit(session)
-    assert (session / "outputs" / "fitting_error.txt").exists()
+    assert (resolve_run(session) / "fitting_error.txt").exists()
 
 
 def test_duplicate_names_are_rejected_before_fitting(make_session, run_fit):
@@ -384,4 +393,4 @@ def test_duplicate_names_are_rejected_before_fitting(make_session, run_fit):
 
     with pytest.raises(ValueError, match="not unique"):
         run_fit(session)
-    assert (session / "outputs" / "fitting_error.txt").exists()
+    assert (resolve_run(session) / "fitting_error.txt").exists()

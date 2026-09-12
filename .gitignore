@@ -34,3 +34,6 @@ rerun_scorecard.md
 
 # stray run logs
 report.log
+
+# Local Python environment
+/venv/

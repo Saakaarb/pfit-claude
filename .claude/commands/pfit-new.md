@@ -1,11 +1,8 @@
 Start a new fitting session: produce user_input.yaml and a populated user_model.py from a description of the ODE system, with or without a source document.
 
-**This is the only entry point.** It works whether or not the user has a paper.
-A source document, when there is one, is a *pre-fill* for the interview below —
-never a different procedure.
+**This is the only entry point for a new problem.**
 
-The user is never asked to hand-author `user_input.yaml`. The config's
-`trainable_parameters` and `integrated_variables` orderings are load-bearing and
+ The config's `trainable_parameters` and `integrated_variables` orderings are load-bearing and
 are properties of the equations, so the config and the model must be written
 **together, by this skill**, from the same understanding. Writing one before the
 other is what makes an ordering mismatch possible, and a mismatch does not raise
@@ -22,6 +19,7 @@ the reference files below.
 | `lib/LLM/reference/yaml_format.md` | the config schema, defaults and valid values |
 | `lib/LLM/reference/user_model_contract.md` | the three functions and what each must return |
 | `lib/LLM/reference/input_constraints.md` | what the generated inputs must satisfy |
+| `lib/LLM/reference/tuning_rules.md` | R7: choosing between Adam and L-BFGS |
 | `lib/LLM/api/diffrax.md` | valid `integrator` names — never propose one from memory |
 | `lib/LLM/api/optax.md` | valid gradient optimizers and their real defaults |
 | `lib/LLM/reference/staggered_data.md` | if observables are reported at different time points |
@@ -30,8 +28,7 @@ Worked example: `lib/utils/user_model_sample_populated.py`.
 
 ## The five required inputs
 
-A session cannot be specified without all five. Where they come from — a paper, a
-snippet the user typed, a mix — does not matter; a paper is simply more likely to
+A session cannot be specified without all five. A paper is likely to
 carry all of them. Establish which are present **before** starting the interview,
 and handle each absence by its own rule:
 
@@ -40,8 +37,8 @@ and handle each absence by its own rule:
 | 1 | **The equation system** | **Fatal.** Nothing can substitute for it. Say so and stop; ask the user to supply the equations in any form. |
 | 2 | **The loss formulation** | **Propose one** from the declared dataset columns (see below), and have the user confirm it. |
 | 3 | **The parameter ranges** | If the source publishes values, use them: `[v/100, v*100]`, four decades centred on the published value. Otherwise the **user must supply them** — do not invent ranges and proceed. |
-| 4 | **The dataset** | **Fatal.** Stop and ask for the CSV(s). Never generate data. |
-| 5 | **The initial conditions** | The **user must supply them**, for every state. They are never fitted and cannot be read off the data, so a guess here is a permanent error in the fit. Where a state is unobserved, say plainly that its value is an assumption. If the true state at the first sample is genuinely unknown, propose starting the solve earlier (`initial_time`) rather than inventing a value. |
+| 4 | **The dataset** | **Fatal.** Stop and ask for the CSV(s). Never generate data. If the data can be sampled from a provided document figure, warn the user that this can be inaccurate. |
+| 5 | **The initial conditions** | The **user must supply them**, for every state. They are never fitted and cannot be read off the data, so a guess here is a permanent error in the fit. Where a state is unobserved, say plainly that its value is an assumption. |
 
 ### Proposing a loss (input 2)
 
@@ -70,8 +67,7 @@ present in `sessions/<session>/inputs/`, and **a source, if one exists** — a U
 a local path, pasted equations, or nothing at all.
 
 Check the five required inputs above and report which are missing before going
-further. Do not ask the user to produce a source they do not have, and do not ask
-them to write any YAML.
+further.
 
 ### 2. Establish the equations
 
@@ -127,10 +123,22 @@ reading of each column. Then have the user confirm, and record the result as the
 - `uncertainty_of: <column>` for a standard-deviation column, which also
   determines the loss shape in input 2;
 - `units` wherever they are known.
+- For multi-dataset runs, every file MUST use the same column layout: time
+  first, then the same observables in the same order, with consistent units.
+  Uncertainty columns must occupy matching positions and refer to corresponding
+  measurements. Treat a mismatch as a **blocking validation error**: the shared
+  loss indexes columns positionally, and `columns` declarations do not remap
+  the data, so a run can silently fit the wrong quantities.
+  Compare each experiment's ordered `observes` mappings and the measurement
+  targets of `uncertainty_of`, and verify each declaration against its CSV.
+  Matching column counts or names alone is insufficient; the dataset checker
+  currently checks only column counts across experiments. Row counts, sampling
+  times, and initial conditions may differ.
 
-Assume one layout for all files unless told otherwise, and say that you assumed
-it. Wait for the answer — a wrong column map silently fits the wrong data, and
-nothing downstream detects it.
+Have the user confirm the common layout before proceeding. If the files use
+different layouts, stop and ask for consistently arranged CSVs; never modify
+the data yourself. A wrong column map silently fits the wrong data, and no
+downstream check can establish the actual scientific meaning of a column.
 
 ### 5. Elicit the search ranges — by magnitude, not by min/max
 
@@ -152,15 +160,29 @@ say why. Never ask the user to decide log-scaling themselves.
 Every control setting stays in the config and stays tunable — the user simply
 does not have to type the first draft. Present these and let the user override:
 
+First choose `gradient_optimizer` using R7 in `tuning_rules.md`: default to
+`adam`. Recommend `lbfgs` as an alternative when the loss is smooth and
+well-normalised and the model is expected to match the data well.
+Always write the selected `gradient_optimizer` explicitly in the config.
+State the proposed choice and the model/data evidence for it, even when choosing
+the default, and present only that optimizer's settings below. Use the starting
+values below for this setup proposal; `/pfit-check` can recommend adjustments
+with evidence.
+
 - **Population:** `population_size = max(50, 10 x N_TRAINABLE)`, `num_iters = 20`,
   `processors = 4`.
-- **Gradient:** `num_iters = 10`, `max_steps = 10000`,
-  `initial_timestep = 1e-6` (adjust if the problem's timescale is far from 1),
-  `init_value_lr = 1e-4`, `end_value_lr = 1e-5`,
-  `transition_steps_lr = 2000`, `decay_rate_lr = 0.9`.
+- **Gradient (Adam):** start with `num_iters = 1000`,
+  `init_value_lr = 5e-3`, and `transition_steps_lr = 100`.
+- **Gradient (L-BFGS):** start with `num_iters = 50`. Learning-rate schedule
+  settings (`init_value_lr`, `end_value_lr`, `transition_steps_lr`,
+  `decay_rate_lr`) are not relevant; do not propose them as L-BFGS controls.
+- **Integration (either optimizer):** `max_steps = 10000`,
+  `initial_timestep = 1e-6` (adjust if the problem's timescale is far from 1).
 - **Tolerances:** one `stepsize_rtol`/`stepsize_atol` value per integrated
   variable.
 - **Solver / optimizer:** propose only values valid per the API digests.
+- **Output:** set `output.write_results: true`; `/pfit-run` must save and
+  inspect measured-versus-fitted plots after optimization.
 
 Say that `/pfit-check` will re-derive these from the equations and the data with
 evidence attached, so these are a starting point, not a commitment. Wait for the

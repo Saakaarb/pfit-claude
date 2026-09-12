@@ -7,6 +7,7 @@
 # A session with no outputs/ directory is skipped with a warning, so this file
 # can list sessions that have not been fitted yet.
 
+# Legacy setting retained for compatibility; figures now save inside each run.
 output_dir: outputs/fit_plots
 dpi: 140
 

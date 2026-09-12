@@ -26,6 +26,7 @@ SCRIPT_DIR_BOOTSTRAP = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR_BOOTSTRAP.parent))
 
 from lib.utils.source_stamp import verify_stamp  # noqa: E402
+from lib.utils.run_store import resolve_run, output_root
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
@@ -78,12 +79,12 @@ def mtime(path: Path) -> float:
     return path.stat().st_mtime if path.is_file() else 0.0
 
 
-def check_session(session_dir: Path, mode: str = "full") -> int:
+def check_session(session_dir: Path, mode: str = "full", seed_run=None) -> int:
     config = session_dir / "inputs" / "user_input.yaml"
     model = session_dir / "generated" / "user_model.py"
     script = session_dir / "generated" / "generated_script.py"
     report_txt = session_dir / "generated" / "user_input_check.txt"
-    outputs = session_dir / "outputs"
+    outputs = output_root(session_dir)
 
     failures = 0
 
@@ -146,31 +147,14 @@ def check_session(session_dir: Path, mode: str = "full") -> int:
     # from final_design_point.csv and refuses to start without it, so the seed
     # file is the thing to check -- not the presence of logs, which can survive a
     # run that died before writing a design point.
-    seed = outputs / "final_design_point.csv"
-    prior = sorted(outputs.glob("*.log")) if outputs.is_dir() else []
-    if mode == "gradient-only":
-        # Now a requirement rather than a note: fit_gradient_only.py reads this
-        # file as its starting point and raises FileNotFoundError without it.
-        # Failing here says so in one line instead of a traceback.
-        failures += report("R6", seed.is_file(),
-                           "outputs/final_design_point.csv present - "
-                           f"fit_gradient_only.py will seed from it"
-                           if seed.is_file() else
-                           "outputs/final_design_point.csv is MISSING, and "
-                           "fit_gradient_only.py has nothing to start from. Run the "
-                           "full fit at least once first"
-                           + (f" - {len(prior)} log(s) exist, so a previous run "
-                              "started but never wrote a design point" if prior else ""))
-    elif seed.is_file():
-        report("R6", None,
-               f"outputs/final_design_point.csv present, so a gradient-only re-run "
-               f"is available; this full fit would overwrite it and the "
-               f"{len(prior)} existing log(s)")
+    try:
+        seed = resolve_run(session_dir, seed_run, require_seed=True) / "final_design_point.csv"
+    except FileNotFoundError as exc:
+        failures += report("R6", False if mode == "gradient-only" else None,
+                           f"{exc}; gradient-only requires a completed run with a design point")
     else:
-        report("R6", None,
-               "no outputs/final_design_point.csv, so a full fit is the only option"
-               + (f" - note {len(prior)} log(s) exist, so a previous run started "
-                  "but did not finish" if prior else ""))
+        report("R6", True if mode == "gradient-only" else None,
+               f"Seed available: {seed}; this fit creates a new run directory and preserves it")
 
     logger.info("%s: %d check(s) failed", session_dir.name, failures)
     return failures
@@ -182,12 +166,13 @@ def main() -> int:
     parser.add_argument("--mode", choices=("full", "gradient-only"), default="full",
                         help="which entry point is intended; gradient-only makes the "
                              "stored design point a requirement rather than a note")
+    parser.add_argument("--seed-run", help="run ID or directory used for gradient-only seeding")
     parser.add_argument("--log-file", default=str(SCRIPT_DIR / "check_ready.log"),
                         help="path to the log file")
     args = parser.parse_args()
     setup_logging(args.log_file)
     logger.info("checking %s for a %s run", args.session, args.mode)
-    return 1 if check_session(resolve_session_dir(args.session), args.mode) else 0
+    return 1 if check_session(resolve_session_dir(args.session), args.mode, args.seed_run) else 0
 
 
 if __name__ == "__main__":

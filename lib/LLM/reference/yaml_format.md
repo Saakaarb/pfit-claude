@@ -38,16 +38,16 @@ population_opt:
   stepsize_atol: 1.0e-07
 
 gradient_opt:
-  num_iters: 10
+  num_iters: 1000
   stepsize_rtol: 1.0e-07
   stepsize_atol: 1.0e-09
   initial_timestep: 1.0e-06
   max_steps: 10000
   integrator: Kvaerno5
-  gradient_optimizer: lbfgs
-  init_value_lr: 1.0e-04
+  gradient_optimizer: adam
+  init_value_lr: 5.0e-03
   end_value_lr: 1.0e-05
-  transition_steps_lr: 2000
+  transition_steps_lr: 100
   decay_rate_lr: 0.9
 
 output:
@@ -223,6 +223,10 @@ the count.
 | `stepsize_rtol` / `stepsize_atol` | no | falls back to the gradient tolerances | one value per integrated variable, or a single value applied to all of them |
 
 ### gradient_opt
+
+New sessions default to Adam in the assistant workflow: explicitly write
+`gradient_optimizer: adam`. The table below records parser defaults when fields
+are omitted; its legacy `lbfgs` fallback is not the new-session recommendation.
 
 | Field | Required | Default | Valid values |
 |---|---|---|---|

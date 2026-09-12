@@ -34,12 +34,18 @@ silently the first time it meets a problem nobody has solved.
 
 Off-limits while any setup choice is being made:
 
-- `outputs/final_design_point.csv` — the fitted parameter vector
-- `outputs/result_solution_exp*.csv` — the fitted trajectories
-- `outputs/*_fitting.log`, `outputs/sloppiness_report.txt`, `outputs/fit_diagnosis.txt`
+- `outputs/<run_id>/final_design_point.csv` — the fitted parameter vector
+- `outputs/<run_id>/result_solution_exp*.csv` — the fitted trajectories
+- `outputs/<run_id>/*_fitting.log`, `outputs/<run_id>/sloppiness_report.txt`,
+  `outputs/<run_id>/fit_diagnosis.txt`
 - the same artifacts belonging to **any other session**
 - a fitted parameter table printed in a source document, and any value the
   source arrived at by fitting or by hand-pinning an unidentifiable parameter
+
+The same restrictions apply to legacy flat outputs and every historical run.
+Selecting a run for diagnosis means reading its snapshots and artifacts, not
+using other runs as target answers. A recorded gradient-only seed parent can
+provide labelled stage-1 provenance, never a target loss.
 
 The last one is the easiest to miss, because it arrives looking like part of the
 problem statement. A number a source obtained *by solving* is a result. It may

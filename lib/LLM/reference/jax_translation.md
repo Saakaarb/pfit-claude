@@ -84,13 +84,10 @@ the config names a solver absent from the table.
 Both failure modes are real, and they are not symmetric:
 
 The RHS is non-smooth if it contains `sign`, `abs`, `floor`, `clip`, a `where`
-that switches on the state, or any piecewise definition — the usual sources are
-dry friction, contact, saturation, hysteresis and on/off control. An implicit
+that switches on the state, or any piecewise definition. An implicit
 method solves a nonlinear system at every step; across a discontinuity that
-solve cannot converge, the step collapses, and the integration fails for **any**
-`max_steps`. Raising `max_steps` does not help. But this bites only *at* the
-switching instants, so its total cost scales with how often the trajectory
-crosses one — rare one-way crossings are survivable, chattering ones are not.
+solve cannot converge, the step collapses, and the integration fails for any
+`max_steps`.
 
 Stiffness is the opposite shape. An explicit method's step is capped by the
 fastest eigenvalue in the system for the *whole* interval, even where that mode
@@ -158,16 +155,14 @@ The response must be **pure Python**, usable as-is: no boilerplate prose, no
 markdown fences such as ```` ```python ````, nothing but code and Python
 comments.
 
-## Performance note
+## Changes to the step limit
 
-If the first global-search iteration takes minutes, lower `max_steps`. During
-global search the population contains wild parameter sets; for systems that can
-blow up, those drive the stiff solver to grind to `max_steps` before failing, at
-a cost of `population_size x max_steps x (stiff solve)`. Dropping `max_steps`
-(e.g. 100000 -> 5000) makes doomed solves fail fast and return `error_loss`
-while still resolving good members — often a 10-40x speedup with no loss of fit
-quality. Halving the population helps proportionally. Change `max_steps` in
-**both** the config and the literal in `generated_script.py`.
+After changing `gradient_opt.max_steps`, rerun `/pfit-jax <session>` so the
+generated literal matches the config and the script is verified and stamped.
+For a suspected excessive step budget during an active global search,
+`/pfit-run` follows `runtime_intervention.md`: monitor, offer a user-approved
+stop and restart, and regenerate before the new run. Translation itself does
+not choose a lower limit or interrupt a running fit.
 
 ## Verification
 

@@ -1,5 +1,4 @@
 import os
-import shutil
 import sys
 from pathlib import Path
 
@@ -10,9 +9,10 @@ from pathlib import Path
 from lib.utils.live_view import attach as attach_live_view
 from lib.utils.source_stamp import verify_stamp
 from lib.utils.yamlread import YAMLReader, read_input_file
+from lib.utils.run_store import new_run
 
 
-def resolve_session_dir() -> Path:
+def resolve_session_dir(argv=None) -> Path:
     """
     Determine which session directory to run.
 
@@ -24,9 +24,10 @@ def resolve_session_dir() -> Path:
         Path: Path to the session directory to run.
     """
     sessions_root = Path("sessions")
+    argv = sys.argv if argv is None else argv
 
-    if len(sys.argv) == 2:
-        arg = Path(sys.argv[1])
+    if len(argv) >= 2:
+        arg = Path(argv[1])
         session_dir = arg if arg.is_dir() else sessions_root / arg
         if not os.path.isdir(session_dir):
             raise ValueError(f"Session directory {session_dir} does not exist")
@@ -107,7 +108,7 @@ def run_driver(session_dir: Path, input_reader: YAMLReader):
     Returns:
         numpy.ndarray: Best parameter set found, in real (unscaled) units and in
         YAML trainable order. This is the same vector written to
-        outputs/final_design_point.csv, returned so callers (and the test suite)
+        outputs/<run_id>/final_design_point.csv, returned so callers (and the test suite)
         can assert on the fitted values without re-reading the file.
     """
     import jax  # imported after XLA_FLAGS has been configured
@@ -117,8 +118,6 @@ def run_driver(session_dir: Path, input_reader: YAMLReader):
     print("Available devices: ", jax.devices("cpu"))
 
     session_path = Path(session_dir)
-    path_to_input = session_path / input_reader.user_input_dirname / "user_input.yaml"
-    path_to_output_dir = session_path / input_reader.output_dirname
     generated_dir = session_path / input_reader.generated_dirname
     generated_script = generated_dir / "generated_script.py"
 
@@ -128,22 +127,17 @@ def run_driver(session_dir: Path, input_reader: YAMLReader):
             "Run the /pfit-jax Claude Code skill first to generate it."
         )
 
-    if path_to_output_dir.exists():
-        shutil.rmtree(path_to_output_dir)
-    path_to_output_dir.mkdir()
-
-    print("Launching fitting process...")
-
-    # On a terminal this raises the live convergence view and captures the
-    # pipeline's own console output to outputs/run_stdout.log, echoing the tail
-    # back on the way out. Off a terminal (piped, cron, pytest) it is a no-op
-    # and the output below prints exactly as it always has. PFIT_LIVE=0 or
-    # `auto_attach: false` in tools/live_fit_monitor.yaml disables it.
-    with attach_live_view(session_path, path_to_output_dir):
-        return fit_generic_system(path_to_input, path_to_output_dir, generated_dir, session_path)
+    with new_run(session_path, input_reader, "full") as (run, snapshot):
+        with attach_live_view(session_path, run):
+            return fit_generic_system(snapshot / "inputs" / "run_config.yaml", run,
+                                      snapshot / "generated", snapshot)
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Run a full fit in a new timestamped directory")
+    parser.add_argument("session", nargs="?")
+    args = parser.parse_args()
 
     if not os.path.isdir("sessions"):
         raise ValueError(
@@ -151,7 +145,7 @@ if __name__ == "__main__":
             "and add a session subdirectory as described in the README."
         )
 
-    session_dir = resolve_session_dir()
+    session_dir = resolve_session_dir([sys.argv[0], args.session] if args.session else [sys.argv[0]])
     warn_if_script_is_stale(session_dir)
 
     # Expose exactly the requested number of CPU devices to JAX. This MUST happen

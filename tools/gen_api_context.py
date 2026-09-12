@@ -424,15 +424,23 @@ def build_jax(cfg: dict, versions: dict[str, str]) -> list[str]:
         "`jax.numpy` before use — several numpy APIs have no jnp equivalent.",
         "",
     ]
+    input_types = conf.get("input_types", {})
     for group, names in conf.get("functions", {}).items():
-        lines += [f"**{group.replace('_', ' ')}**", "", "| Name | Signature |", "|---|---|"]
+        lines += [
+            f"**{group.replace('_', ' ')}**",
+            "",
+            "| Name | Signature | Inputs / dtype contract |",
+            "|---|---|---|",
+        ]
         for name in names:
             obj = getattr(jnp, name, None)
             if obj is None:
                 logger.error("jnp.%s not found in jax %s", name, versions.get("jax"))
                 continue
             sig = short_signature(obj, max_len=200).replace("|", "\\|")
-            lines.append(f"| `jnp.{name}` | `{sig}` |")
+            types = input_types.get(name, "See installed signature and JAX docs.")
+            types = " ".join(types.split()).replace("|", "\\|")
+            lines.append(f"| `jnp.{name}` | `{sig}` | {types} |")
         lines.append("")
 
     lines += render_notes(conf["notes"])

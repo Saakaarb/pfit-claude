@@ -24,6 +24,8 @@ import logging
 import os
 import re
 import sys
+import shutil
+from pathlib import Path
 
 import matplotlib
 
@@ -36,6 +38,9 @@ from scipy.integrate import solve_ivp
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 DEFAULT_CONFIG = os.path.join(SCRIPT_DIR, "plot_diagnostics.yaml")
+sys.path.insert(0, REPO_ROOT)
+from lib.utils.run_store import resolve_run, run_sources, run_config
+from lib.utils.dataset_io import load_dataset
 
 logger = logging.getLogger("plot_diagnostics")
 
@@ -78,13 +83,15 @@ def load_user_model(session_dir):
 
 
 def dense_solution(cfg, scfg, session_dir, config):
-    """Re-integrate user_model.py at the fitted parameters on a dense grid."""
-    with open(os.path.join(session_dir, "inputs", "user_input.yaml")) as fh:
+    """Re-integrate the selected run's model at its fitted parameters."""
+    output = resolve_run(session_dir, scfg.get("run"))
+    sources = run_sources(output, session_dir)
+    with open(run_config(output, session_dir)) as fh:
         uin = yaml.safe_load(fh)
 
     names = [p["name"] for p in uin["model"]["trainable_parameters"]]
     fitted = np.loadtxt(
-        os.path.join(session_dir, "outputs", "final_design_point.csv")
+        os.path.join(output, "final_design_point.csv")
     )
     fitted = np.atleast_1d(fitted)
     trainable = dict(zip(names, fitted))
@@ -96,16 +103,14 @@ def dense_solution(cfg, scfg, session_dir, config):
                    for v in uin["model"]["integrated_variables"]])
 
     data_file = uin["experiments"][0]["data_file"]
-    data = np.genfromtxt(
-        os.path.join(session_dir, "inputs", data_file), delimiter=","
-    )
+    data = load_dataset(Path(sources) / "inputs" / data_file)
     t_eval = data[:, 0]
 
     init_time = float(uin["gradient_opt"].get("initial_time", t_eval[0]))
     t0 = init_time if scfg.get("dense_from_initial_time") else t_eval[0]
     t1 = float(t_eval[-1])
 
-    model = load_user_model(session_dir)
+    model = load_user_model(sources)
 
     def rhs(t, y):
         return np.asarray(
@@ -130,7 +135,7 @@ def dense_solution(cfg, scfg, session_dir, config):
 def plot_losses(session_dir, scfg, config, out_path):
     """Both stages on a shared loss axis, one panel each."""
     pal = config["palette"]
-    outputs = os.path.join(session_dir, "outputs")
+    outputs = str(resolve_run(session_dir, scfg.get("run")))
 
     stages = []
     for fname, label, color in (
@@ -196,7 +201,7 @@ def stored_solution(session_dir, scfg):
 
     Each series names `model_col`, an index into that file, instead of `state`.
     """
-    path = os.path.join(session_dir, "outputs", "result_solution_exp1.csv")
+    path = os.path.join(resolve_run(session_dir, scfg.get("run")), "result_solution_exp1.csv")
     stored = np.loadtxt(path, delimiter=",")
     logger.info("using stored solution %s (%d rows, %d cols)",
                 path, *stored.shape)
@@ -208,11 +213,11 @@ def plot_fit(session_dir, scfg, config, out_path):
     pal = config["palette"]
     if scfg.get("use_stored_solution"):
         t, stored = stored_solution(session_dir, scfg)
-        data = np.genfromtxt(
-            os.path.join(session_dir, "inputs",
-                         yaml.safe_load(open(os.path.join(
-                             session_dir, "inputs", "user_input.yaml")))
-                         ["experiments"][0]["data_file"]), delimiter=",")
+        output = resolve_run(session_dir, scfg.get("run"))
+        sources = run_sources(output, session_dir)
+        with open(run_config(output, session_dir)) as handle:
+            uin = yaml.safe_load(handle)
+        data = load_dataset(Path(sources) / "inputs" / uin["experiments"][0]["data_file"])
         # Present the stored model columns under the same interface the panels
         # already use, so `state: n` indexes series n of the stored file.
         ys = {i: stored[:, i] for i in range(stored.shape[1])}
@@ -321,11 +326,15 @@ def plot_fit(session_dir, scfg, config, out_path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=DEFAULT_CONFIG)
+    parser.add_argument("--session")
+    parser.add_argument("--run", help="run ID or path; requires --session")
     parser.add_argument(
         "--log-file", default=os.path.join(SCRIPT_DIR, "plot_diagnostics.log")
     )
     args = parser.parse_args()
 
+    if args.run and not args.session:
+        parser.error("--run requires --session")
     setup_logging(args.log_file)
     logger.info("reading config %s", args.config)
     with open(args.config) as fh:
@@ -333,8 +342,22 @@ def main():
 
     for scfg in config["sessions"]:
         name = scfg["name"]
+        if args.session and name != args.session:
+            continue
+        if args.run:
+            scfg = dict(scfg, run=args.run)
         session_dir = os.path.join(REPO_ROOT, "sessions", name)
-        outputs = os.path.join(session_dir, config["output_dir_name"])
+        try:
+            outputs = str(resolve_run(session_dir, scfg.get("run")))
+        except FileNotFoundError:
+            logger.warning("%s has no run; skipping", name)
+            continue
+        scfg = dict(scfg, run=outputs)
+        (Path(outputs) / "plot_diagnostics.yaml").write_text(yaml.safe_dump(
+            dict(config, sessions=[scfg]), sort_keys=False))
+        script_copy = Path(outputs) / "plot_diagnostics_script.py"
+        if Path(__file__).resolve() != script_copy.resolve():
+            shutil.copyfile(__file__, script_copy)
         logger.info("=== %s", name)
         if not os.path.exists(os.path.join(outputs, "final_design_point.csv")):
             logger.warning("%s has no final_design_point.csv - not fitted; skipping",

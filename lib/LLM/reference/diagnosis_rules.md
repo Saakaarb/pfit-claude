@@ -17,7 +17,7 @@ sources and the symptom rules.
 
 ## Evidence sources
 
-Every one of these is in `sessions/<session>/outputs/`. Read all that exist
+Every one of these is in `sessions/<session>/outputs/<run_id>/`. Read all that exist
 before drawing any conclusion — several symptoms are only distinguishable by
 combining two artifacts.
 
@@ -28,9 +28,10 @@ combining two artifacts.
 | `final_design_point.csv` | one real-unit value per line, config trainable order | the answer; compare each value against its `min_val`/`max_val` |
 | `sloppiness_report.txt` | see `project_context.md` | loss at best fit and `|grad|_inf` — the **only** evidence of whether the gradient stage converged (S7) — plus the eigenvalue spectrum, spread in decades, count of non-identifiable directions, stiffest/sloppiest eigenvectors |
 | `result_solution_expN.csv` | `time | data columns | solution columns` (written only when `write_results = Y`) | per-column, per-time residuals — the only way to see *which* observable and *which* time region is being missed |
-| `fit_result*.png` | plot | quick confirmation of what the residuals say |
+| `<session>_fit.png` | measured-versus-fitted panels for every experiment and fitted observable | mandatory visual evidence; generate and inspect per `result_plotting.md` |
 
-Cross-check against `inputs/user_input.yaml` for the settings that produced them,
+Resolve one run per `run_history.md`, and inspect its snapshots and saved plots.
+Cross-check against `snapshot/inputs/user_input.yaml` for the settings that produced them,
 and note the failed-solve penalty is `error_loss = 5000.0`
 (`lib/utils/yamlread.py`).
 
@@ -281,16 +282,20 @@ failure S7 exists to prevent. If `|grad|_inf` is unavailable, the verdict is
 
 ## Report format
 
-Write to `sessions/<session>/outputs/fit_diagnosis.txt` and summarise in chat.
+Write to `sessions/<session>/outputs/<run_id>/fit_diagnosis.txt` and summarise in chat.
 
 ```
-Fit diagnosis: <session>
+Fit diagnosis: <session> / <run_id>
+Seed source: <parent run, legacy seed, or none>
 ================================================================
 Stage 1 : <algorithm>, <N_iters> iters, best cost <x> -> <y>
 Stage 2 : <optimizer>, <N_iters> iters, best loss <x> -> <y>
 Exit    : |grad|_inf <g> at loss <l>  (ratio <g/l>) -> <converged | budget-limited>
 Sloppiness: <verdict>, spread <d> decades, <k> non-identifiable
 Verdict : <one line: converged / limited by X / failing>
+
+Fit plots: <saved figure paths, or explicit blocker>
+Visual review: <observations for each experiment and observable, supported by residuals>
 
 Findings
 --------
