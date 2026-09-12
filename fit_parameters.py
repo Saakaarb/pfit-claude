@@ -94,7 +94,7 @@ def resolve_device_count(session_dir: Path) -> int:
     return fallback
 
 
-def run_driver(session_dir: Path, input_reader: YAMLReader):
+def run_driver(session_dir: Path, input_reader: YAMLReader, live_web=False, web_port=0):
     """
     Execute the parameter fitting workflow for the user's ODE system.
 
@@ -128,6 +128,13 @@ def run_driver(session_dir: Path, input_reader: YAMLReader):
         )
 
     with new_run(session_path, input_reader, "full") as (run, snapshot):
+        if live_web:
+            from lib.utils.live_dashboard import launch_dashboard
+            try:
+                launch_dashboard(run, web_port)
+            except Exception as exc:
+                print(f"[live view] {exc}; fitting continues. Start tools/live_fit_server.py "
+                      f"separately with --run-dir {run}", flush=True)
         with attach_live_view(session_path, run):
             return fit_generic_system(snapshot / "inputs" / "run_config.yaml", run,
                                       snapshot / "generated", snapshot)
@@ -137,6 +144,8 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run a full fit in a new timestamped directory")
     parser.add_argument("session", nargs="?")
+    parser.add_argument("--live-web", action="store_true", help="host this run on localhost")
+    parser.add_argument("--web-port", type=int, default=0, help="dashboard port; 0 selects an available port")
     args = parser.parse_args()
 
     if not os.path.isdir("sessions"):
@@ -160,4 +169,4 @@ if __name__ == "__main__":
     input_file_path = Path(session_dir) / "inputs" / "user_input.yaml"
     input_reader = get_input_reader(input_file_path)
 
-    run_driver(session_dir, input_reader)
+    run_driver(session_dir, input_reader, live_web=args.live_web, web_port=args.web_port)

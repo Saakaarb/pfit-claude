@@ -22,6 +22,7 @@ file below. Open the relevant one rather than working from memory.**
 | How to recommend settings before a fit, from the model and the data | `lib/LLM/reference/tuning_rules.md` |
 | How to diagnose a completed fit from its outputs | `lib/LLM/reference/diagnosis_rules.md` |
 | Run directories, input snapshots, audit manifests and run selection | `lib/LLM/reference/run_history.md` |
+| Locally hosted live parameters and continuous loss history | `lib/LLM/reference/live_dashboard.md` |
 | Required saved fit plots and their use in diagnosis | `lib/LLM/reference/result_plotting.md` |
 | How to monitor and intervene during a slow active global search | `lib/LLM/reference/runtime_intervention.md` |
 | The catalogue of every choice that affects solve and fit quality (human-facing) | `docs/tunable_choices.md` |

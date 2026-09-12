@@ -28,6 +28,8 @@ sessions/<session>/outputs/<run_id>/
 ├── result_solution_exp1.csv     # one per experiment, when write_results is true
 ├── pso_fitting.log              # or de_fitting.log; full runs only
 ├── NODE_fitting.log
+├── live_progress.jsonl         # evaluated best losses and physical parameters
+├── live_server.json            # optional browser viewer URL and PID
 ├── run_stdout.log              # terminal live view only
 ├── sloppiness_report.txt
 ├── sloppiness_spectrum.png

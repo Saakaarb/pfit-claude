@@ -20,6 +20,7 @@ here, before anything is spent.
 | `lib/LLM/reference/cold_start.md` | this step starts the fit; it does not read another session's results | yes |
 | `lib/LLM/reference/runtime_intervention.md` | monitoring and user-approved intervention during a slow global search | yes |
 | `lib/LLM/reference/run_history.md` | run allocation, snapshots and seed selection | yes |
+| `lib/LLM/reference/live_dashboard.md` | local browser view, stage handoff and viewer lifecycle | yes |
 | `lib/LLM/reference/result_plotting.md` | mandatory saved plots after both run modes | yes |
 | `lib/LLM/reference/diagnosis_rules.md` | ONLY to hand off at the end — do not diagnose here | conditional |
 
@@ -81,8 +82,8 @@ point and the user's last change was confined to the gradient settings.
    Run in the background so the session is not blocked:
 
    ```bash
-   ./venv/bin/python3 fit_parameters.py <session_name>        # full two-stage
-   ./venv/bin/python3 fit_gradient_only.py <session_name>     # refinement only
+   ./venv/bin/python3 fit_parameters.py <session_name> --live-web        # full two-stage
+   ./venv/bin/python3 fit_gradient_only.py <session_name> --live-web     # refinement only
    ```
 
    `fit_gradient_only.py` seeds from `outputs/<seed_run_id>/final_design_point.csv` and refuses
@@ -100,6 +101,12 @@ point and the user's last change was confined to the gradient settings.
    For gradient-only, accept an optional `--seed-run <run_id-or-path>`, resolve
    it during pre-flight, and pass the same selection to the entry point.
 
+   **Share the live browser view.** Follow `live_dashboard.md`: give the user
+   the printed local URL, pinned to this run. If hosting fails, inspect
+   `live_server.log` and start the standalone viewer against the active run;
+   do not rerun the fit to recover its display. Honour a user request to disable
+   the browser view by omitting `--live-web`.
+
 5. **While it runs**, actively monitor process status and logs according to
    `runtime_intervention.md`; do not wait for the user to request progress.
    If excessive failed-solve work is suspected, offer the documented stop,
@@ -113,6 +120,9 @@ point and the user's last change was confined to the gradient settings.
      improving materially;
    - the fitted parameters from `outputs/<run_id>/final_design_point.csv`;
    - where the per-experiment trajectories were written.
+
+   The separate viewer remains available after completion. Include its URL
+   and the exact viewer PID's stop command; do not confuse it with the fit PID.
 
    Flag either of these if present, without diagnosing further:
 

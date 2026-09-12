@@ -94,6 +94,12 @@ entry-point calls do not automatically perform this plotting step.
 
 ## The live view
 
+`/pfit-run` also launches a locally hosted browser dashboard via `--live-web`.
+It shows live best parameters and continuous loss history across both stages,
+with a separate gradient axis that defaults to log scale. See
+`live_dashboard.md` for launch commands, stage semantics and server lifecycle.
+The terminal view below remains available independently.
+
 Run on a terminal, `fit_parameters.py` and `fit_gradient_only.py` raise a live
 plot of best-so-far loss against iteration for both stages, reading the
 iteration logs as they are written. While it is up the pipeline's own console

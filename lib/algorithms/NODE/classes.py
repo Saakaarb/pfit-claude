@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 from lib.utils.yamlread import YAMLReader
 from lib.utils.classes import ProblemObjectBase
+from lib.utils.live_progress import emit_progress
 #os.environ["EQX_ON_ERROR"]="nan"
 
 class FitParamsNODE:
@@ -287,6 +288,7 @@ class FitParamsNODE:
         # 0-dimensional". Starting from the initial guess means an interrupted
         # run degrades to "no refinement" instead of failing.
         self.best_result=np.array(self.trainable_params)
+        emit_progress(self, "gradient", 0, None, self.best_result, kind="stage_start")
         
 
         #self.optimizer = optax.adam(self.learning_rate)
@@ -331,6 +333,8 @@ class FitParamsNODE:
                 )
             #except eqx.EquinoxRuntimeError as e:
             if value==self.input_reader.error_loss:
+                emit_progress(self, "gradient", i_iter, None,
+                              self.best_result, kind="solver_failure")
                 print("Stopping G.D iterations, exiting with previous best solution, failed at iter:",i_iter)
                 return self.best_result,self.best_loss
                 
@@ -340,6 +344,7 @@ class FitParamsNODE:
 
                 self.best_loss=value
                 self.best_result=self.trainable_params
+            emit_progress(self, "gradient", i_iter, self.best_loss, self.best_result)
             if i_iter % iter_write_freq == 0 or i_iter == self.n_iters_grad - 1:
 
                 print("Iteration:,loss value, best loss:", i_iter, value,self.best_loss)

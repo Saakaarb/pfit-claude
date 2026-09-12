@@ -5,6 +5,7 @@ from lib.utils.yamlread import YAMLReader
 from lib.utils.classes import ProblemObjectBase
 from lib.utils.doe_space_sampling import get_lhs_sampling
 from pathlib import Path
+from lib.utils.live_progress import emit_progress
 
 
 class FitParamsDE:
@@ -100,6 +101,7 @@ class FitParamsDE:
             elapsed = t_now - t_last[0]
             t_last[0] = t_now
             cost = intermediate_result.fun
+            emit_progress(self, "global", it, cost, intermediate_result.x)
             print(f"Iteration: {it}")
             print(f"Best Cost: {cost:.4E}")
             print(f"Time for iteration: {elapsed:.4f}")
@@ -131,6 +133,8 @@ class FitParamsDE:
 
         self.best_pos = np.array(result.x)
         self.best_cost = float(result.fun)
+        emit_progress(self, "global", iteration_counter[0], self.best_cost,
+                      self.best_pos, kind="stage_end")
         print(f"Final best position (scaled): {self.best_pos}")
         print(f"Final best cost: {self.best_cost:.4E}")
         print("Done with DE search")

@@ -5,6 +5,7 @@ import time
 from lib.utils.yamlread import YAMLReader
 from lib.utils.classes import ProblemObjectBase
 from pathlib import Path
+from lib.utils.live_progress import emit_progress
 
 
 
@@ -346,6 +347,8 @@ class FitParamsPSO:
 
         t2 = time.time()
         iteration_time = t2 - t1
+        emit_progress(self, "global", iter_no + 1, self.swarm_obj.best_cost,
+                      self.swarm_obj.best_pos)
 
         if iter_no % print_freq == 0:
             # Print human readable output to terminal
