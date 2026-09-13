@@ -3,6 +3,14 @@ scratch/
 
 # Paper / documentation working files (not tracked)
 docs/
+!docs/
+!docs/ui_input_design.md
+!docs/starting_new_session_section.tex
+!docs/check_step_section.tex
+!docs/jax_step_section.tex
+!docs/run_step_section.tex
+!docs/diagnose_step_section.tex
+lib/LLM/reference/study_input_example.md
 
 # Python caches
 __pycache__/

@@ -1,0 +1,55 @@
+\subsection{Checking the session}
+\label{sec:pfit-check}
+
+After creating a session, the user runs
+
+\begin{verbatim}
+/pfit-check <session-name>
+\end{verbatim}
+
+This step verifies that the problem is ready for translation and fitting. It
+reads the generated configuration, the generated model file, and the CSV files
+named in the configuration. Its purpose is to catch errors in the scientific
+specification before numerical optimization begins.
+
+The check answers four practical questions. First, are the data files usable by
+the framework: rectangular CSV files, valid time columns, expected column names,
+and compatible missing-value conventions? Second, is the model specification
+self-consistent: declared states, parameters, initial conditions, observables,
+and data columns all refer to the same objects? Third, is the loss well defined
+for the available measurements, including blank or \texttt{NaN} entries? Fourth,
+are the requested numerical settings adequate for the scale and structure of
+the problem?
+
+The agent may revise the generated YAML or Python files when the correction is
+a mechanical consequence of the specification. It must not modify the data
+files. Any change to a CSV file is the user's responsibility, because such a
+change alters the measurements being fitted.
+
+The report is written to
+
+\begin{verbatim}
+sessions/<session-name>/generated/user_input_check.txt
+\end{verbatim}
+
+and separates findings into critical errors, warnings, and recommendations.
+Critical errors are expected to prevent translation or a valid run and must be
+resolved before continuing. Warnings identify choices that may make the fit less
+reliable or harder to interpret. Recommendations are generated from the
+framework's documented checking rules and must be supported by evidence from
+the current session, such as parameter ranges, data scales, missing values,
+solver settings, or loss construction. Examples include using a masked loss for
+missing measurements, increasing the global search budget, tightening solver
+tolerances for small state variables, or normalizing residuals across measured
+channels.
+
+Scientific ambiguities are reported to the user rather than guessed. For
+example, the checker may ask whether a blank measured value is intentional,
+whether an unused data column should be ignored, or whether a mismatch between a
+configured initial condition and the first data row reflects the model or the
+file. After resolving such issues, the user reruns \texttt{/pfit-check}. When no
+critical errors remain, the session is ready for JAX translation:
+
+\begin{verbatim}
+/pfit-jax <session-name>
+\end{verbatim}

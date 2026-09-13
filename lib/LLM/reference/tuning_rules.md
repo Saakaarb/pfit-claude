@@ -343,6 +343,13 @@ config. Quote the line you would change.
 - Any blank cell in a CSV and no NaN handling in the loss → recommend the
   NaN-safe pattern from `staggered_data.md`. Note that sanitising *after* any
   arithmetic still produces NaN gradients.
+- Any division in an observable or loss whose denominator is not proven finite
+  and nonzero → recommend the finite-safe division pattern from
+  `user_model_contract.md` and `staggered_data.md`. This includes uncertainty
+  weighting, relative-error losses, normalized observables, fractional
+  occupancies, percent recovery, and ratios of state-derived quantities. If the
+  denominator is model-derived and can cross zero, ask the user for the
+  intended regularisation; do not silently add an epsilon.
 - More than one `experiments` and datasets of visibly different quality or
   length → note that aggregation is an unweighted mean over experiments with no
   weighting available, so the user should decide whether that is acceptable

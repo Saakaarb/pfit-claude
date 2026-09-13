@@ -19,6 +19,7 @@ the reference files below.
 | `lib/LLM/reference/yaml_format.md` | the config schema, defaults and valid values |
 | `lib/LLM/reference/user_model_contract.md` | the three functions and what each must return |
 | `lib/LLM/reference/input_constraints.md` | what the generated inputs must satisfy |
+| `docs/ui_input_design.md` | prose-first intake, the full mental picture completeness gate, and targeted follow-up prompts |
 | `lib/LLM/reference/tuning_rules.md` | R7: choosing between Adam and L-BFGS |
 | `lib/LLM/api/diffrax.md` | valid `integrator` names — never propose one from memory |
 | `lib/LLM/api/optax.md` | valid gradient optimizers and their real defaults |
@@ -40,13 +41,52 @@ and handle each absence by its own rule:
 | 4 | **The dataset** | **Fatal.** Stop and ask for the CSV(s). Never generate data. If the data can be sampled from a provided document figure, warn the user that this can be inaccurate. |
 | 5 | **The initial conditions** | The **user must supply them**, for every state. They are never fitted and cannot be read off the data, so a guess here is a permanent error in the fit. Where a state is unobserved, say plainly that its value is an assumption. |
 
+## Interview style
+
+Prefer a prose-first workflow. The user may supply a paper, a writeup, pasted
+equations, and CSV files; they should not be asked to hand-author framework
+tables, YAML, or `user_model.py`.
+
+Extract the structured study spec yourself: equations, states, parameter split,
+initial conditions, dataset column roles, forcing sources, derived observables,
+and loss. Then perform a completeness check.
+
+Frame completeness as a full mental picture of the run. Before writing files,
+you must be able to describe, end to end, what the solver integrates for each
+experiment, which experiment-specific values differ, how each CSV column enters
+the RHS or loss, what each fitted parameter can change, and what artifact will
+be written for plotting. Estimate that picture from the initial source, then ask
+only for the pieces still missing from it.
+
+If the supplied information is complete and unambiguous, do not ask extra
+questions before creating the session. Show a short review of the inferred
+study spec and proceed to write the files.
+
+If something is missing or ambiguous, ask only targeted questions for the
+unresolved items. Do not run a fixed interview checklist when the answer is
+already present in the source. Good questions name the exact unresolved symbol,
+column, or setting, for example:
+
+- "The equations use `dose_rate(t)`, and the CSV has
+  `dose_rate_uM_per_min`. Should I use that column as the time-varying input?"
+- "The CSV has `fluorescence_sd`. Should this be the uncertainty for
+  `fluorescence` in the loss?"
+- "`baseline` appears in the observable formula but has no bounds. Is it fitted
+  or fixed?"
+
+The review surface should be short and change-oriented: show what will be used
+for equations, fitted parameters, initial conditions, column roles, forcing
+inputs, observables, and loss. Prefer accept/change phrasing over asking the
+user to edit a table.
+
 ### Proposing a loss (input 2)
 
 Only possible once every dataset column has a declared meaning, so do the column
 declaration first. Then:
 
 - **Uncertainty columns present** (`uncertainty_of`) — propose a sigma-weighted
-  residual, `mean(((model - measured) / sigma)**2)`. Error bars supplied and then
+  residual, `mean(((model - measured) / sigma)**2)`, using only finite
+  measurements with finite positive sigma values. Error bars supplied and then
   ignored is a silent loss of information.
 - **No uncertainty columns** — propose a per-column normalised RMSE, dividing
   each column's residual by that column's own `max|data|`. State the column
@@ -54,6 +94,15 @@ declaration first. Then:
   contribute unequally, and a small-magnitude observable becomes invisible.
 - **NaN present in the data** — the reduction must be nan-safe
   (`staggered_data.md`), and say why.
+
+Inspect the proposed observable and loss arithmetic for every division, not
+just uncertainty weighting. For each denominator, decide whether it is
+guaranteed finite and nonzero from the equations, data declarations, or
+parameter bounds. If the denominator is data-derived, build the validity mask so
+the denominator is finite and nonzero, replace invalid entries before dividing,
+and exclude those residuals. If the denominator is model-derived and can cross
+zero, ask the user how that case should be handled; adding an epsilon or other
+regularisation changes the scientific objective and must be agreed to.
 
 Present the proposal with its arithmetic and wait for confirmation. Never write a
 loss the user has not agreed to.
@@ -81,7 +130,9 @@ further.
 
 ### 3. Clarify the system (REQUIRED before writing anything)
 
-Present your findings and wait for confirmation:
+Resolve the items below from the source/writeup first. If they are complete and
+unambiguous, include them in the short review and continue. If any item is
+missing or ambiguous, ask only about that item:
 
 1. **Which system** — if the source has several models or variants, list them and
    ask which to fit.
@@ -106,9 +157,12 @@ user's own statement of the column meanings** — use it as the starting point
 rather than guessing. A header is optional and skipped on load; the file may
 equally well have none.
 
-Report per file: column count, the header if present, sample values, and your
-reading of each column. Then have the user confirm, and record the result as the
-`columns` block of every experiment (schema in `yaml_format.md`):
+Infer each column's role from the header, source/writeup, equation symbols, and
+loss description. Report per file only the concise inferred mapping: time,
+fitted measurements, forcing inputs, uncertainty columns, and ignored columns.
+Ask follow-up questions only for columns whose role or target is unresolved.
+Then record the result as the `columns` block of every experiment (schema in
+`yaml_format.md`):
 
 - entry `i` describes column `i`, so the first entry is always time;
 - `observes: <name>` on every measurement column, naming the model quantity it
@@ -122,23 +176,27 @@ reading of each column. Then have the user confirm, and record the result as the
   is the dictionary between the two;
 - `uncertainty_of: <column>` for a standard-deviation column, which also
   determines the loss shape in input 2;
-- `units` wherever they are known.
-- For multi-dataset runs, every file MUST use the same column layout: time
-  first, then the same observables in the same order, with consistent units.
-  Uncertainty columns must occupy matching positions and refer to corresponding
-  measurements. Treat a mismatch as a **blocking validation error**: the shared
-  loss indexes columns positionally, and `columns` declarations do not remap
-  the data, so a run can silently fit the wrong quantities.
-  Compare each experiment's ordered `observes` mappings and the measurement
-  targets of `uncertainty_of`, and verify each declaration against its CSV.
-  Matching column counts or names alone is insufficient; the dataset checker
-  currently checks only column counts across experiments. Row counts, sampling
-  times, and initial conditions may differ.
+- For multi-dataset runs, the framework files used for fitting MUST use the
+  same column layout: time first, then the same forcing/measurement/uncertainty
+  columns in the same order. Raw user uploads may arrive
+  with different names, order, extra columns, row counts, or sampling times. Do
+  not edit those files or write modified copies. Instead, infer the mapping and
+  show the proposed canonical fitting layout for the user to create.
+- If a measured observable is absent from one experiment but present in another,
+  ask the user to preserve the common layout and write missing values as
+  blank/NaN in their data file, then use the nan-safe loss rules in
+  `staggered_data.md`.
+- Compare each experiment's ordered `observes` mappings and the measurement
+  targets of `uncertainty_of`, and verify each declaration against its canonical
+  CSV. Matching column counts or names alone is insufficient; the dataset
+  checker currently checks only column counts across experiments. Row counts,
+  sampling times, initial conditions, and forcing histories may differ.
 
-Have the user confirm the common layout before proceeding. If the files use
-different layouts, stop and ask for consistently arranged CSVs; never modify
-the data yourself. A wrong column map silently fits the wrong data, and no
-downstream check can establish the actual scientific meaning of a column.
+Include the canonical layout in the short review before writing files. If a raw
+file cannot be mapped into that layout without changing the scientific meaning
+of the data, stop and ask the user for a corrected file. A wrong column map silently fits
+the wrong data, and no downstream check can establish the actual scientific
+meaning of a column.
 
 ### 5. Elicit the search ranges — by magnitude, not by min/max
 
@@ -158,7 +216,8 @@ say why. Never ask the user to decide log-scaling themselves.
 ### 6. Propose the control settings
 
 Every control setting stays in the config and stays tunable — the user simply
-does not have to type the first draft. Present these and let the user override:
+does not have to type the first draft. Include these in the short review and let
+the user override:
 
 First choose `gradient_optimizer` using R7 in `tuning_rules.md`: default to
 `adam`. Recommend `lbfgs` as an alternative when the loss is smooth and
@@ -185,8 +244,7 @@ with evidence.
   inspect measured-versus-fitted plots after optimization.
 
 Say that `/pfit-check` will re-derive these from the equations and the data with
-evidence attached, so these are a starting point, not a commitment. Wait for the
-answer.
+evidence attached, so these are a starting point, not a commitment.
 
 ### 7. Write both files together
 
@@ -209,5 +267,9 @@ before JAX generation."
 ## Rules
 
 - Write NO files until the clarification rounds (steps 3-6) are complete.
-- The data CSV is always user-provided — never generate or modify it.
+- Data CSVs are always user-provided — never modify them and never write
+  derived data files. You may describe the canonical layout the framework needs,
+  but the user must create or edit the CSVs.
+- Do not perform unit conversions while canonicalizing CSVs unless the user
+  explicitly asks for a conversion and gives the conversion rule.
 - Never require the user to write or edit YAML by hand.

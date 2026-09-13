@@ -1,0 +1,44 @@
+\subsection{Generating the JAX program}
+\label{sec:pfit-jax}
+
+After the session passes the setup checks, the user runs
+
+\begin{verbatim}
+/pfit-jax <session-name>
+\end{verbatim}
+
+This step converts the checked model into the executable JAX program used for
+fitting. The input is the readable session model,
+\texttt{generated/user\_model.py}, together with the checked configuration in
+\texttt{inputs/user\_input.yaml}. The output is
+\texttt{generated/generated\_script.py}, which is the file imported by the
+optimizer.
+
+The translation is mechanical. It preserves the equations, observables, loss,
+parameter bounds, initial conditions, dataset mappings, and solver choices that
+were established during setup and checking. It does not introduce a new model,
+reinterpret data columns, or change the fitted objective. Its role is to express
+the validated problem in JAX-compatible form so that the objective can be
+compiled, differentiated, and evaluated repeatedly during optimization.
+
+For the two-experiment example, the translated program evaluates the same ODE
+system for each dataset, applies the appropriate initial condition and forcing
+history, computes the declared observable, and evaluates the masked residuals
+specified in the loss. Blank measurements remain excluded from the objective.
+If an integration fails for a trial parameter vector, the generated program
+returns the configured failure loss rather than an invalid numerical value.
+
+After writing the JAX program, the agent imports it in the session environment.
+This import check catches syntax errors, missing symbols, unsupported numerical
+operations, and invalid solver settings before the fitting run begins. The
+script is then stamped with hashes of the configuration and source model from
+which it was generated. Later run checks use this stamp to detect whether the
+YAML or model file changed after translation. If either file is edited, the user
+should rerun \texttt{/pfit-check} and \texttt{/pfit-jax} before fitting.
+
+On success, the session contains a checked specification and an executable JAX
+program. The user can then start parameter estimation with
+
+\begin{verbatim}
+/pfit-run <session-name>
+\end{verbatim}

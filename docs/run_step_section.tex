@@ -1,0 +1,57 @@
+\subsection{Running the estimation}
+\label{sec:pfit-run}
+
+After the JAX program has been generated, the user starts parameter estimation
+with
+
+\begin{verbatim}
+/pfit-run <session-name>
+\end{verbatim}
+
+By default, this command performs the full fitting procedure: a global search
+followed by local gradient-based refinement. A refinement-only run can be
+requested when a previous run has already found a suitable design point:
+
+\begin{verbatim}
+/pfit-run <session-name> gradient-only
+\end{verbatim}
+
+Before launching the optimizer, the agent performs a run pre-flight check. This
+check verifies that the required files exist, that the generated JAX program is
+current with respect to the checked YAML and model files, that result writing is
+enabled, and, for a gradient-only run, that the seed design point is available.
+If a blocking check fails, fitting is not started. The user is directed back to
+the appropriate earlier step, usually \texttt{/pfit-check} or
+\texttt{/pfit-jax}.
+
+Each run is written to a new output directory, so earlier results are preserved.
+At launch, the agent reports the exact run directory and a local live-view URL.
+The live view shows the active optimization stage, current best loss, elapsed
+time, and current best parameter values in physical units. It is intended for
+monitoring progress; it is not a convergence assessment.
+
+During fitting, the user should expect the first evaluation to include JAX
+compilation, which can be slower than later iterations. For stiff systems or
+large searches, the run may take substantially longer. If progress appears
+abnormally slow, the agent reports the evidence from the active run and may
+propose an intervention, such as stopping the current run, preserving its
+artifacts, changing a numerical setting, regenerating the JAX program, and
+starting a new run. Such an intervention is a restart, not a checkpoint resume,
+and is applied only after the user approves the specific change.
+
+When the run finishes, the agent reads the results from the output files rather
+than inferring them from console output. The completion report includes the run
+identifier, final objective value, fitted parameter values, and the locations of
+the saved result tables. The agent also generates and inspects
+measured-versus-fitted plots for every fitted observable and experiment. These
+plots are required because the numerical objective alone does not verify that
+the data columns, observables, and trajectories have been interpreted correctly.
+
+The user should review the reported parameters and saved fit plots before
+drawing conclusions. Formal assessment of convergence, residual structure,
+model misspecification, and practical identifiability is deferred to the next
+workflow step:
+
+\begin{verbatim}
+/pfit-diagnose <session-name> <run-id>
+\end{verbatim}

@@ -45,6 +45,13 @@ The corrigible half of a dataset failure is always on the config/model side:
 - **D3x** (NaN present, loss not nan-safe): flag it and point at
   `staggered_data.md`. Converting the loss to nan-safe reductions changes what is
   being fitted, so it is never automatic.
+- **Unguarded division in an observable or loss:** flag it and point at the
+  finite-safe arithmetic rules in `user_model_contract.md` and
+  `staggered_data.md`. If the denominator is data-derived, propose a mask that
+  requires finite nonzero values and sanitises before division. If the
+  denominator is model-derived and may cross zero, do not invent an epsilon or
+  clipping rule; ask the user for the intended regularisation because that
+  changes the scientific objective.
 
 ## Specific fixes
 

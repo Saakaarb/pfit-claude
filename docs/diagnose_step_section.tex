@@ -1,0 +1,48 @@
+\subsection{Diagnosing a completed fit}
+\label{sec:pfit-diagnose}
+
+After a fitting run has finished, the user requests a post-fit assessment with
+
+\begin{verbatim}
+/pfit-diagnose <session-name> <run-id>
+\end{verbatim}
+
+The diagnosis step evaluates a completed run. It does not refit the model and
+it does not inspect mutable working files in place of the run that was actually
+performed. The agent resolves one run directory, reads the configuration and
+model snapshots saved with that run, and bases the assessment on the artifacts
+written by the optimizer.
+
+The purpose of this step is to decide whether the fit is usable, and if not,
+what should be changed before rerunning. The agent examines the global-search
+and refinement logs, the final parameter values, the sloppiness report, the
+saved trajectories, residuals, and the measured-versus-fitted plots. The plots
+are part of the evidence: a small numerical objective is not sufficient if the
+curves reveal a wrong observable mapping, a missed transient, or systematic
+structure in the residuals.
+
+The report is written to
+
+\begin{verbatim}
+sessions/<session-name>/outputs/<run-id>/fit_diagnosis.txt
+\end{verbatim}
+
+and gives a single supported verdict where the evidence allows one. Typical
+findings include failed integrations, insufficient global-search budget,
+premature population collapse, a gradient stage that stopped before convergence,
+parameters pinned at bounds, poorly scaled residuals, or practically
+non-identifiable parameter combinations. Each finding is tied to the run
+evidence that supports it, such as loss histories, fitted values relative to
+bounds, residual patterns, gradient norms, or the sloppiness spectrum.
+
+Recommendations are proposed as edits to the working session, not to the saved
+run snapshot. The user chooses which recommendations to apply. Depending on the
+finding, the next run may be a gradient-only refinement from the diagnosed design
+point or a full refit. Changes to the equations, bounds, log scaling, solver
+family, or population-search settings generally require the checked translation
+and full fitting workflow to be repeated.
+
+The user should treat \texttt{/pfit-diagnose} as the point at which numerical
+results are converted into scientific evidence. Its output should be reviewed
+before reporting fitted parameters, interpreting identifiability, or deciding
+that additional experiments are needed.

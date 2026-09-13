@@ -46,19 +46,30 @@ with one data file, handled by one of the two approaches below.
    blank cell as NaN.
 
 2. In `_compute_loss_problem`, mask the NaNs and normalise per column. Use this
-   NaN-SAFE pattern (sanitise BEFORE any arithmetic, so NaN never enters the
-   autodiff graph — otherwise gradients become NaN even where masked):
+   finite-safe pattern (sanitise BEFORE any arithmetic, so NaN or inf never
+   enters the autodiff graph — otherwise gradients become NaN even where
+   masked):
 
-       mask = ~np.isnan(dataset)                       # True where measured
-       scale = np.nanmax(np.abs(dataset), axis=0)      # per-observable peak
-       data_safe = np.where(mask, dataset, 0.0)        # replace NaN with 0 FIRST
-       resid = np.where(mask, (model_obs - data_safe) / scale, 0.0)
-       loss = np.sqrt(np.sum(resid * resid) / np.sum(mask))
+       measured = dataset[:, col_indices]
+       scale = np.nanmax(np.abs(measured), axis=0)        # or a declared sigma column
+       mask = np.isfinite(measured) & np.isfinite(scale) & (scale > 0.0)
+       measured_safe = np.where(mask, measured, 0.0)      # replace NaN before subtracting
+       scale_safe = np.where(mask, scale, 1.0)            # replace invalid denominators
+       resid = np.where(mask, (model_obs - measured_safe) / scale_safe, 0.0)
+       count = np.sum(mask)
+       loss = np.where(count > 0, np.sqrt(np.sum(resid * resid) / count), 1.0e10)
 
    In JAX (generated_script.py) this becomes the identical structure with
-   jnp.isnan / jnp.nanmax / jnp.where / jnp.sum. The key rule: divide
-   `(model - data_safe)`, never `(model - dataset)`, because `dataset` still
-   contains NaN.
+   jnp.isfinite / jnp.nanmax / jnp.where / jnp.sum. The key rules are: divide
+   `(model - measured_safe)`, never `(model - measured)`, because `measured`
+   may still contain NaN; and divide by `scale_safe`, never by a raw denominator
+   that may be zero, NaN, or inf.
+
+   This rule is not limited to uncertainty columns. Any division in a derived
+   observable or loss term must have the same treatment unless the denominator
+   is guaranteed nonzero by the equations, data, or parameter bounds. If a
+   model-derived denominator can cross zero, ask the user for the intended
+   regularisation rather than silently adding an epsilon.
 
    Per-observable weighting note: `sum(resid^2)/sum(mask)` pools all points, so
    an observable with many samples dominates one with few. If equal weight per

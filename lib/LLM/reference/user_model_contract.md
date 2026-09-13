@@ -83,6 +83,11 @@ Rules:
   here rather than recomputing the algebra, so the two cannot drift;
 - a quantity the RHS also needs (a reaction rate, say) stays in its own helper,
   which `_observables` calls. Do not duplicate it.
+- any division, logarithm, square root, or other domain-restricted arithmetic in
+  an observable must be finite-safe over the stated parameter bounds and the
+  possible state trajectories. If the domain restriction is not guaranteed by
+  the model, bounds, or data, the generated code must guard it or ask the user
+  to define the intended regularisation.
 
 It is pseudocode like the rest of the file: `/pfit-jax` inlines it into the
 generated loss, so no framework code calls it.
@@ -96,13 +101,23 @@ The framework does not normalize it. An unscaled loss degrades gradient step
 sizes and convergence. The standard pattern is a per-column-scaled RMSE:
 
 ```python
-scale_factor = np.max(np.abs(dataset), axis=0)
-scale_factor = np.where(scale_factor == 0, 1.0, scale_factor)
-loss = np.sqrt(np.mean(np.square(
-    (solution[:, obs_indices] - dataset[:, col_indices]) / scale_factor[col_indices])))
+scale_factor = np.nanmax(np.abs(dataset), axis=0)
+valid = np.isfinite(dataset[:, col_indices]) & np.isfinite(scale_factor[col_indices]) & (scale_factor[col_indices] > 0)
+data_safe = np.where(valid, dataset[:, col_indices], 0.0)
+scale_safe = np.where(valid, scale_factor[col_indices], 1.0)
+resid = np.where(valid, (solution[:, obs_indices] - data_safe) / scale_safe, 0.0)
+count = np.sum(valid)
+loss = np.where(count > 0, np.sqrt(np.sum(resid * resid) / count), 1.0e10)
 ```
 
 It must NOT loop over or aggregate multiple datasets.
+
+Every division in `_compute_loss_problem` must be finite-safe, whether the
+denominator is an uncertainty column, a data-derived scale, a state-derived
+observable, or another algebraic transformation. Divide only by denominators
+known to be finite and nonzero, or by a sanitized replacement under a mask. When
+the scientifically correct behavior near a zero denominator is ambiguous, ask
+the user; do not silently add an epsilon.
 
 For observables sampled at different times, see `staggered_data.md`.
 
@@ -111,4 +126,3 @@ For observables sampled at different times, see `staggered_data.md`.
 Returns an array to be written to `result_solution_expN.csv`. The useful shape
 is `[time | data columns | solution columns]`, sized for plotting data against
 fit. It must NOT loop over multiple datasets.
-

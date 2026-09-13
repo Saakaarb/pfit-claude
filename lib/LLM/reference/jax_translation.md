@@ -143,11 +143,16 @@ conditions are defined before measurement starts — row 0 compares the model at
 at all. Nothing raises; the residual is just silently computed against the wrong
 pairing.
 
-### NaN-safe arithmetic
+### Finite-safe arithmetic
 
-When the loss masks NaNs (ragged sampling), sanitise **before** dividing —
-`jnp.where(mask, dataset, 0.0)` first — so NaN never enters the autodiff graph.
-See `staggered_data.md`.
+When the model or loss masks missing data, sanitise **before** any arithmetic
+that can produce NaN or inf. This includes division, logarithms, square roots,
+and derived observables as well as uncertainty-weighted residuals. JAX may trace
+both branches of `jnp.where`; an invalid value in the inactive branch can still
+poison reverse-mode autodiff. Replace invalid measurements before subtracting
+and replace invalid denominators before dividing, e.g.
+`safe = jnp.where(mask, raw, replacement)`, then compute the expression from
+the safe values. See `staggered_data.md`.
 
 ## Output format
 

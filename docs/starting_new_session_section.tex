@@ -1,0 +1,237 @@
+\subsection{Starting a new session}
+\label{sec:starting-new-session}
+
+A new fitting problem begins with
+
+\begin{verbatim}
+/pfit-new <session-name>
+\end{verbatim}
+
+This command converts a user description of a scientific fitting problem into a
+session specification. The user provides the model equations, data files,
+parameter bounds or fixed values, initial conditions, forcing functions, and the
+loss definition. The agent's role is to assemble these inputs into the two files
+used by the framework, \texttt{inputs/user\_input.yaml} and
+\texttt{generated/user\_model.py}.
+
+Before writing those files, the agent must have a complete specification of the
+run: the ODE states and their ordering, the trainable and fixed parameters, the
+experiments to be fitted, the initial condition and forcing history for each
+experiment, the mapping from data columns to observables or inputs, and the
+loss used to compare model outputs with measurements. If the user's note is
+complete, the session can be created without further questions. If not, the
+agent asks only for the missing scientific decisions.
+
+\subsubsection{User problem note}
+
+The user is not expected to write YAML or Python. A concise note with stable
+headings is sufficient. For example:
+
+\begin{verbatim}
+# Drug response fitting problem
+
+## User model
+files = [pulse_low_raw.csv, washout_raw.csv]
+states = [D, R]
+
+Initial conditions:
+  pulse_low_raw.csv: D = 0, R = 0
+  washout_raw.csv:   D = 0, R = 0.3
+
+ODE:
+  dD/dt = dose_rate(t) - k_elim D
+  dR/dt = k_on D (1 - R) - k_off R
+
+Observables:
+  signal_model(t) = baseline + gain R(t)
+  recovery_model(t) = R(t)
+
+## Trainable and fixed parameters
+k_elim:   0.01  to 10,  log scale
+k_on:     0.001 to 10,  log scale
+k_off:    0.001 to 10,  log scale
+baseline: 50    to 150, linear scale
+gain:     1     to 200, linear scale
+fixed parameters: none
+
+## Loss function calculation using model outputs and datasets
+pulse_low_raw.csv:
+  t = time_min
+  dose_rate(t) = dose_rate
+  signal_obs = signal
+  sigma = signal_sd
+
+washout_raw.csv:
+  t = time_min
+  dose_rate(t) = 0
+  recovery_obs = recovery
+  sigma = recovery_sd
+
+For each finite measured value:
+  r_signal = (signal_model(t_k) - signal_obs,k) / signal_sd,k
+  r_recovery = (recovery_model(t_k) - recovery_obs,k) / recovery_sd,k
+  loss = sqrt(mean(r^2)) over all finite residuals
+
+Blank measured entries are missing measurements and are excluded.
+\end{verbatim}
+
+This form states the model, unknowns, data mapping, and objective in the terms a
+scientist naturally uses, while still giving the agent enough information to
+construct the internal schema.
+
+
+\subsubsection{Preparing the data files}
+
+Raw data files may contain different measured quantities. In a multi-experiment
+fit, however, the framework expects every fitting CSV to have the same column
+layout: the time column first, followed by the same forcing, measurement, and
+uncertainty columns in the same order. When an observable is absent from one
+experiment, the user keeps the column and leaves its entries blank. The agent
+must not modify data files or write derived copies; it identifies the required
+layout, and the user creates the framework-ready CSV files.
+
+The following raw files already use consistent names and time units, but they
+measure different outputs. The pulse experiment measures \texttt{signal}; the
+washout experiment measures \texttt{recovery}. Both outputs enter the loss, so
+the canonical layout must contain the union of these measured channels.
+
+\noindent
+\begin{minipage}[t]{0.49\textwidth}
+\small
+\begin{verbatim}
+pulse_low_raw.csv
+
+time_min,dose_rate,signal,signal_sd
+0,0.0,100.0,4.0
+1,1.0,,4.2
+2,1.0,113.5,4.4
+4,0.0,,4.1
+6,0.0,104.5,4.0
+\end{verbatim}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\small
+\begin{verbatim}
+washout_raw.csv
+
+time_min,dose_rate,recovery,recovery_sd
+0,0.0,0.82,0.04
+0.5,0.0,0.78,0.04
+1.0,0.0,,0.05
+2.5,0.0,0.69,0.04
+5.0,0.0,0.58,0.03
+8.0,0.0,0.51,0.03
+\end{verbatim}
+\end{minipage}
+
+For fitting, the user prepares both files with the common layout
+
+\begin{verbatim}
+time_min,dose_rate,signal,signal_sd,recovery,recovery_sd
+\end{verbatim}
+
+The pulse file has no recovery measurements, so the recovery columns are blank.
+The washout file has no signal measurements, so the signal columns are blank.
+Blank measured values are loaded as \texttt{NaN} and excluded by the masked
+loss. The time grids may differ between files, but the time unit must already be
+consistent; the framework does not infer or perform unit conversions.
+
+\noindent
+\begin{minipage}[t]{0.49\textwidth}
+\small
+\begin{verbatim}
+pulse_low.csv
+
+time_min,dose_rate,signal,signal_sd,recovery,recovery_sd
+0,0.0,100.0,4.0,,
+1,1.0,,4.2,,
+2,1.0,113.5,4.4,,
+4,0.0,,4.1,,
+6,0.0,104.5,4.0,,
+\end{verbatim}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\small
+\begin{verbatim}
+washout.csv
+
+time_min,dose_rate,signal,signal_sd,recovery,recovery_sd
+0,0.0,,,0.82,0.04
+0.5,0.0,,,0.78,0.04
+1.0,0.0,,,,0.05
+2.5,0.0,,,0.69,0.04
+5.0,0.0,,,0.58,0.03
+8.0,0.0,,,0.51,0.03
+\end{verbatim}
+\end{minipage}
+
+Two representative row conversions are:
+
+\noindent
+\begin{minipage}[t]{0.49\textwidth}
+\small
+\begin{verbatim}
+pulse_low_raw.csv
+raw columns:
+time_min,dose_rate,signal,signal_sd
+raw row:
+2,1.0,113.5,4.4
+
+pulse_low.csv
+canonical columns:
+time_min,dose_rate,signal,signal_sd,recovery,recovery_sd
+canonical row:
+2,1.0,113.5,4.4,,
+\end{verbatim}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\small
+\begin{verbatim}
+washout_raw.csv
+raw columns:
+time_min,dose_rate,recovery,recovery_sd
+raw row:
+2.5,0.0,0.69,0.04
+
+washout.csv
+canonical columns:
+time_min,dose_rate,signal,signal_sd,recovery,recovery_sd
+canonical row:
+2.5,0.0,,,0.69,0.04
+\end{verbatim}
+\end{minipage}
+
+This layout lets one loss function be applied to every experiment: residuals
+for \texttt{signal} are finite only in the pulse file, residuals for
+\texttt{recovery} are finite only in the washout file, and missing channels do
+not contribute to the objective.
+
+\subsubsection{Agent review and generated files}
+
+From the note and CSV headers, the agent infers that the two experiments share
+one ODE system and one trainable parameter vector, but differ in the initial
+condition for \texttt{R} and in their forcing histories. The measured columns are compared to calculated observables: \texttt{signal}
+to \texttt{signal\_model = baseline + gain R}, and \texttt{recovery} to
+\texttt{recovery\_model = R}. The corresponding uncertainty columns weight the
+residuals, and blank measurements require a finite-data mask.
+
+If information is missing, the agent asks targeted questions such as:
+
+\begin{verbatim}
+The recovery column appears only in the washout file. Should it measure R(t)?
+
+The signal column is absent from the washout file. Should it be blank there and masked?
+
+Should dose_rate(t) be zero throughout the washout experiment?
+\end{verbatim}
+
+Once the specification is complete, \texttt{/pfit-new} writes the session files.
+The YAML records the user-prepared CSV files, initial conditions, parameter
+bounds, observables, and column declarations. The model file records the ODE
+right-hand side, forcing interpolation, calculated observables, and the masked
+uncertainty-weighted loss over both measured channels. The user then reviews the generated state ordering,
+parameter ranges, equations, and data-column usage before continuing to
+
+\begin{verbatim}
+/pfit-check <session-name>
+\end{verbatim}

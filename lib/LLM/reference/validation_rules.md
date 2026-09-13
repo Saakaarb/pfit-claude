@@ -255,6 +255,12 @@ Treat the file as pseudocode throughout (see the "do not flag" list below).
 - The loss is normalized so it likely lies between 0 and 1 -> critical.
 - Convertible to JAX and JIT-compilable -> critical.
 - Must NOT loop over or aggregate multiple datasets -> critical if violated.
+- Any division in `_observables` or `_compute_loss_problem` is finite-safe. If a
+  denominator is a data column, scale, uncertainty, state expression, or derived
+  observable and is not guaranteed finite and nonzero, the code must sanitize it
+  before division or document the user-approved regularisation. Unguarded
+  division with present NaNs or possible zero denominators is critical; otherwise
+  warn with the specific denominator.
 - Any undefined parameters? Obvious logical errors? Only numpy/math?
 
 ### `writeout_description`
