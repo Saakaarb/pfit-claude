@@ -10,7 +10,7 @@ docs/
 !docs/jax_step_section.tex
 !docs/run_step_section.tex
 !docs/diagnose_step_section.tex
-lib/LLM/reference/study_input_example.md
+!docs/tunable_choices.md
 
 # Python caches
 __pycache__/
@@ -45,3 +45,7 @@ report.log
 
 # Local Python environment
 /venv/
+.venv/
+
+# OS/editor metadata
+.DS_Store
